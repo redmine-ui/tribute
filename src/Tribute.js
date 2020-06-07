@@ -274,14 +274,6 @@ class Tribute {
   }
 
   showMenuFor(element, scrollTo) {
-    // Only proceed if menu isn't already shown for the current element & mentionText
-    if (
-      this.isActive &&
-      this.current.element === element &&
-      this.current.mentionText === this.currentMentionTextSnapshot
-    ) {
-      return;
-    }
     this.currentMentionTextSnapshot = this.current.mentionText;
 
     // create the menu if it doesn't exist.
@@ -293,6 +285,9 @@ class Tribute {
 
     this.isActive = true;
     this.menuSelected = 0;
+    window.setTimeout(() => {
+      this.menu.scrollTop = 0;
+    },0)
 
     if (!this.current.mentionText) {
       this.current.mentionText = "";
@@ -353,9 +348,12 @@ class Tribute {
       ul.innerHTML = "";
       let fragment = this.range.getDocument().createDocumentFragment();
 
+      this.menuSelected = items.findIndex(item => item.original.disabled !== true);
+
       items.forEach((item, index) => {
         let li = this.range.getDocument().createElement("li");
         li.setAttribute("data-index", index);
+        if (item.original.disabled) li.setAttribute("data-disabled","true");
         li.className = this.current.collection.itemClass;
         li.addEventListener("mousemove", e => {
           let [li, index] = this._findLiTarget(e.target);
@@ -393,6 +391,7 @@ class Tribute {
   }
 
   showMenuForCollection(element, collectionIndex) {
+
     if (element !== document.activeElement) {
       this.placeCaretAtEnd(element);
     }
