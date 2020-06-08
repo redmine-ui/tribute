@@ -101,6 +101,7 @@ class TributeEvents {
       if (li.getAttribute("data-disabled") === "true") {
         return;
       }
+      if (tribute.current.filteredItems.length === 0) li.setAttribute("data-index", -1);
 
       tribute.selectItemAtIndex(li.getAttribute("data-index"), event);
       tribute.hideMenu();
@@ -240,6 +241,9 @@ class TributeEvents {
         if (this.tribute.isActive && filteredItems && filteredItems.length) {
           e.preventDefault();
           e.stopPropagation();
+
+          if (this.tribute.current.filteredItems.length === 0) this.tribute.menuSelected = -1;
+
           setTimeout(() => {
             this.tribute.selectItemAtIndex(this.tribute.menuSelected, e);
             this.tribute.hideMenu();
