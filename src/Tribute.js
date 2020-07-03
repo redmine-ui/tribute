@@ -162,7 +162,7 @@ class Tribute {
                 return "<li>No Match Found!</li>";
               }.bind(this)
             );
-          })(noMatchTemplate),
+          })(item.noMatchTemplate),
           lookup: item.lookup || lookup,
           fillAttr: item.fillAttr || fillAttr,
           values: item.values,
