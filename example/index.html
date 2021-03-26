@@ -99,6 +99,7 @@
             Tribute with <code>autocompleteMode:true</code> on
             <code>contenteditable</code> element:
           </h5>
+          <p>At least 2characters are required</p>
           <!-- <a id="activateInput">@mention</a> -->
           <div id="test-autocomplete-container">
             <p
@@ -118,7 +119,7 @@
             Tribute with <code>autocompleteMode:true</code> on
             <code>textarea</code> element:
           </h5>
-
+          <p>At least 2characters are required</p>
           <div id="test-autocomplete-textarea-container">
             <textarea
               id="test-autocomplete-textarea"
@@ -416,7 +417,8 @@
         },
         menuItemTemplate: function(item) {
           return item.string;
-        }
+        },
+        menuShowMinLength: 2
       };
       var tributeAutocompleteTest = new Tribute(
         Object.assign(
