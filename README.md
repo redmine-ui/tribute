@@ -218,6 +218,12 @@ Collection object shown with defaults:
   // An option to hide the tribute when scrolled
   // defaults to false, can accept true, or a container to bind the scroll event to.
   closeOnScroll: false,
+
+  // Set maximum number of items added to the input for the specific Collection, if no limit, set to null.
+  maxDisplayItems: null,
+
+  // Block specific collection, so it can be triggered or not
+  isBlocked: false
 }
 ```
 

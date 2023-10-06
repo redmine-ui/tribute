@@ -31,8 +31,10 @@ class Tribute {
     searchOpts = {},
     menuItemLimit = null,
     menuShowMinLength = 0,
-    closeOnScroll = false
- }) {
+    closeOnScroll = false,
+    maxDisplayItems = null,
+    isBlocked = false
+  }) {
     this.autocompleteMode = autocompleteMode;
     this.autocompleteSeparator = autocompleteSeparator;
     this.menuSelected = 0;
@@ -119,8 +121,13 @@ class Tribute {
 
           menuItemLimit: menuItemLimit,
 
-          menuShowMinLength: menuShowMinLength
-        }
+          menuShowMinLength: menuShowMinLength,
+
+          // Fix for maximum number of items added to the input for the specific Collection
+          maxDisplayItems: maxDisplayItems,
+
+          isBlocked: isBlocked
+       }
       ];
     } else if (collection) {
       if (this.autocompleteMode)
@@ -164,7 +171,11 @@ class Tribute {
           requireLeadingSpace: item.requireLeadingSpace,
           searchOpts: item.searchOpts || searchOpts,
           menuItemLimit: item.menuItemLimit || menuItemLimit,
-          menuShowMinLength: item.menuShowMinLength || menuShowMinLength
+          menuShowMinLength: item.menuShowMinLength || menuShowMinLength,
+
+          // Set maximum number of items added to the input for the specific Collection
+          maxDisplayItems: item.maxDisplayItems || maxDisplayItems,
+          isBlocked: item.isBlocked || isBlocked
         };
       });
     } else {
@@ -282,6 +293,17 @@ class Tribute {
   }
 
   showMenuFor(element, scrollTo) {
+    // Check for maximum number of items added to the input for the specific Collection
+    if(
+      (
+        this.current.collection.maxDisplayItems &&
+        element.querySelectorAll('[data-tribute-trigger="' + this.current.collection.trigger + '"]').length >= this.current.collection.maxDisplayItems
+      ) || this.current.collection.isBlocked
+    ) {
+      //console.log("Tribute: Maximum number of items added!");
+      return;
+    }
+
     this.currentMentionTextSnapshot = this.current.mentionText;
 
     // create the menu if it doesn't exist.
@@ -400,6 +422,16 @@ class Tribute {
   }
 
   showMenuForCollection(element, collectionIndex) {
+    // Check for maximum number of items added to the input for the specific Collection
+    if(
+      (
+        this.collection[collectionIndex || 0].maxDisplayItems &&
+        element.querySelectorAll('[data-tribute-trigger="' +  this.collection[collectionIndex || 0].trigger + '"]').length >= this.collection[collectionIndex || 0].maxDisplayItems
+      ) || this.collection[collectionIndex || 0].isBlocked
+    ) {
+      //console.log("Tribute: Maximum number of items added!");
+      return;
+    }
 
     if (element !== document.activeElement) {
       this.placeCaretAtEnd(element);
