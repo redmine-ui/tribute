@@ -180,10 +180,10 @@
       </div>
     </div>
 
-    <script src="tribute.js"></script>
-    <script>
+    <script type="module">
+      import Tribute from './tribute.mjs';
       // example of alternative callback
-      var tribute = new Tribute({
+      const tribute = new Tribute({
         // menuContainer: document.getElementById('content'),
         values: [
           {
@@ -223,7 +223,7 @@
       tribute.attach(document.getElementById("testInput"));
       tribute.attach(document.getElementById("testarea"));
 
-      var tributeMultipleTriggers = new Tribute({
+      const tributeMultipleTriggers = new Tribute({
         collection: [
           {
             // The function that gets call on select that retuns the content to insert
@@ -291,7 +291,7 @@
 
       document.getElementById("activateAt").addEventListener("mousedown", function(e) {
         e.preventDefault();
-        var input = document.getElementById("testMultiple");
+        const input = document.getElementById("testMultiple");
 
         if (tributeMultipleTriggers.isActive) {
           tributeMultipleTriggers.replaceText('');
@@ -302,7 +302,7 @@
 
       document.getElementById("activateHash").addEventListener("mousedown", function(e) {
         e.preventDefault();
-        var input = document.getElementById("testMultiple");
+        const input = document.getElementById("testMultiple");
 
         if (tributeMultipleTriggers.isActive) {
           tributeMultipleTriggers.replaceText('');
@@ -318,12 +318,12 @@
           console.log("Matched item:", e.detail.item);
         });
 
-      var noMatchRunOnce = false;
+      const noMatchRunOnce = false;
       document
         .getElementById("test")
         .addEventListener("tribute-no-match", function(e) {
           if (noMatchRunOnce) return;
-          var values = [
+          const values = [
             {
               key: "Cheese Tacos",
               value: "Cheese Tacos",
@@ -334,12 +334,12 @@
           noMatchRunOnce = true;
         });
 
-      var activateLink = document.getElementById("activateInput");
+      const activateLink = document.getElementById("activateInput");
 
       if (activateLink) {
         activateLink.addEventListener("mousedown", function(e) {
           e.preventDefault();
-          var input = document.getElementById("test");
+          const input = document.getElementById("test");
 
           tribute.showMenuForCollection(input);
         });
@@ -348,7 +348,7 @@
 
       // example of Tribute in autocomplete mode
 
-      var tributeAttributes = {
+      const tributeAttributes = {
         autocompleteMode: true,
         noMatchTemplate: "",
         values: [
@@ -420,7 +420,7 @@
         },
         menuShowMinLength: 2
       };
-      var tributeAutocompleteTest = new Tribute(
+      const tributeAutocompleteTest = new Tribute(
         Object.assign(
           {
             menuContainer: document.getElementById(
@@ -434,7 +434,7 @@
         document.getElementById("test-autocomplete")
       );
 
-      var tributeAutocompleteTestArea = new Tribute(
+      const tributeAutocompleteTestArea = new Tribute(
         Object.assign(
           {
             menuContainer: document.getElementById(
@@ -448,14 +448,9 @@
         document.getElementById("test-autocomplete-textarea")
       );
 
-
-
-
-
-
       // Grouping example
 
-      var tributeGroupEx = new Tribute({
+      const tributeGroupEx = new Tribute({
         values: [
           { key: "SUVs", value: "SUVs", disabled:true },
           { key: "Ford Explorer", value: "Ford Explorer" },
@@ -493,7 +488,6 @@
       tributeGroupEx.attach(
         document.getElementById("test-grouped")
       );
-
 
     </script>
   </body>

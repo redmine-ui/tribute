@@ -1,8 +1,7 @@
-import "./utils";
-import TributeEvents from "./TributeEvents";
-import TributeMenuEvents from "./TributeMenuEvents";
-import TributeRange from "./TributeRange";
-import TributeSearch from "./TributeSearch";
+import TributeEvents from "./TributeEvents.js";
+import TributeMenuEvents from "./TributeMenuEvents.js";
+import TributeRange from "./TributeRange.js";
+import TributeSearch from "./TributeSearch.js";
 
 class Tribute {
   constructor({
