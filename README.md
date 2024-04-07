@@ -144,12 +144,12 @@ Collection object shown with defaults:
   // class added to each list item
   itemClass: '',
 
-  // function called on select that returns the content to insert
+  // function called on select that returns the content to insert (return dom string or dom node)
   selectTemplate: function (item) {
     return '@' + item.original.value;
   },
 
-  // template for displaying item in menu
+  // template for displaying item in menu (return dom string or dom node)
   menuItemTemplate: function (item) {
     return item.string;
   },

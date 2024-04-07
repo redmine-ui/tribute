@@ -395,7 +395,14 @@ class Tribute {
         if (this.menuSelected === index) {
           li.classList.add(this.current.collection.selectClass);
         }
-        li.innerHTML = this.current.collection.menuItemTemplate(item);
+        // remove all content in the li and append the content of menuItemTemplate
+        const menuItemDomOrString = this.current.collection.menuItemTemplate(item);
+        if (menuItemDomOrString instanceof Element) {
+          li.innerHTML = "";
+          li.appendChild(menuItemDomOrString);
+        } else {
+          li.innerHTML = menuItemDomOrString;
+        }
         fragment.appendChild(li);
       });
       ul.appendChild(fragment);
