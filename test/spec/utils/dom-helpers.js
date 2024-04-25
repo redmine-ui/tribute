@@ -1,3 +1,5 @@
+import { sendKeys } from '@web/test-runner-commands';
+
 export const createDomElement = function(element = 'text') {
   let elementToCreate = 'input';
   if (element === 'contenteditable') {
@@ -23,11 +25,17 @@ export const clearDom = function() {
   }
 }
 
-export const fillIn = function(input, text) {
+export async function fillIn(input, text) {
   input.focus();
-  $(input).sendkeys(text);
-  input.dispatchEvent(new KeyboardEvent('keydown'));
-  input.dispatchEvent(new KeyboardEvent('keyup'));
+  await sendKeys({
+    type: text
+  });
+}
+
+export async function press(key) {
+  await sendKeys({
+    press: key
+  });
 }
 
 export const simulateMouseClick = function(targetNode) {
@@ -44,4 +52,3 @@ export const simulateMouseClick = function(targetNode) {
 export const simulateElementScroll = function(container) {
   container.dispatchEvent(new Event('scroll'));
 }
-

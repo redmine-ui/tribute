@@ -1,18 +1,20 @@
-"use strict";
+import { expect } from 'chai';
 
-import bigList from "./utils/bigList.json";
+import Tribute from '../../src/index.js'
+import bigList from "./utils/bigList.json" with { type: "json" };
 
 import {
   clearDom,
   createDomElement,
   fillIn,
+  press,
   simulateMouseClick,
   simulateElementScroll
-} from "./utils/dom-helpers";
+} from './utils/dom-helpers';
 
 import { attachTribute, detachTribute } from "./utils/tribute-helpers";
 
-describe("Tribute instantiation", function() {
+describe("Tribute instantiation", () => {
   it("should not error in the base case from the README", () => {
     const options = [
       { key: "Phil Heartman", value: "pheartman" },
@@ -22,21 +24,21 @@ describe("Tribute instantiation", function() {
       values: options
     });
 
-    expect(tribute.collection[0].values).toEqual(options);
+    expect(tribute.collection[0].values).to.equal(options);
   });
 });
 
-describe("Tribute @mentions cases", function() {
-  afterEach(function() {
+describe("Tribute @mentions cases", () => {
+  afterEach(() => {
     clearDom();
   });
 
   ["text", "contenteditable"].forEach(elementType => {
     ["@", "$("].forEach(trigger => {
-      it(`when values key is predefined array. For : ${elementType} / ${trigger}`, () => {
+      it(`when values key is predefined array. For : ${elementType} / ${trigger}`, async () => {
         let input = createDomElement(elementType);
 
-        let collectionObject = {
+        const collectionObject = {
           trigger: trigger,
           selectTemplate: function(item) {
             if (typeof item === "undefined") return null;
@@ -68,29 +70,29 @@ describe("Tribute @mentions cases", function() {
 
         let tribute = attachTribute(collectionObject, input.id);
 
-        fillIn(input, " " + trigger);
+        await fillIn(input, " " + trigger);
         let popupList = document.querySelectorAll(
           ".tribute-container > ul > li"
         );
-        expect(popupList.length).toBe(2);
+        expect(popupList.length).to.equal(2);
         simulateMouseClick(popupList[0]); // click on Jordan Humphreys
 
         if (elementType === "text") {
-          expect(input.value).toBe(" " + trigger + "Jordan Humphreys ");
+          expect(input.value).to.equal(" " + trigger + "Jordan Humphreys ");
         } else if (elementType === "contenteditable") {
-          expect(input.innerHTML).toBe(
+          expect(input.innerHTML).to.equal(
             ' <span contenteditable="false"><a href="http://zurb.com" target="_blank" title="getstarted@zurb.com">Jordan Humphreys</a></span>&nbsp;'
           );
         }
 
-        fillIn(input, " " + trigger + "sir");
+        await fillIn(input, " " + trigger + "sir");
         popupList = document.querySelectorAll(".tribute-container > ul > li");
-        expect(popupList.length).toBe(1);
+        expect(popupList.length).to.equal(1);
 
         detachTribute(tribute, input.id);
       });
 
-      it(`when values array is large and menuItemLimit is set. For : ${elementType} / ${trigger}`, () => {
+      it(`when values array is large and menuItemLimit is set. For : ${elementType} / ${trigger}`, async () => {
         let input = createDomElement(elementType);
 
         let collectionObject = {
@@ -115,20 +117,20 @@ describe("Tribute @mentions cases", function() {
 
         let tribute = attachTribute(collectionObject, input.id);
 
-        fillIn(input, " " + trigger);
+        await fillIn(input, " " + trigger);
         let popupList = document.querySelectorAll(
           ".tribute-container > ul > li"
         );
-        expect(popupList.length).toBe(25);
+        expect(popupList.length).to.equal(25);
 
-        fillIn(input, " " + trigger + "an");
+        await fillIn(input, " " + trigger + "an");
         popupList = document.querySelectorAll(".tribute-container > ul > li");
-        expect(popupList.length).toBe(25);
+        expect(popupList.length).to.equal(25);
 
         detachTribute(tribute, input.id);
       });
 
-      it("should add itemClass to list items when set it config", () => {
+      it("should add itemClass to list items when set it config", async () => {
         let input = createDomElement(elementType);
 
         let collectionObject = {
@@ -151,16 +153,16 @@ describe("Tribute @mentions cases", function() {
 
         let tribute = attachTribute(collectionObject, input.id);
 
-        fillIn(input, " " + trigger);
+        await fillIn(input, " " + trigger);
         let popupList = document.querySelectorAll(
           ".tribute-container > ul > li"
         );
-        expect(popupList.length).toBe(2);
+        expect(popupList.length).to.equal(2);
 
-        expect(popupList[0].className).toBe(
+        expect(popupList[0].className).to.equal(
           "mention-list-item mention-selected"
         );
-        expect(popupList[1].className).toBe("mention-list-item");
+        expect(popupList[1].className).to.equal("mention-list-item");
 
         detachTribute(tribute, input.id);
       });
@@ -168,13 +170,13 @@ describe("Tribute @mentions cases", function() {
   });
 });
 
-describe("Tribute autocomplete mode cases", function() {
-  afterEach(function() {
+describe("Tribute autocomplete mode cases", () => {
+  afterEach(() => {
     clearDom();
   });
 
   ['text', 'contenteditable'].forEach(elementType => {
-    it(`when values key with autocompleteSeparator option. For : ${elementType}`, () => {
+    it(`when values key with autocompleteSeparator option. For : ${elementType}`, async () => {
       let input = createDomElement(elementType);
 
       let collectionObject = {
@@ -191,27 +193,27 @@ describe("Tribute autocomplete mode cases", function() {
 
       let tribute = attachTribute(collectionObject, input.id);
 
-      fillIn(input, '+J');
+      await fillIn(input, '+J');
       let popupList = document.querySelectorAll('.tribute-container > ul > li');
-      expect(popupList.length).toBe(1);
+      expect(popupList.length).to.equal(1);
       simulateMouseClick(popupList[0]); // click on Jordan Humphreys
 
       if (elementType === 'text') {
-        expect(input.value).toBe('+Jordan Humphreys ');
+        expect(input.value).to.equal('+Jordan Humphreys ');
       } else if (elementType === 'contenteditable') {
-        expect(input.innerText).toBe('+Jordan Humphreys ');
+        expect(input.innerText).to.equal('+Jordan Humphreys ');
       }
 
-      fillIn(input, ' Si');
+      await fillIn(input, ' Si');
       popupList = document.querySelectorAll('.tribute-container > ul > li');
-      expect(popupList.length).toBe(1);
+      expect(popupList.length).to.equal(1);
 
       detachTribute(tribute, input.id);
     });
   });
 
   ["text", "contenteditable"].forEach(elementType => {
-    it(`when values key is predefined array. For : ${elementType}`, () => {
+    it(`when values key is predefined array. For : ${elementType}`, async () => {
       let input = createDomElement(elementType);
 
       let collectionObject = {
@@ -235,27 +237,27 @@ describe("Tribute autocomplete mode cases", function() {
 
       let tribute = attachTribute(collectionObject, input.id);
 
-      fillIn(input, " J");
+      await fillIn(input, ' J');
       let popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(popupList.length).toBe(1);
+      expect(popupList.length).to.equal(1);
       simulateMouseClick(popupList[0]); // click on Jordan Humphreys
 
       if (elementType === "text") {
-        expect(input.value).toBe(" Jordan Humphreys ");
+        expect(input.value).to.equal(" Jordan Humphreys ");
       } else if (elementType === "contenteditable") {
-        expect(input.innerText).toBe("Jordan Humphreys ");
+        expect(input.innerText).to.equal("Jordan Humphreys ");
       }
 
-      fillIn(input, " Si");
+      await fillIn(input, ' Si');
       popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(popupList.length).toBe(1);
+      expect(popupList.length).to.equal(1);
 
       detachTribute(tribute, input.id);
     });
   });
 
   ["text", "contenteditable"].forEach(elementType => {
-    it(`when values key is a function. For : ${elementType}`, () => {
+    it(`when values key is a function. For : ${elementType}`, async () => {
       let input = createDomElement(elementType);
 
       let collectionObject = {
@@ -300,38 +302,38 @@ describe("Tribute autocomplete mode cases", function() {
 
       let tribute = attachTribute(collectionObject, input.id);
 
-      fillIn(input, " a");
+      await fillIn(input, ' a');
       let popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(popupList.length).toBe(4);
+      expect(popupList.length).to.equal(4);
       simulateMouseClick(popupList[0]);
 
       if (elementType === "text") {
-        expect(input.value).toBe(" Alabama ");
+        expect(input.value).to.equal(" Alabama ");
       } else if (elementType === "contenteditable") {
-        expect(input.innerText).toBe(" Alabama ");
+        expect(input.innerText).to.equal(" Alabama ");
       }
 
-      fillIn(input, " c");
+      await fillIn(input, ' c');
       popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(popupList.length).toBe(2);
+      expect(popupList.length).to.equal(2);
       simulateMouseClick(popupList[1]);
 
       if (elementType === "text") {
-        expect(input.value).toBe(" Alabama  Colorado ");
+        expect(input.value).to.equal(" Alabama  Colorado ");
       } else if (elementType === "contenteditable") {
-        expect(input.innerText).toBe(" Alabama   Colorado ");
+        expect(input.innerText).to.equal(" Alabama   Colorado ");
       }
 
-      fillIn(input, " none");
+      await fillIn(input, ' none');
       let popupListWrapper = document.querySelector(".tribute-container");
-      expect(popupListWrapper.style.display).toBe("none");
+      expect(popupListWrapper.style.display).to.equal("none");
 
       detachTribute(tribute, input.id);
     });
   });
 
   ["contenteditable"].forEach(elementType => {
-    it(`should work with newlines`, () => {
+    it(`should work with newlines`, async () => {
       let input = createDomElement(elementType);
 
       let collectionObject = {
@@ -354,20 +356,20 @@ describe("Tribute autocomplete mode cases", function() {
       };
 
       let tribute = attachTribute(collectionObject, input.id);
-      fillIn(input, "random{newline}J");
+      await fillIn(input, "random{newline}J");
       let popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(popupList.length).toBe(1);
+      expect(popupList.length).to.equal(1);
       detachTribute(tribute, input.id);
     });
   });
 });
 
-describe("When Tribute searchOpts.skip", function() {
-  afterEach(function() {
+describe("When Tribute searchOpts.skip", () => {
+  afterEach(() => {
     clearDom();
   });
 
-  it("should skip local filtering and display all items", () => {
+  it("should skip local filtering and display all items", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -386,21 +388,21 @@ describe("When Tribute searchOpts.skip", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@random-text");
+    await fillIn(input, "@random-text");
 
     let popupList = document.querySelectorAll(".tribute-container > ul > li");
-    expect(popupList.length).toBe(3);
+    expect(popupList.length).to.equal(3);
 
     detachTribute(tribute, input.id);
   });
 });
 
-describe("Tribute NoMatchTemplate cases", function() {
-  afterEach(function() {
+describe("Tribute NoMatchTemplate cases", () => {
+  afterEach(() => {
     clearDom();
   });
 
-  it("should display template when specified as text", () => {
+  it("should display template when specified as text", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -423,15 +425,15 @@ describe("Tribute NoMatchTemplate cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@random-text");
+    await fillIn(input, "@random-text");
 
     let containerDiv = document.getElementsByClassName("tribute-container")[0];
-    expect(containerDiv.innerText).toBe("testcase");
+    expect(containerDiv.innerText).to.equal("testcase");
 
     detachTribute(tribute, input.id);
   });
 
-  it("should display template when specified as function", () => {
+  it("should display template when specified as function", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -456,15 +458,15 @@ describe("Tribute NoMatchTemplate cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@random-text");
+    await fillIn(input, "@random-text");
 
     let containerDiv = document.getElementsByClassName("tribute-container")[0];
-    expect(containerDiv.innerText).toBe("testcase");
+    expect(containerDiv.innerText).to.equal("testcase");
 
     detachTribute(tribute, input.id);
   });
 
-  it("should display no menu container when text is empty", () => {
+  it("should display no menu container when text is empty", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -487,15 +489,15 @@ describe("Tribute NoMatchTemplate cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@random-text");
+    await fillIn(input, "@random-text");
 
     let popupListWrapper = document.querySelector(".tribute-container");
-    expect(popupListWrapper.style.display).toBe("none");
+    expect(popupListWrapper.style.display).to.equal("none");
 
     detachTribute(tribute, input.id);
   });
 
-  it("should display no menu when function returns empty string", () => {
+  it("should display no menu when function returns empty string", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -520,21 +522,21 @@ describe("Tribute NoMatchTemplate cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@random-text");
+    await fillIn(input, "@random-text");
 
     let popupListWrapper = document.querySelector(".tribute-container");
-    expect(popupListWrapper.style.display).toBe("none");
+    expect(popupListWrapper.style.display).to.equal("none");
 
     detachTribute(tribute, input.id);
   });
 });
 
-describe("Tribute menu positioning", function() {
-  afterEach(function() {
+describe("Tribute menu positioning", () => {
+  afterEach(() => {
     clearDom();
   });
 
-  function checkPosition(collectionObject, input) {
+  async function checkPosition(collectionObject, input) {
     let bottomContent = document.createElement("div");
     bottomContent.style = "background: blue; height: 400px; width: 10px;";
     document.body.appendChild(bottomContent);
@@ -544,7 +546,7 @@ describe("Tribute menu positioning", function() {
     let inputY = inputRect.y;
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@");
+    await fillIn(input, "@");
 
     let popupListWrapper = document.querySelector(".tribute-container");
     let menuRect = popupListWrapper.getBoundingClientRect();
@@ -557,11 +559,11 @@ describe("Tribute menu positioning", function() {
     return { x: menuX, y: menuY };
   }
 
-  it("should display a container menu in the same position when menuContainer is specified on an input as when the menuContainer is the body", () => {
+  it("should display a container menu in the same position when menuContainer is specified on an input as when the menuContainer is the body", async () => {
     let input = createDomElement();
     let container = input.parentElement;
     container.style = "position: relative;";
-    let { x: specifiedX, y: specifiedY } = checkPosition(
+    let { x: specifiedX, y: specifiedY } = await checkPosition(
       {
         menuContainer: container,
         values: [
@@ -581,7 +583,7 @@ describe("Tribute menu positioning", function() {
     );
 
     input = createDomElement();
-    let { x: unspecifiedX, y: unspecifiedY } = checkPosition(
+    let { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
       {
         values: [
           {
@@ -599,15 +601,15 @@ describe("Tribute menu positioning", function() {
       input
     );
 
-    expect(unspecifiedY).toEqual(specifiedY);
-    expect(unspecifiedX).toEqual(specifiedX);
+    expect(unspecifiedY).to.equal(specifiedY);
+    expect(unspecifiedX).to.equal(specifiedX);
   });
 
-  it("should display a container menu in the same position when menuContainer is specified on an contenteditable as when the menuContainer is the body", () => {
+  it("should display a container menu in the same position when menuContainer is specified on an contenteditable as when the menuContainer is the body", async () => {
     let input = createDomElement("contenteditable");
     let container = input.parentElement;
     container.style = "position: relative;";
-    let { x: specifiedX, y: specifiedY } = checkPosition(
+    let { x: specifiedX, y: specifiedY } = await checkPosition(
       {
         menuContainer: container,
         values: [
@@ -627,7 +629,7 @@ describe("Tribute menu positioning", function() {
     );
 
     input = createDomElement("contenteditable");
-    let { x: unspecifiedX, y: unspecifiedY } = checkPosition(
+    let { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
       {
         values: [
           {
@@ -645,17 +647,17 @@ describe("Tribute menu positioning", function() {
       input
     );
 
-    expect(unspecifiedY).toEqual(specifiedY);
-    expect(unspecifiedX).toEqual(specifiedX);
+    expect(unspecifiedY).to.equal(specifiedY);
+    expect(unspecifiedX).to.equal(specifiedX);
   });
 });
 
-describe("Multi-char tests", function() {
-  afterEach(function() {
+describe("Multi-char tests", () => {
+  afterEach(() => {
     clearDom();
   });
 
-  it("should display no menu when only first char of multi-char trigger is used", () => {
+  it("should display no menu when only first char of multi-char trigger is used", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -678,23 +680,24 @@ describe("Multi-char tests", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, " $");
+    await fillIn(input, " $");
 
     let popupListWrapper = document.querySelector(".tribute-container");
-    expect(popupListWrapper).toBe(null);
+    expect(popupListWrapper).to.equal(null);
 
     detachTribute(tribute, input.id);
   });
 
-  describe("Tribute events", function() {
-    afterEach(function() {
+  describe("Tribute events", () => {
+    afterEach(() => {
       clearDom();
     });
 
-    it("should raise tribute-active-true", () => {
+    it("should raise tribute-active-true", async () => {
       let input = createDomElement();
 
-      var eventSpy = jasmine.createSpy();
+      let called = false
+      var eventSpy = () => { called = true };
       input.addEventListener("tribute-active-true", eventSpy);
 
       let collectionObject = {
@@ -712,24 +715,25 @@ describe("Multi-char tests", function() {
       };
 
       let tribute = attachTribute(collectionObject, input.id);
-      fillIn(input, "@random-text");
+      await fillIn(input, "@random-text");
 
       let popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(eventSpy).toHaveBeenCalled();
+      expect(called).to.be.true;
 
       detachTribute(tribute, input.id);
     });
   });
 
-  describe("Tribute events", function() {
-    afterEach(function() {
+  describe("Tribute events", () => {
+    afterEach(() => {
       clearDom();
     });
 
-    it("should raise tribute-active-false", () => {
+    it("should raise tribute-active-false", async () => {
       let input = createDomElement();
 
-      var eventSpy = jasmine.createSpy();
+      let called = false
+      var eventSpy = () => { called = true };
       input.addEventListener("tribute-active-false", eventSpy);
 
       let collectionObject = {
@@ -747,23 +751,23 @@ describe("Multi-char tests", function() {
       };
 
       let tribute = attachTribute(collectionObject, input.id);
-      fillIn(input, "@random-text");
+      await fillIn(input, "@random-text");
 
       let popupList = document.querySelectorAll(".tribute-container > ul > li");
-      expect(eventSpy).toHaveBeenCalled();
+      expect(called).to.be.true;
 
       detachTribute(tribute, input.id);
     });
   });
 });
 
-describe("Tribute loadingItemTemplate", function() {
-  afterEach(function() {
+describe("Tribute loadingItemTemplate", () => {
+  afterEach(() => {
     clearDom();
   });
 
   ["text", "contenteditable"].forEach(elementType => {
-    it(`Shows loading item template. For : ${elementType}`, (done) => {
+    it(`Shows loading item template. For : ${elementType}`, async () => {
       let input = createDomElement(elementType);
 
       let collectionObject = {
@@ -786,26 +790,26 @@ describe("Tribute loadingItemTemplate", function() {
 
       let tribute = attachTribute(collectionObject, input.id);
 
-      fillIn(input, "@J");
+      await fillIn(input, "@J");
+
       const loadingItemTemplate = document.querySelectorAll(".loading");
-      expect(loadingItemTemplate.length).toBe(1);
+      expect(loadingItemTemplate.length).to.equal(1);
 
       setTimeout(() => {
         const popupList = document.querySelectorAll(".tribute-container > ul > li");
-        expect(popupList.length).toBe(1);
+        expect(popupList.length).to.equal(1);
         detachTribute(tribute, input.id);
-        done();
       }, 1000);
     });
   });
 });
 
-describe("Tribute disabled items cases", function() {
-  afterEach(function() {
+describe("Tribute disabled items cases", () => {
+  afterEach(() => {
     clearDom();
   });
 
-  it("should prevent selecting disabled items with the mouse", () => {
+  it("should prevent selecting disabled items with the mouse", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -820,14 +824,14 @@ describe("Tribute disabled items cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@");
+    await fillIn(input, "@");
 
     let popupList = document.querySelectorAll(".tribute-container > ul > li");
     simulateMouseClick(popupList[1]);
-    expect(input.value).toEqual("@");
+    expect(input.value).to.equal("@");
   });
 
-  it("should prevent selecting disabled items with the keyboard", (done) => {
+  it("should prevent selecting disabled items with the keyboard", async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -842,62 +846,46 @@ describe("Tribute disabled items cases", function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, "@");
+    await fillIn(input, "@");
 
     //send down arrow
-    input.dispatchEvent(new KeyboardEvent("keydown",{
-      keyCode:40
-    }));
+    await press('ArrowDown');
+
     //send enter
-    input.dispatchEvent(new KeyboardEvent("keydown",{
-      keyCode:13
-    }));
+    await press('Enter');
 
-    window.setTimeout(() => {
-      //The down arrow key navigation should have skipped the second so we should see
-      //the third item in the text
-      expect(input.value).toEqual("Third item ");
+    //The down arrow key navigation should have skipped the second so we should see
+    //the third item in the text
+    expect(input.value).to.equal("Third item ");
 
-      //Now lets try again and test up arrow navigation
-      fillIn(input,"@");
+    //Now lets try again and test up arrow navigation
+    await fillIn(input,"@");
 
-      //send down arrow so we're on the 3rd item, then we can test the up arrow to go
-      //back to the 1st
-      input.dispatchEvent(new KeyboardEvent("keydown",{
-        keyCode:40
-      }));
+    //send down arrow so we're on the 3rd item, then we can test the up arrow to go
+    //back to the 1st
+    await press('ArrowDown');
 
-      //send up arrow
-      input.dispatchEvent(new KeyboardEvent("keydown",{
-        keyCode:38
-      }));
+    //send up arrow
+    await press('ArrowUp');
 
-      //send enter
-      input.dispatchEvent(new KeyboardEvent("keydown",{
-        keyCode:13
-      }));
+    //send enter
+    await press('Enter');
 
-      window.setTimeout(() => {
-        //The selection should have been on the first item when
-        //we triggered enter, so the first item should be appended
-        //to the existing text
-        expect(input.value).toEqual("Third item First item ");
+    //The selection should have been on the first item when
+    //we triggered enter, so the first item should be appended
+    //to the existing text
+    expect(input.value).to.equal("Third item First item ");
 
-        detachTribute(tribute, input.id);
-        done();
-
-      },0);
-
-    }, 0);
+    detachTribute(tribute, input.id);
   });
 });
 
-describe('closeOnScroll tests', function() {
-  afterEach(function () {
+describe('closeOnScroll tests', () => {
+  afterEach(() => {
     clearDom();
   });
 
-  it('Tribute should close when the window is scrolled', () => {
+  it('Tribute should close when the window is scrolled', async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -910,20 +898,20 @@ describe('closeOnScroll tests', function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, '@');
+    await fillIn(input, '@');
 
-    expect(tribute.isActive).toBe(true);
+    expect(tribute.isActive).to.be.true;
     simulateElementScroll(window);
 
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
-      expect(tribute.isActive).toBe(false);
+      expect(tribute.isActive).to.be.false;
     }, 50)
 
     detachTribute(tribute, input.id);
   });
 
-  it('Tribute should close when the container is scrolled', () => {
+  it('Tribute should close when the container is scrolled', async () => {
     let input = createDomElement();
     let container = document.createElement('div');
 
@@ -937,20 +925,20 @@ describe('closeOnScroll tests', function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, '@');
+    await fillIn(input, '@');
 
-    expect(tribute.isActive).toBe(true);
+    expect(tribute.isActive).to.be.true;
     simulateElementScroll(container);
 
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
-      expect(tribute.isActive).toBe(false);
+      expect(tribute.isActive).to.be.false;
     }, 50)
 
     detachTribute(tribute, input.id);
   });
 
-  it('Tribute should not close when scrolled without the closeOnScroll set', () => {
+  it('Tribute should not close when scrolled without the closeOnScroll set', async () => {
     let input = createDomElement();
 
     let collectionObject = {
@@ -962,14 +950,14 @@ describe('closeOnScroll tests', function() {
     };
 
     let tribute = attachTribute(collectionObject, input.id);
-    fillIn(input, '@');
+    await fillIn(input, '@');
 
-    expect(tribute.isActive).toBe(true);
+    expect(tribute.isActive).to.be.true;
     simulateElementScroll(window);
 
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
-      expect(tribute.isActive).toBe(true);
+      expect(tribute.isActive).to.be.true;
     }, 50)
 
     detachTribute(tribute, input.id);
