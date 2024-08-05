@@ -214,6 +214,10 @@ Collection object shown with defaults:
   // If null is used then it will not split the string & search in the whole line
   // default value is /\s+/ means it will split on whitespace when this is not specified
   autocompleteSeparator: /\s+/,
+
+  // An option to hide the tribute when scrolled
+  // defaults to false, can accept true, or a container to bind the scroll event to.
+  closeOnScroll: false,
 }
 ```
 

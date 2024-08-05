@@ -88,6 +88,10 @@ export type TributeCollection<T extends {}> = {
 
   // specify if the current match should be selected when the spacebar is hit
   spaceSelectsMatch?: boolean;
+
+  // specify whether to close when scrolled, and optionally an element to bind
+  // the scroll event to.
+  closeOnScroll?: any
 };
 
 export type TributeOptions<T> =
