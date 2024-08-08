@@ -1,5 +1,5 @@
 {
-  "name": "tributejs",
+  "name": "@redmine-ui/tributejs",
   "version": "5.1.3",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
@@ -16,9 +16,12 @@
     "@web/test-runner-playwright": "^0.11.0",
     "chai": "^5.1.1"
   },
+  "resolutions": {
+    "playwright-core": "1.46.0"
+  },
   "repository": {
     "type": "git",
-    "url": "git://github.com/zurb/tribute.git"
+    "url": "https://github.com/redmine-ui/tribute.git"
   },
   "scripts": {
     "build": "rollup -c",

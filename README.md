@@ -1,8 +1,10 @@
 # Tribute
 
-[![CDNJS version](https://img.shields.io/cdnjs/v/tributejs.svg)](https://cdnjs.com/libraries/tributejs) [![Build Status](https://travis-ci.org/zurb/tribute.svg?branch=master)](https://travis-ci.org/zurb/tribute)
+![CI result](https://github.com/redmine-ui/tribute/actions/workflows/ci.yml/badge.svg)
 
-A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Firefox, Chrome, iOS Safari, Safari, IE 9+, Edge 12+, Android 4+, and Windows Phone.
+A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Firefox, Chrome
+
+@redmine-ui/tribute is a fork of the zurb/tribute. Some pull requests added from the original repo.
 
 - [Installing](#installing)
 - [Initializing](#initializing)
@@ -11,18 +13,18 @@ A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Fir
 - [Tips](#tips)
 - [Framework Support](#framework-support)
 - [WYSIWYG Editor Support](#wysiwyg-editor-support)
-- [Example](https://zurb.github.io/tribute/example/)
+- [Example](https://redmine-ui.github.io/tribute/example/)
 
 ## Installing
 
-There are a few ways to install Tribute; [Bower](http://bower.io/), as an [NPM Module](https://npmjs.com/package/tributejs), or by [downloading](https://github.com/zurb/tribute/archive/master.zip) from the `dist` folder in this repo.
+There are a few ways to install Tribute; as an [NPM Module](https://npmjs.com/package/@redmine-ui/tributejs), or by [downloading](https://github.com/redmine-ui/tribute/releases/latest/download/tribute.zip) from the Release page.
 
 ### NPM Module
 
 You can install Tribute by running:
 
 ```shell
-npm install tributejs
+npm install @redmine-ui/tributejs
 ```
 
 Or by adding Tribute to your `package.json` file.
@@ -30,54 +32,31 @@ Or by adding Tribute to your `package.json` file.
 Import into your ES6 code.
 
 ```js
-import Tribute from "tributejs";
-```
-
-### Ruby Gem
-
-To use Tribute within a Rails project, you can add the following to the app's Gemfile:
-
-    gem 'tribute'
-
-Then, add the following to `app/assets/javascripts/application.js`:
-
-```js
-*= require tribute
-```
-
-And in `app/assets/stylesheets/application.css`:
-
-```css
-//= require tribute
-```
-
-### Webpack
-
-To add Tribute to your webpack build process, start by adding it to your package.json and running `npm install`.
-
-After installing, you need to update your Babel module loader to not exclude Tribute from being compiled by Webpack:
-
-```js
-{
-    test: /\.js$/,
-    loader: 'babel',
-    exclude: /node_modules\/(?!tributejs)/
-}
+import Tribute from "@redmine-ui/tributejs.mjs";
 ```
 
 ### Download or Clone
 
-Or you can [download the repo](https://github.com/zurb/tribute/archive/master.zip) or clone it localy with this command:
+Or you can [download the repo](https://github.com/redmine-ui/tribute/archive/master.zip) or clone and build it localy with this command:
 
 ```shell
-git clone git@github.com:zurb/tribute.git
+git clone https://github.com/redmine-ui/tribute.git
+cd tribute
+yarn
+yarn build
 ```
 
 You can then copy the files in the `dist` directory to your project.
 
 ```html
 <link rel="stylesheet" href="js/tribute.css" />
-<script src="js/tribute.js"></script>
+<script type="module">
+import Tribute from 'js/tribute.mjs'
+
+const tribute = new Tribute({
+  // configuration
+})
+</script>
 ```
 
 That's it! Now you are ready to initialize Tribute.
@@ -87,7 +66,7 @@ That's it! Now you are ready to initialize Tribute.
 There are two ways to initialize Tribute, by passing an array of "collections" or by passing one collection object.
 
 ```js
-var tribute = new Tribute({
+const tribute = new Tribute({
   values: [
     { key: "Phil Heartman", value: "pheartman" },
     { key: "Gordon Ramsey", value: "gramsey" }
@@ -98,7 +77,7 @@ var tribute = new Tribute({
 You can pass multiple collections on initialization by passing in an array of collection objects to `collection`.
 
 ```js
-var tribute = new Tribute({
+const tribute = new Tribute({
   collection: []
 });
 ```
@@ -145,14 +124,10 @@ Collection object shown with defaults:
   itemClass: '',
 
   // function called on select that returns the content to insert (return dom string or dom node)
-  selectTemplate: function (item) {
-    return '@' + item.original.value;
-  },
+  selectTemplate: (item) => '@' + item.original.value,
 
   // template for displaying item in menu (return dom string or dom node)
-  menuItemTemplate: function (item) {
-    return item.string;
-  },
+  menuItemTemplate: (item) => item.string,
 
   // template for when no match is found (optional),
   // If no template is provided, menu is hidden.
@@ -233,9 +208,7 @@ The `lookup` column can also be passed a function to construct a string to query
 
 ```js
 {
-  lookup: function (person, mentionText) {
-    return person.name + person.email;
-  }
+  lookup: (person, mentionText) => person.name + person.email
 }
 ```
 
@@ -264,9 +237,9 @@ Tribute can be manually triggered by calling an instances `showMenuForCollection
 Then you can bind a `mousedown` event to the anchor and call `showMenuForCollection`.
 
 ```js
-activateLink.addEventListener("mousedown", function(e) {
+activateLink.addEventListener("mousedown", (e) => {
   e.preventDefault();
-  var input = document.getElementById("test");
+  const input = document.getElementById("test");
 
   tribute.showMenuForCollection(input);
 });
@@ -287,7 +260,7 @@ If your element has an ID of `myElement`:
 ```js
 document
   .getElementById("myElement")
-  .addEventListener("tribute-replaced", function(e) {
+  .addEventListener("tribute-replaced", (e) => {
     console.log(
       "Original event that triggered text replacement:",
       e.detail.event
@@ -305,7 +278,7 @@ If your element has an ID of `myElement`:
 ```js
 document
   .getElementById("myElement")
-  .addEventListener("tribute-no-match", function(e) {
+  .addEventListener("tribute-no-match", (e) => {
     console.log("No match found!");
   });
 ```
@@ -317,7 +290,7 @@ You can bind to the `tribute-active-true` or `tribute-active-false` events to de
 ```js
 document
   .getElementById("myElement")
-  .addEventListener("tribute-active-true", function(e) {
+  .addEventListener("tribute-active-true", (e) => {
     console.log("Menu opened!");
   });
 ```
@@ -325,7 +298,7 @@ document
 ```js
 document
   .getElementById("myElement")
-  .addEventListener("tribute-active-false", function(e) {
+  .addEventListener("tribute-active-false", (e) => {
     console.log("Menu closed!");
   });
 ```
@@ -393,7 +366,7 @@ anchor is wrapped in an element with `contenteditable="false"`. This makes the a
 clickable _and_ fixes issues with matches being modifiable.
 
 ```js
-var tribute = new Tribute({
+const tribute = new Tribute({
   values: [
     {
       key: "Jordan Humphreys",
@@ -406,7 +379,7 @@ var tribute = new Tribute({
       email: "getstarted+riley@zurb.com"
     }
   ],
-  selectTemplate: function(item) {
+  selectTemplate: (item) => {
     return (
       '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
       item.original.email +
@@ -425,7 +398,7 @@ You can override the default `menuItemTemplate` with your own output on initiali
 ```js
 {
   //..other config options
-  menuItemTemplate: function (item) {
+  menuItemTemplate: (item) => {
     return '<img src="'+item.original.avatar_url + '">' + item.string;
   }
 }
@@ -450,7 +423,7 @@ If your data set is large or would like to pre filter your data you can load dyn
 {
   //..other config options
   // function retrieving an array of objects
-  values: function (text, cb) {
+  values: (text, cb) => {
     remoteSearch(text, users => cb(users));
   },
   lookup: 'name',
@@ -462,20 +435,17 @@ You would then define a function, in this case `remoteSearch`, that returns your
 
 ```js
 function remoteSearch(text, cb) {
-  var URL = "YOUR DATA ENDPOINT";
-  xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        var data = JSON.parse(xhr.responseText);
-        cb(data);
-      } else if (xhr.status === 403) {
-        cb([]);
+  const URL = "YOUR DATA ENDPOINT";
+  fetch(URL + "?q=" + text)
+    .then(res => {
+      if (res.ok) {
+        return res.json();
       }
-    }
-  };
-  xhr.open("GET", URL + "?q=" + text, true);
-  xhr.send();
+      cb([]);
+    })
+    .then(data => {
+      cb(data);
+    })
 }
 ```
 
@@ -484,9 +454,7 @@ function remoteSearch(text, cb) {
 If you want the menu to not show when no match is found, you can set your `noMatchTemplate` config to the following:
 
 ```js
-noMatchTemplate: function () {
-  return '<span style="visibility: hidden;"></span>';
-}
+noMatchTemplate: () => '<span style="visibility: hidden;"></span>'
 ```
 
 ### Detaching Tribute instances
@@ -506,16 +474,16 @@ It is also possible to configure Tribute to trigger on a string consisting of mu
 This example shows the usage of Tribute for autocompletion of variables:
 
 ```js
-var tribute = new Tribute({
+const tribute = new Tribute({
   trigger: "{{",
   values: [
     { key: "red", value: "#FF0000" },
     { key: "green", value: "#00FF00" }
   ],
-  selectTemplate: function(item) {
+  selectTemplate: (item) => {
     return "{{" + item.original.key + "}}";
   },
-  menuItemTemplate: function(item) {
+  menuItemTemplate: (item) => {
     return item.original.key + " = " + item.original.value;
   }
 });
