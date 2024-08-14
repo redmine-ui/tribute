@@ -23,7 +23,7 @@ class Tribute {
   @func()
   async test(source: Directory): Promise<string> {
     return this.buildEnv(source)
-      .withExec(["yarn", "test"])
+      .withExec(["npm", "run", "test"])
       .stdout()
   }
 
