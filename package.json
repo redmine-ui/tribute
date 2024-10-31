@@ -26,7 +26,8 @@
   "scripts": {
     "build": "rollup -c",
     "start": "rollup -c -w",
-    "test": "web-test-runner \"test/spec/test.js\" --node-resolve --playwright --browsers chromium"
+    "test": "web-test-runner \"test/spec/test.js\" --node-resolve --playwright --browsers chromium",
+    "dagger": "dagger call test --source=."
   },
   "author": "Jordan Humphreys <jordan@zurb.com>",
   "license": "MIT"

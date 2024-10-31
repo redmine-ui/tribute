@@ -35,10 +35,10 @@ class Tribute {
     const nodeCache = dag.cacheVolume("node")
     return dag
       .container()
-      .from("mcr.microsoft.com/playwright:v1.46.0-jammy")
+      .from("mcr.microsoft.com/playwright:v1.48.2-jammy")
       .withDirectory("/src", source)
       .withMountedCache("/src/node_modules", nodeCache)
       .withWorkdir("/src")
-      .withExec(["yarn"])
+      .withExec(["npm", "install"])
   }
 }
