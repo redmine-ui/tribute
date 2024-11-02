@@ -1,20 +1,20 @@
-import "./utils";
-import TributeEvents from "./TributeEvents";
-import TributeMenuEvents from "./TributeMenuEvents";
-import TributeRange from "./TributeRange";
-import TributeSearch from "./TributeSearch";
+import TributeEvents from "./TributeEvents.js";
+import TributeMenuEvents from "./TributeMenuEvents.js";
+import TributeRange from "./TributeRange.js";
+import TributeSearch from "./TributeSearch.js";
 
 class Tribute {
   constructor({
     values = null,
     loadingItemTemplate = null,
     iframe = null,
+    shadowRoot = null,
     selectClass = "highlight",
     containerClass = "tribute-container",
     itemClass = "",
     trigger = "@",
     autocompleteMode = false,
-    autocompleteSeparator = null,
+    autocompleteSeparator = /\s+/,
     selectTemplate = null,
     menuItemTemplate = null,
     lookup = "key",
@@ -29,7 +29,10 @@ class Tribute {
     spaceSelectsMatch = false,
     searchOpts = {},
     menuItemLimit = null,
-    menuShowMinLength = 0
+    menuShowMinLength = 0,
+    closeOnScroll = false,
+    maxDisplayItems = null,
+    isBlocked = false
   }) {
     this.autocompleteMode = autocompleteMode;
     this.autocompleteSeparator = autocompleteSeparator;
@@ -43,6 +46,7 @@ class Tribute {
     this.positionMenu = positionMenu;
     this.hasTrailingSpace = false;
     this.spaceSelectsMatch = spaceSelectsMatch;
+    this.closeOnScroll = closeOnScroll;
 
     if (this.autocompleteMode) {
       trigger = "";
@@ -57,6 +61,9 @@ class Tribute {
 
           // is it wrapped in an iframe
           iframe: iframe,
+
+          // is it wrapped in a web component
+          shadowRoot: shadowRoot,
 
           // class applied to selected item
           selectClass: selectClass,
@@ -113,8 +120,13 @@ class Tribute {
 
           menuItemLimit: menuItemLimit,
 
-          menuShowMinLength: menuShowMinLength
-        }
+          menuShowMinLength: menuShowMinLength,
+
+          // Fix for maximum number of items added to the input for the specific Collection
+          maxDisplayItems: maxDisplayItems,
+
+          isBlocked: isBlocked
+       }
       ];
     } else if (collection) {
       if (this.autocompleteMode)
@@ -158,7 +170,11 @@ class Tribute {
           requireLeadingSpace: item.requireLeadingSpace,
           searchOpts: item.searchOpts || searchOpts,
           menuItemLimit: item.menuItemLimit || menuItemLimit,
-          menuShowMinLength: item.menuShowMinLength || menuShowMinLength
+          menuShowMinLength: item.menuShowMinLength || menuShowMinLength,
+
+          // Set maximum number of items added to the input for the specific Collection
+          maxDisplayItems: item.maxDisplayItems || maxDisplayItems,
+          isBlocked: item.isBlocked || isBlocked
         };
       });
     } else {
@@ -254,7 +270,9 @@ class Tribute {
 
   ensureEditable(element) {
     if (Tribute.inputTypes().indexOf(element.nodeName) === -1) {
-      if (!element.contentEditable) {
+      if (typeof element.contentEditable === "string") {
+        element.contentEditable = true;
+      } else {
         throw new Error("[Tribute] Cannot bind to " + element.nodeName + ", not contentEditable");
       }
     }
@@ -274,14 +292,17 @@ class Tribute {
   }
 
   showMenuFor(element, scrollTo) {
-    // Only proceed if menu isn't already shown for the current element & mentionText
-    if (
-      this.isActive &&
-      this.current.element === element &&
-      this.current.mentionText === this.currentMentionTextSnapshot
+    // Check for maximum number of items added to the input for the specific Collection
+    if(
+      (
+        this.current.collection.maxDisplayItems &&
+        element.querySelectorAll('[data-tribute-trigger="' + this.current.collection.trigger + '"]').length >= this.current.collection.maxDisplayItems
+      ) || this.current.collection.isBlocked
     ) {
+      //console.log("Tribute: Maximum number of items added!");
       return;
     }
+
     this.currentMentionTextSnapshot = this.current.mentionText;
 
     // create the menu if it doesn't exist.
@@ -293,6 +314,9 @@ class Tribute {
 
     this.isActive = true;
     this.menuSelected = 0;
+    window.setTimeout(() => {
+      this.menu.scrollTop = 0;
+    },0)
 
     if (!this.current.mentionText) {
       this.current.mentionText = "";
@@ -307,7 +331,8 @@ class Tribute {
       let items = this.search.filter(this.current.mentionText, values, {
         pre: this.current.collection.searchOpts.pre || "<span>",
         post: this.current.collection.searchOpts.post || "</span>",
-        skip: this.current.collection.searchOpts.skip,
+        skip: this.current.collection.searchOpts.skip || false,
+        caseSensitive: this.current.collection.searchOpts.caseSensitive || false,
         extract: el => {
           if (typeof this.current.collection.lookup === "string") {
             return el[this.current.collection.lookup];
@@ -353,9 +378,12 @@ class Tribute {
       ul.innerHTML = "";
       let fragment = this.range.getDocument().createDocumentFragment();
 
+      this.menuSelected = items.findIndex(item => item.original.disabled !== true);
+
       items.forEach((item, index) => {
         let li = this.range.getDocument().createElement("li");
         li.setAttribute("data-index", index);
+        if (item.original.disabled) li.setAttribute("data-disabled","true");
         li.className = this.current.collection.itemClass;
         li.addEventListener("mousemove", e => {
           let [li, index] = this._findLiTarget(e.target);
@@ -366,7 +394,14 @@ class Tribute {
         if (this.menuSelected === index) {
           li.classList.add(this.current.collection.selectClass);
         }
-        li.innerHTML = this.current.collection.menuItemTemplate(item);
+        // remove all content in the li and append the content of menuItemTemplate
+        const menuItemDomOrString = this.current.collection.menuItemTemplate(item);
+        if (menuItemDomOrString instanceof Element) {
+          li.innerHTML = "";
+          li.appendChild(menuItemDomOrString);
+        } else {
+          li.innerHTML = menuItemDomOrString;
+        }
         fragment.appendChild(li);
       });
       ul.appendChild(fragment);
@@ -393,6 +428,17 @@ class Tribute {
   }
 
   showMenuForCollection(element, collectionIndex) {
+    // Check for maximum number of items added to the input for the specific Collection
+    if(
+      (
+        this.collection[collectionIndex || 0].maxDisplayItems &&
+        element.querySelectorAll('[data-tribute-trigger="' +  this.collection[collectionIndex || 0].trigger + '"]').length >= this.collection[collectionIndex || 0].maxDisplayItems
+      ) || this.collection[collectionIndex || 0].isBlocked
+    ) {
+      //console.log("Tribute: Maximum number of items added!");
+      return;
+    }
+
     if (element !== document.activeElement) {
       this.placeCaretAtEnd(element);
     }
@@ -475,6 +521,13 @@ class Tribute {
     if (typeof index !== "number" || isNaN(index)) return;
     let item = this.current.filteredItems[index];
     let content = this.current.collection.selectTemplate(item);
+
+    if (index === -1) {
+      let selectedNoMatchEvent = new CustomEvent('tribute-selected-no-match', { detail: content })
+      this.current.element.dispatchEvent(selectedNoMatchEvent);
+      return
+    }
+
     if (content !== null) this.replaceText(content, originalEvent, item);
   }
 

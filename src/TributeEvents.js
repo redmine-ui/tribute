@@ -88,15 +88,28 @@ class TributeEvents {
       while (li.nodeName.toLowerCase() !== "li") {
         li = li.parentNode;
         if (!li || li === tribute.menu) {
-          throw new Error("cannot find the <li> container for the click");
+          // When li === tribute.menu, it's either a click on the entire component or on the scrollbar (if visible)
+          li = undefined;
+          break;
         }
       }
+
+      if (!li) {
+        return;
+      }
+
+      if (li.getAttribute("data-disabled") === "true") {
+        return;
+      }
+      if (tribute.current.filteredItems.length === 0) li.setAttribute("data-index", -1);
+
       tribute.selectItemAtIndex(li.getAttribute("data-index"), event);
       tribute.hideMenu();
 
       // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (tribute.current.element && !tribute.current.externalTrigger) {
+    } else if (tribute.current.externalTrigger) {
       tribute.current.externalTrigger = false;
+    } else if (tribute.current.element && !tribute.current.externalTrigger) {
       setTimeout(() => tribute.hideMenu());
     }
   }
@@ -138,6 +151,7 @@ class TributeEvents {
       instance.tribute.current.mentionText.length <
       instance.tribute.current.collection.menuShowMinLength
     ) {
+      instance.tribute.hideMenu();
       return;
     }
 
@@ -145,7 +159,7 @@ class TributeEvents {
       ((instance.tribute.current.trigger ||
         instance.tribute.autocompleteMode) &&
         instance.commandEvent === false) ||
-      (instance.tribute.isActive && event.keyCode === 8)
+        event.keyCode === 8
     ) {
       instance.tribute.showMenuFor(this, true);
     }
@@ -223,9 +237,13 @@ class TributeEvents {
       },
       enter: (e, el) => {
         // choose selection
-        if (this.tribute.isActive && this.tribute.current.filteredItems) {
+        const filteredItems = this.tribute.current.filteredItems;
+        if (this.tribute.isActive && filteredItems && filteredItems.length) {
           e.preventDefault();
           e.stopPropagation();
+
+          if (this.tribute.current.filteredItems.length === 0) this.tribute.menuSelected = -1;
+
           setTimeout(() => {
             this.tribute.selectItemAtIndex(this.tribute.menuSelected, e);
             this.tribute.hideMenu();
@@ -262,17 +280,23 @@ class TributeEvents {
         if (this.tribute.isActive && this.tribute.current.filteredItems) {
           e.preventDefault();
           e.stopPropagation();
-          let count = this.tribute.current.filteredItems.length,
-            selected = this.tribute.menuSelected;
+          let count = this.tribute.current.filteredItems.length;
+          let lis = this.tribute.menu.querySelectorAll("li");
 
-          if (count > selected && selected > 0) {
-            this.tribute.menuSelected--;
-            this.setActiveLi();
-          } else if (selected === 0) {
-            this.tribute.menuSelected = count - 1;
-            this.setActiveLi();
-            this.tribute.menu.scrollTop = this.tribute.menu.scrollHeight;
+          //If menuSelected is -1 then there are no valid, non-disabled items
+          //to navigate through
+          if (this.tribute.menuSelected === -1) {
+            return;
           }
+
+          do {
+            this.tribute.menuSelected--;
+            if (this.tribute.menuSelected === -1) {
+              this.tribute.menuSelected = count -1;
+              this.tribute.menu.scrollTop = this.tribute.menu.scrollHeight;
+            }
+          } while (lis[this.tribute.menuSelected].getAttribute("data-disabled") === "true")
+          this.setActiveLi();
         }
       },
       down: (e, el) => {
@@ -280,17 +304,23 @@ class TributeEvents {
         if (this.tribute.isActive && this.tribute.current.filteredItems) {
           e.preventDefault();
           e.stopPropagation();
-          let count = this.tribute.current.filteredItems.length - 1,
-            selected = this.tribute.menuSelected;
+          let count = this.tribute.current.filteredItems.length;
+          let lis = this.tribute.menu.querySelectorAll("li");
 
-          if (count > selected) {
-            this.tribute.menuSelected++;
-            this.setActiveLi();
-          } else if (count === selected) {
-            this.tribute.menuSelected = 0;
-            this.setActiveLi();
-            this.tribute.menu.scrollTop = 0;
+          //If menuSelected is -1 then there are no valid, non-disabled items
+          //to navigate through
+          if (this.tribute.menuSelected === -1) {
+            return;
           }
+
+          do {
+            this.tribute.menuSelected++;
+            if (this.tribute.menuSelected >= count) {
+              this.tribute.menuSelected = 0;
+              this.tribute.menu.scrollTop = 0;
+            }
+          } while (lis[this.tribute.menuSelected].getAttribute("data-disabled") === "true")
+          this.setActiveLi();
         }
       },
       delete: (e, el) => {
@@ -307,6 +337,7 @@ class TributeEvents {
   }
 
   setActiveLi(index) {
+
     let lis = this.tribute.menu.querySelectorAll("li"),
       length = lis.length >>> 0;
 
@@ -315,7 +346,9 @@ class TributeEvents {
     for (let i = 0; i < length; i++) {
       let li = lis[i];
       if (i === this.tribute.menuSelected) {
-        li.classList.add(this.tribute.current.collection.selectClass);
+        if (li.getAttribute("data-disabled") !== "true") {
+          li.classList.add(this.tribute.current.collection.selectClass);
+        }
 
         let liClientRect = li.getBoundingClientRect();
         let menuClientRect = this.tribute.menu.getBoundingClientRect();

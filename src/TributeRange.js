@@ -1,5 +1,4 @@
 // Thanks to https://github.com/jeff-collins/ment.io
-import "./utils";
 
 class TributeRange {
     constructor(tribute) {
@@ -138,7 +137,12 @@ class TributeRange {
                 let textSuffix = typeof this.tribute.replaceTextSuffix == 'string'
                     ? this.tribute.replaceTextSuffix
                     : '\xA0'
-                text += textSuffix
+                if(text instanceof HTMLElement) {
+                    // skip adding suffix yet - TODO later
+                    // text.appendChild(this.getDocument().createTextNode(textSuffix))
+                } else {
+                    text += textSuffix
+                }
                 let endPos = info.mentionPosition + info.mentionText.length
                 if (!this.tribute.autocompleteMode) {
                     endPos += info.mentionTriggerChar.length
@@ -151,7 +155,7 @@ class TributeRange {
         }
     }
 
-    pasteHtml(html, startPos, endPos) {
+    pasteHtml(htmlOrElem, startPos, endPos) {
         let range, sel
         sel = this.getWindowSelection()
         range = this.getDocument().createRange()
@@ -160,7 +164,11 @@ class TributeRange {
         range.deleteContents()
 
         let el = this.getDocument().createElement('div')
-        el.innerHTML = html
+        if(htmlOrElem instanceof HTMLElement) {
+            el.appendChild(htmlOrElem)
+        } else {
+            el.innerHTML = htmlOrElem
+        }
         let frag = this.getDocument().createDocumentFragment(),
             node, lastNode
         while ((node = el.firstChild)) {
@@ -181,6 +189,10 @@ class TributeRange {
     getWindowSelection() {
         if (this.tribute.collection.iframe) {
             return this.tribute.collection.iframe.contentWindow.getSelection()
+        }
+
+        if (this.tribute.collection[0].shadowRoot) {
+            return this.tribute.collection[0].shadowRoot.getSelection()
         }
 
         return window.getSelection()
@@ -261,8 +273,13 @@ class TributeRange {
 
     getLastWordInText(text) {
         var wordsArray;
-        if (this.tribute.autocompleteSeparator) {
-            wordsArray = text.split(this.tribute.autocompleteSeparator);
+        if (this.tribute.autocompleteMode) {
+            if (this.tribute.autocompleteSeparator) {
+                wordsArray = text.split(this.tribute.autocompleteSeparator);
+            }
+            else {
+                wordsArray = [text];
+            }
         } else {
             wordsArray = text.split(/\s+/);
         }
@@ -478,7 +495,7 @@ class TributeRange {
         div.appendChild(span0)
 
         if (element.nodeName === 'INPUT') {
-            div.textContent = div.textContent.replace(/\s/g, ' ')
+            div.textContent = div.textContent.replace(/\s/g, ' ')
         }
 
         //Create a span in the div that represents where the cursor

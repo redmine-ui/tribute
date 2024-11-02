@@ -10,9 +10,10 @@ export type TributeItem<T extends {}> = {
 };
 
 export type TributeSearchOpts = {
-  pre: string;
-  post: string;
-  skip: boolean;
+  pre?: string;
+  post?: string;
+  skip?: boolean;
+  caseSensitive?: boolean;
 };
 
 export type TributeCollection<T extends {}> = {
@@ -31,10 +32,10 @@ export type TributeCollection<T extends {}> = {
   itemClass?: string;
 
   // function called on select that returns the content to insert
-  selectTemplate?: (item: TributeItem<T>|undefined) => string;
+  selectTemplate?: (item: TributeItem<T>|undefined) => string | HTMLElement;
 
   // template for displaying item in menu
-  menuItemTemplate?: (item: TributeItem<T>) => string;
+  menuItemTemplate?: (item: TributeItem<T>) => string | HTMLElement;
 
   // template for when no match is found (optional),
   // If no template is provided, menu is hidden.
@@ -72,7 +73,9 @@ export type TributeCollection<T extends {}> = {
   autocompleteMode?: boolean;
 
   // specify a regex to define after which characters the autocomplete option should open
-  autocompleteSeparator?: RegExp;
+  // If null is used then it will not split the string & search in the whole line
+  // default value is /\s+/ means it will split on whitespace when this is not specified
+  autocompleteSeparator?: RegExp | null;
 
   // Customize the elements used to wrap matched strings within the results list
   searchOpts?: TributeSearchOpts;
@@ -85,9 +88,13 @@ export type TributeCollection<T extends {}> = {
 
   // specify if the current match should be selected when the spacebar is hit
   spaceSelectsMatch?: boolean;
+
+  // specify whether to close when scrolled, and optionally an element to bind
+  // the scroll event to.
+  closeOnScroll?: any
 };
 
-export type TributeOptions<T> =
+export type TributeOptions<T extends {}> =
   | TributeCollection<T>
   | {
       // pass an array of config objects

@@ -4,3 +4,9 @@ npm-debug.log
 test/coverage
 yarn-error.log
 .idea
+dist/*.js
+dist/*.mjs
+dist/*.css
+dist/*.map
+example/*.mjs
+example/*.css

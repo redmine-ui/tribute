@@ -1,3 +1,5 @@
+import Tribute from '../../../src/index.js'
+
 export const attachTribute = function(collectionObject, inputElementId) {
   let tribute = new Tribute(collectionObject);
   tribute.attach(document.getElementById(inputElementId));
