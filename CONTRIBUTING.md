@@ -1,17 +1,17 @@
 ## Contributing
 
-We welcome contributions to Tribute. There are many areas where we would love to see community contributions that we have outlined below, but first, let's go over how to develop in Tribute. We use [Yarn](https://yarnpkg.com/en/docs/install) to manage our NPM packages.
+We welcome contributions to Tribute. There are many areas where we would love to see community contributions that we have outlined below, but first, let's go over how to develop in Tribute.
 
 Install dependencies:
 
 ```sh
-yarn install
+npm install
 ```
 
 Run Rollup:
 
 ```sh
-yarn start
+npm run start
 ```
 
 That's it! Now you can use the `example/index.html` to test out changes to the code base. All changes to `src` will recompile on the fly.
@@ -20,13 +20,13 @@ Once you have made your changes, feel free to submit a pull request.
 
 ## Testing
 
-We use [Karma](https://karma-runner.github.io/latest/index.html) and [Jasmin](https://jasmine.github.io) as the testing framework.
+We use [@web/test-runner](https://modern-web.dev/docs/test-runner/overview/)
 
 To run the tests type:
 
 ```
-yarn run build
-yarn test
+npm run build
+npm run test
 ```
 
 ## Contribution Ideas
