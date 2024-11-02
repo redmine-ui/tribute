@@ -1,0 +1,29 @@
+name: Generate Release Note
+
+on:
+  push:
+    tags:
+      - '*'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+      - name: Generate Libraries
+        run: npm run build
+      - name: Archive Release
+        uses: thedoctor0/zip-release@0.7.6
+        with:
+          type: 'zip'
+          filename: 'tribute.zip'
+          directory: './dist/'
+      - name: Generate release note
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: 'dist/tribute.zip'
