@@ -17,7 +17,8 @@
     "chai": "^5.1.1"
   },
   "overrides": {
-    "playwright-core": "1.46.0"
+    "playwright": "1.48.2",
+    "playwright-core": "1.48.2"
   },
   "repository": {
     "type": "git",
