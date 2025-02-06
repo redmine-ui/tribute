@@ -42,8 +42,8 @@ Or you can [download the repo](https://github.com/redmine-ui/tribute/archive/mas
 ```shell
 git clone https://github.com/redmine-ui/tribute.git
 cd tribute
-yarn
-yarn build
+npm install
+npm run build
 ```
 
 You can then copy the files in the `dist` directory to your project.
