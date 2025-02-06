@@ -16,7 +16,7 @@
 import { dag, Container, Directory, object, func } from "@dagger.io/dagger"
 
 @object()
-class Tribute {
+export class Tribute {
   /**
    * Return the result of running unit tests
    */
@@ -35,7 +35,7 @@ class Tribute {
     const nodeCache = dag.cacheVolume("node")
     return dag
       .container()
-      .from("mcr.microsoft.com/playwright:v1.48.2-jammy")
+      .from("mcr.microsoft.com/playwright:v1.50.1-noble")
       .withDirectory("/src", source)
       .withMountedCache("/src/node_modules", nodeCache)
       .withWorkdir("/src")
