@@ -1,6 +1,6 @@
 {
   "name": "@redmine-ui/tributejs",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
   "type": "module",
@@ -10,7 +10,7 @@
     "tributejs.d.ts"
   ],
   "devDependencies": {
-    "rollup": "^4.22.4",
+    "rollup": "^4.34.4",
     "@rollup/plugin-terser": "^0.4.4",
     "@web/rollup-plugin-copy": "^0.5.1",
     "rollup-plugin-livereload": "^2.0.5",
@@ -18,7 +18,7 @@
     "@web/test-runner": "^0.19.0",
     "@web/test-runner-commands": "^0.9.0",
     "@web/test-runner-playwright": "^0.11.0",
-    "chai": "^5.1.1"
+    "chai": "^5.1.2"
   },
   "overrides": {
     "playwright": "1.50.1",
