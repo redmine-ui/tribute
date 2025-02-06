@@ -532,6 +532,44 @@ describe("Tribute NoMatchTemplate cases", () => {
 
     detachTribute(tribute, input.id);
   });
+
+  it("should display indivisual messages when a template set in each collection", async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      collection: [{
+        trigger: "@",
+        noMatchTemplate: "template 1",
+        values: [
+          {
+            key: "Jordan Humphreys",
+            value: "Jordan Humphreys",
+            email: "getstarted@zurb.com"
+          }
+        ]
+      }, {
+        trigger: "#",
+        noMatchTemplate: "template 2",
+        values: [
+          {
+            key: "Sir Walter Riley",
+            value: "Sir Walter Riley",
+            email: "getstarted+riley@zurb.com"
+          }
+        ]
+      }],
+      selectTemplate: function(item) {
+        return item.original.value;
+      }
+    }
+    let tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, "@random-text");
+
+    let containerDiv = document.getElementsByClassName("tribute-container")[0];
+    expect(containerDiv.innerText).to.equal("template 1");
+
+    detachTribute(tribute, input.id);
+  });
 });
 
 describe("Tribute menu positioning", () => {
