@@ -1,11 +1,16 @@
-import { addHandler } from './helpers.js';
+import { addHandler } from './helpers';
+import type { ITribute } from './type';
 
-class TributeMenuEvents {
-  constructor(tribute) {
+class TributeMenuEvents<T extends {}> {
+  removers: (() => void)[];
+  tribute: ITribute<T>;
+
+  constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
+    this.removers = [];
   }
 
-  bind(menu) {
+  bind(menu: EventTarget) {
     const menuContainerScrollEvent = this.debounce(
       () => {
         if (this.tribute.isActive) {
@@ -34,10 +39,8 @@ class TributeMenuEvents {
       false,
     );
 
-    this.removers = [
-      addHandler(this.tribute.range.getDocument(), 'mousedown', (event) => this.click(event), false),
-      addHandler(window, 'resize', windowResizeEvent),
-    ];
+    this.removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
+    this.removers.push(addHandler(window, 'resize', windowResizeEvent));
 
     if (this.tribute.closeOnScroll === true) {
       this.removers.push(addHandler(window, 'scroll', closeOnScrollEvent));
@@ -52,17 +55,19 @@ class TributeMenuEvents {
     }
   }
 
-  unbind(menu) {
+  unbind(menu: EventTarget) {
     for (const remover of this.removers) {
       remover();
     }
   }
 
-  click(event) {
-    const element = event.currentTarget;
+  click(event: Event) {
+    const element = event.target;
     const tribute = this.tribute;
-    if (tribute.menu.element.contains(event.target)) {
-      let li = event.target;
+    if (!tribute.current || !(element instanceof Node)) return;
+
+    if (tribute.menu.element?.contains(element)) {
+      let li: Node | undefined | null = element;
       event.preventDefault();
       event.stopPropagation();
       while (li.nodeName.toLowerCase() !== 'li') {
@@ -74,16 +79,19 @@ class TributeMenuEvents {
         }
       }
 
-      if (!li) {
-        return;
-      }
+      if (!(li instanceof HTMLElement)) return;
 
       if (li.getAttribute('data-disabled') === 'true') {
         return;
       }
-      if (tribute.current.filteredItems.length === 0) li.setAttribute('data-index', -1);
+      if (tribute.current.filteredItems?.length === 0) {
+        li.setAttribute('data-index', '-1');
+      }
 
-      tribute.selectItemAtIndex(li.getAttribute('data-index'), event);
+      const index = li.getAttribute('data-index');
+      if (index !== null) {
+        tribute.selectItemAtIndex(index, event);
+      }
       tribute.hideMenu();
 
       // TODO: should fire with externalTrigger and target is outside of menu
@@ -94,8 +102,8 @@ class TributeMenuEvents {
     }
   }
 
-  debounce(func, wait, immediate, ...args) {
-    let timeout;
+  debounce<F extends (...args: unknown[]) => unknown>(func: F, wait: number, immediate: boolean, ...args: Parameters<F>) {
+    let timeout: ReturnType<typeof setTimeout> | null;
     return () => {
       const context = this;
       const later = () => {
@@ -103,7 +111,9 @@ class TributeMenuEvents {
         if (!immediate) func.apply(context, args);
       };
       const callNow = immediate && !timeout;
-      clearTimeout(timeout);
+      if (timeout !== null) {
+        clearTimeout(timeout);
+      }
       timeout = setTimeout(later, wait);
       if (callNow) func.apply(context, args);
     };

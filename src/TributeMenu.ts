@@ -1,27 +1,37 @@
-class TributeMenu {
-  constructor(tribute) {
+import type { Coordinate, ITribute, ITributeMenu } from './type';
+
+class TributeMenu<T extends {}> implements ITributeMenu<T> {
+  element: HTMLElement | null;
+  selected: number;
+  tribute: ITribute<T>;
+
+  constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
     this.element = null;
     this.selected = 0;
   }
 
-  create(doc, containerClass) {
+  create(doc: Document, containerClass: string): HTMLElement {
     const wrapper = doc.createElement('div');
     const ul = doc.createElement('ul');
     wrapper.className = containerClass;
     wrapper.appendChild(ul);
 
     this.element = this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
+    return this.element;
   }
 
   activate() {
     this.selected = 0;
     window.setTimeout(() => {
+      if (this.element === null) throw new Error('the menu element is null!');
       this.element.scrollTop = 0;
     }, 0);
   }
 
   deactivate() {
+    if (this.element === null) throw new Error('the menu element is null!');
+
     this.element.style.cssText = 'display: none;';
     this.selected = 0;
   }
@@ -35,14 +45,17 @@ class TributeMenu {
   }
 
   get items() {
+    if (this.element === null) throw new Error('the menu element is null!');
+
     return this.element.querySelectorAll('li');
   }
 
   get itemDisabled() {
-    return this.items[this.selected].getAttribute('data-disabled') === 'true';
+    return this.items[this.selected]?.getAttribute('data-disabled') === 'true';
   }
 
-  up(count) {
+  up(count: number) {
+    if (this.element === null) throw new Error('the menu element is null!');
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
     if (this.selected === -1) {
@@ -59,7 +72,8 @@ class TributeMenu {
     this.setActiveLi();
   }
 
-  down(count) {
+  down(count: number) {
+    if (this.element === null) throw new Error('the menu element is null!');
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
     if (this.selected === -1) {
@@ -76,39 +90,43 @@ class TributeMenu {
     this.setActiveLi();
   }
 
-  setActiveLi(index) {
+  setActiveLi(index?: number) {
+    if (this.element === null) throw new Error('the menu element is null!');
+    if (!this.tribute.current.collection) return;
+
     const selectClass = this.tribute.current.collection.selectClass;
     const lis = this.items;
     const length = lis.length >>> 0;
 
     if (index) {
-      this.selected = Number.parseInt(index);
+      this.selected = index;
     }
-
-    for (let i = 0; i < length; i++) {
-      const li = lis[i];
+    const element = this.element;
+    this.items.forEach((li, i) => {
       if (i === this.selected) {
         if (li.getAttribute('data-disabled') !== 'true') {
           li.classList.add(selectClass);
         }
 
         const liClientRect = li.getBoundingClientRect();
-        const menuClientRect = this.element.getBoundingClientRect();
+        const menuClientRect = element.getBoundingClientRect();
 
         if (liClientRect.bottom > menuClientRect.bottom) {
           const scrollDistance = liClientRect.bottom - menuClientRect.bottom;
-          this.element.scrollTop += scrollDistance;
+          element.scrollTop += scrollDistance;
         } else if (liClientRect.top < menuClientRect.top) {
           const scrollDistance = menuClientRect.top - liClientRect.top;
-          this.element.scrollTop -= scrollDistance;
+          element.scrollTop -= scrollDistance;
         }
       } else {
         li.classList.remove(selectClass);
       }
-    }
+    });
   }
 
-  positionAtCaret(info, coordinates) {
+  positionAtCaret(info: unknown, coordinates: Coordinate) {
+    if (this.element === null) throw new Error('the menu element is null!');
+
     if (typeof info === 'undefined') {
       this.element.style.cssText = 'display: none';
       return;
@@ -138,10 +156,14 @@ class TributeMenu {
   }
 
   getDimensions() {
+    if (this.element === null) throw new Error('the menu element is null!');
     // Width of the menu depends of its contents and position
     // We must check what its width would be without any obstruction
     // This way, we can achieve good positioning for flipping the menu
-    const dimensions = {
+    const dimensions: {
+      width: number | null;
+      height: number | null;
+    } = {
       width: null,
       height: null,
     };

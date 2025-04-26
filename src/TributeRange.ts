@@ -1,47 +1,74 @@
 // Thanks to https://github.com/jeff-collins/ment.io
-import { isContentEditable } from './helpers.js';
+import { isContentEditable, isNotContentEditable } from './helpers.js';
+import type { Coordinate, ITribute, ITributeContext, ITributeRange, TributeItem, TriggerInfo } from './type';
 
-class TributeRange {
-  constructor(tribute) {
+type Rect = {
+  top: number;
+  left: number;
+  height: number;
+  width: number;
+};
+
+type SelectionInfo = {
+  selected: Node;
+  path?: (number | undefined)[];
+  offset?: number;
+};
+
+type Trigger = {
+  mostRecentTriggerCharPos: number;
+  triggerChar: string;
+  requireLeadingSpace: boolean;
+};
+
+class TributeRange<T extends {}> implements ITributeRange<T> {
+  tribute: ITribute<T>;
+
+  constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
   }
 
   getDocument() {
-    let iframe;
+    let iframe: HTMLIFrameElement | null | undefined;
     if (this.tribute.current.collection) {
       iframe = this.tribute.current.collection.iframe;
     }
 
-    if (!iframe) {
+    if (typeof iframe === 'undefined' || iframe === null || iframe.contentWindow === null) {
       return document;
     }
 
     return iframe.contentWindow.document;
   }
 
-  positionMenuAtCaret(scrollTo) {
+  positionMenuAtCaret(scrollTo: boolean) {
     const context = this.tribute.current;
     const info = this.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
-    const coordinates = isContentEditable(context.element)
-      ? this.getContentEditableCaretPosition(info.mentionPosition)
-      : this.getTextAreaOrInputUnderlinePosition(context.element, info.mentionPosition);
+    if (typeof context?.element === 'undefined' || typeof info === 'undefined') return;
 
-    this.tribute.menu.positionAtCaret(info, coordinates);
+    const coordinates = isNotContentEditable(context.element)
+      ? this.getTextAreaOrInputUnderlinePosition(context.element, info.mentionPosition)
+      : this.getContentEditableCaretPosition(info.mentionPosition);
 
-    if (scrollTo) this.scrollIntoView();
+    if (coordinates) {
+      this.tribute.menu.positionAtCaret(info, coordinates);
+    }
+
+    if (scrollTo) {
+      this.scrollIntoView();
+    }
   }
 
   get menuContainerIsBody() {
     return this.tribute.menuContainer === document.body || !this.tribute.menuContainer;
   }
 
-  replaceTriggerText(text, requireLeadingSpace, hasTrailingSpace, originalEvent, item) {
+  replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>) {
     const info = this.getTriggerInfo(true, hasTrailingSpace, requireLeadingSpace, this.tribute.allowSpaces, this.tribute.autocompleteMode);
-
-    if (typeof info === 'undefined') return;
-
     const context = this.tribute.current;
+
+    if (typeof context?.element === 'undefined' || typeof info === 'undefined') return;
     const replaceEvent = new CustomEvent('tribute-replaced', {
       detail: {
         item: item,
@@ -51,17 +78,17 @@ class TributeRange {
       },
     });
 
-    if (!isContentEditable(context.element)) {
-      const myField = this.tribute.current.element;
+    if (isNotContentEditable(context.element)) {
+      const myField = context.element;
       const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : ' ';
       const _text = text + textSuffix;
       const startPos = info.mentionPosition;
-      let endPos = info.mentionPosition + info.mentionText.length + (textSuffix === '' ? 1 : textSuffix.length);
+      let endPos = info.mentionPosition + (info.mentionText?.length || 0) + (textSuffix === '' ? 1 : textSuffix.length);
       if (!this.tribute.autocompleteMode) {
-        endPos += info.mentionTriggerChar.length - 1;
+        endPos += (info.mentionTriggerChar?.length || 0) - 1;
       }
-      myField.value = myField.value.substring(0, startPos) + _text + myField.value.substring(endPos, myField.value.length);
       myField.selectionStart = startPos + _text.length;
+      myField.value = myField.value.substring(0, startPos) + _text + myField.value.substring(endPos, myField.value.length);
       myField.selectionEnd = startPos + _text.length;
     } else {
       let _text = text;
@@ -73,9 +100,9 @@ class TributeRange {
         const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : '\xA0';
         _text += textSuffix;
       }
-      let endPos = info.mentionPosition + info.mentionText.length;
+      let endPos = info.mentionPosition + (info.mentionText?.length || 0);
       if (!this.tribute.autocompleteMode) {
-        endPos += info.mentionTriggerChar.length;
+        endPos += info.mentionTriggerChar?.length || 0;
       }
       this.pasteHtml(_text, info.mentionPosition, endPos);
     }
@@ -84,10 +111,11 @@ class TributeRange {
     context.element.dispatchEvent(replaceEvent);
   }
 
-  pasteHtml(htmlOrElem, startPos, endPos) {
-    let range;
+  pasteHtml(htmlOrElem: string | HTMLElement, startPos: number, endPos: number): void {
     const sel = this.getWindowSelection();
-    range = this.getDocument().createRange();
+    const range = this.getDocument().createRange();
+    if (sel === null || sel.anchorNode === null) return;
+
     range.setStart(sel.anchorNode, startPos);
     range.setEnd(sel.anchorNode, endPos);
     range.deleteContents();
@@ -99,8 +127,8 @@ class TributeRange {
       el.innerHTML = htmlOrElem;
     }
     const frag = this.getDocument().createDocumentFragment();
-    let node;
-    let lastNode;
+    let node: Node;
+    let lastNode: Node | undefined;
     while (el.firstChild) {
       node = el.firstChild;
       lastNode = frag.appendChild(node);
@@ -109,27 +137,30 @@ class TributeRange {
 
     // Preserve the selection
     if (lastNode) {
-      range = range.cloneRange();
-      range.setStartAfter(lastNode);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
+      const _range = range.cloneRange();
+      _range.setStartAfter(lastNode);
+      _range.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(_range);
     }
   }
 
   getWindowSelection() {
-    if (this.tribute.collection.iframe) {
-      return this.tribute.collection.iframe.contentWindow.getSelection();
+    if (this.tribute.collection[0]?.iframe) {
+      const iframe = this.tribute.collection[0].iframe.contentWindow;
+      if (iframe) {
+        return iframe.getSelection();
+      }
     }
 
-    if (this.tribute.collection[0].shadowRoot) {
+    if (this.tribute.collection[0]?.shadowRoot) {
       return this.tribute.collection[0].shadowRoot.getSelection();
     }
 
     return window.getSelection();
   }
 
-  getNodePositionInParent(element) {
+  getNodePositionInParent(element: Node) {
     if (element.parentNode === null) {
       return 0;
     }
@@ -141,22 +172,26 @@ class TributeRange {
         return i;
       }
     }
+    return undefined;
   }
 
-  getContentEditableSelectedPath(context) {
+  getContentEditableSelectedPath(context: ITributeContext<T>): SelectionInfo | undefined {
     const sel = this.getWindowSelection();
-    let selected = sel.anchorNode;
-    const path = [];
-    let offset;
+    if (sel === null) return undefined;
 
-    if (selected != null) {
-      let i;
-      let ce = selected.contentEditable;
+    let selected = sel?.anchorNode;
+    const path: (number | undefined)[] = [];
+    let offset: number;
+
+    if (selected instanceof Node) {
+      let i: number | undefined;
+      let ce = selected instanceof HTMLElement ? selected.contentEditable : false;
       while (selected !== null && ce !== 'true') {
         i = this.getNodePositionInParent(selected);
         path.push(i);
         selected = selected.parentNode;
-        if (selected !== null) {
+
+        if (selected instanceof HTMLElement) {
           ce = selected.contentEditable;
         }
       }
@@ -164,33 +199,39 @@ class TributeRange {
 
       // getRangeAt may not exist, need alternative
       offset = sel.getRangeAt(0).startOffset;
-
-      return {
-        selected: selected,
-        path: path,
-        offset: offset,
-      };
+      if (selected) {
+        return {
+          selected: selected,
+          path: path,
+          offset: offset,
+        };
+      }
     }
+    return undefined;
   }
 
   getTextPrecedingCurrentSelection() {
     const context = this.tribute.current;
     let text = '';
+    if (typeof context.element === 'undefined') return text;
 
-    if (!isContentEditable(context.element)) {
+    if (isNotContentEditable(context.element)) {
       const textComponent = context.element;
-      if (textComponent) {
-        const startPos = textComponent.selectionStart;
-        if (textComponent.value && startPos >= 0) {
-          text = textComponent.value.substring(0, startPos);
-        }
+      const startPos = textComponent.selectionStart;
+      if (textComponent.value && startPos !== null && startPos >= 0) {
+        text = textComponent.value.substring(0, startPos);
       }
     } else {
-      const selectedElem = this.getWindowSelection().anchorNode;
+      const node = this.getWindowSelection();
+      if (node === null) return text;
+      const selectedElem = node.anchorNode;
 
       if (selectedElem != null) {
         const workingNodeContent = selectedElem.textContent;
-        const selectStartOffset = this.getWindowSelection().getRangeAt(0).startOffset;
+        const sel = this.getWindowSelection();
+        if (sel === null) return;
+
+        const selectStartOffset = sel.getRangeAt(0).startOffset;
 
         if (workingNodeContent && selectStartOffset >= 0) {
           text = workingNodeContent.substring(0, selectStartOffset);
@@ -201,8 +242,8 @@ class TributeRange {
     return text;
   }
 
-  getLastWordInText(text) {
-    let wordsArray;
+  getLastWordInText(text: string) {
+    let wordsArray: string[] | undefined;
     if (this.tribute.autocompleteMode) {
       if (this.tribute.autocompleteSeparator) {
         wordsArray = text.split(this.tribute.autocompleteSeparator);
@@ -216,12 +257,18 @@ class TributeRange {
     return wordsArray[wordsCount];
   }
 
-  getTriggerInfo(menuAlreadyActive, hasTrailingSpace, requireLeadingSpace, allowSpaces, isAutocomplete) {
+  getTriggerInfo(
+    menuAlreadyActive: boolean,
+    hasTrailingSpace: boolean,
+    requireLeadingSpace: boolean,
+    allowSpaces: boolean,
+    isAutocomplete: boolean,
+  ): TriggerInfo | undefined {
     const context = this.tribute.current;
     const selectionInfo = this._getSelectionInfo(context);
     const effectiveRange = this.getTextPrecedingCurrentSelection();
 
-    if (isAutocomplete) {
+    if (isAutocomplete && typeof selectionInfo !== 'undefined' && typeof effectiveRange !== 'undefined') {
       return this._getTriggerInfoWithAutocomplete(selectionInfo, effectiveRange);
     }
 
@@ -232,9 +279,13 @@ class TributeRange {
     if (trigger) {
       return this._getTriggerInfoNonAutocomplete(menuAlreadyActive, hasTrailingSpace, allowSpaces, effectiveRange, trigger, selectionInfo);
     }
+
+    return undefined;
   }
 
-  _getSelectionInfo(context) {
+  _getSelectionInfo(context: ITributeContext<T>): SelectionInfo | undefined {
+    if (typeof context.element === 'undefined') return undefined;
+
     if (isContentEditable(context.element)) {
       const selectionInfo = this.getContentEditableSelectedPath(context);
       if (selectionInfo) {
@@ -247,13 +298,14 @@ class TributeRange {
     } else {
       return { selected: context.element };
     }
+    return undefined;
   }
 
-  _getTriggerInfoWithAutocomplete(selectionInfo, effectiveRange) {
+  _getTriggerInfoWithAutocomplete(selectionInfo: SelectionInfo, effectiveRange: string) {
     const lastWordOfEffectiveRange = this.getLastWordInText(effectiveRange);
 
     return {
-      mentionPosition: effectiveRange.length - lastWordOfEffectiveRange.length,
+      mentionPosition: effectiveRange.length - (lastWordOfEffectiveRange || '').length,
       mentionText: lastWordOfEffectiveRange,
       mentionSelectedElement: selectionInfo.selected,
       mentionSelectedPath: selectionInfo.path,
@@ -261,10 +313,10 @@ class TributeRange {
     };
   }
 
-  _getTrigger(requireLeadingSpace, effectiveRange) {
+  _getTrigger(requireLeadingSpace: boolean, effectiveRange: string): Trigger | undefined {
     let mostRecentTriggerCharPos = -1;
-    let triggerChar;
-    let _requireLeadingSpace = requireLeadingSpace;
+    let triggerChar: string | undefined;
+    let _requireLeadingSpace: boolean | undefined = requireLeadingSpace;
 
     for (const config of this.tribute.collection) {
       const c = config.trigger;
@@ -278,18 +330,27 @@ class TributeRange {
     }
 
     if (
+      typeof triggerChar !== 'undefined' &&
       mostRecentTriggerCharPos >= 0 &&
       (mostRecentTriggerCharPos === 0 || !_requireLeadingSpace || /\s/.test(effectiveRange.substring(mostRecentTriggerCharPos - 1, mostRecentTriggerCharPos)))
     ) {
       return {
         mostRecentTriggerCharPos,
         triggerChar,
-        requireLeadingSpace: _requireLeadingSpace,
+        requireLeadingSpace: !!_requireLeadingSpace,
       };
     }
+    return undefined;
   }
 
-  _getTriggerInfoNonAutocomplete(menuAlreadyActive, hasTrailingSpace, allowSpaces, effectiveRange, trigger, selectionInfo) {
+  _getTriggerInfoNonAutocomplete(
+    menuAlreadyActive: boolean,
+    hasTrailingSpace: boolean,
+    allowSpaces: boolean,
+    effectiveRange: string,
+    trigger: Trigger,
+    selectionInfo?: SelectionInfo,
+  ) {
     let currentTriggerSnippet = effectiveRange.substring(trigger.mostRecentTriggerCharPos + trigger.triggerChar.length, effectiveRange.length);
 
     trigger.triggerChar = effectiveRange.substring(trigger.mostRecentTriggerCharPos, trigger.mostRecentTriggerCharPos + trigger.triggerChar.length);
@@ -307,21 +368,23 @@ class TributeRange {
       return {
         mentionPosition: trigger.mostRecentTriggerCharPos,
         mentionText: currentTriggerSnippet,
-        mentionSelectedElement: selectionInfo.selected,
-        mentionSelectedPath: selectionInfo.path,
-        mentionSelectedOffset: selectionInfo.offset,
+        mentionSelectedElement: selectionInfo?.selected,
+        mentionSelectedPath: selectionInfo?.path,
+        mentionSelectedOffset: selectionInfo?.offset,
         mentionTriggerChar: trigger.triggerChar,
       };
     }
+    return undefined;
   }
 
-  lastIndexWithLeadingSpace(str, trigger) {
+  lastIndexWithLeadingSpace(str: string, trigger: string) {
     const reversedStr = str.split('').reverse().join('');
     let index = -1;
 
     for (let cidx = 0, len = str.length; cidx < len; cidx++) {
       const firstChar = cidx === str.length - 1;
-      const leadingSpace = /\s/.test(reversedStr[cidx + 1]);
+      const rev = reversedStr[cidx + 1];
+      const leadingSpace = typeof rev === 'undefined' ? false : /\s/.test(rev);
 
       let match = true;
       for (let triggerIdx = trigger.length - 1; triggerIdx >= 0; triggerIdx--) {
@@ -340,27 +403,39 @@ class TributeRange {
     return index;
   }
 
-  isMenuOffScreen(coordinates, menuDimensions) {
+  isMenuOffScreen(coordinates: Coordinate, menuDimensions: { width: number; height: number }) {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const doc = document.documentElement;
     const windowLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
     const windowTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
 
-    const menuTop = typeof coordinates.top === 'number' ? coordinates.top : windowTop + windowHeight - coordinates.bottom - menuDimensions.height;
-    const menuRight = typeof coordinates.right === 'number' ? coordinates.right : coordinates.left + menuDimensions.width;
-    const menuBottom = typeof coordinates.bottom === 'number' ? coordinates.bottom : coordinates.top + menuDimensions.height;
-    const menuLeft = typeof coordinates.left === 'number' ? coordinates.left : windowLeft + windowWidth - coordinates.right - menuDimensions.width;
+    const menuTop =
+      typeof coordinates.top === 'number'
+        ? coordinates.top
+        : typeof coordinates.bottom === 'number'
+          ? windowTop + windowHeight - coordinates.bottom - menuDimensions.height
+          : undefined;
+    const menuRight =
+      typeof coordinates.right === 'number' ? coordinates.right : typeof coordinates.left === 'number' ? coordinates.left + menuDimensions.width : undefined;
+    const menuBottom =
+      typeof coordinates.bottom === 'number' ? coordinates.bottom : typeof coordinates.top === 'number' ? coordinates.top + menuDimensions.height : undefined;
+    const menuLeft =
+      typeof coordinates.left === 'number'
+        ? coordinates.left
+        : typeof coordinates.right === 'number'
+          ? windowLeft + windowWidth - coordinates.right - menuDimensions.width
+          : undefined;
 
     return {
-      top: menuTop < Math.floor(windowTop),
-      right: menuRight > Math.ceil(windowLeft + windowWidth),
-      bottom: menuBottom > Math.ceil(windowTop + windowHeight),
-      left: menuLeft < Math.floor(windowLeft),
+      top: typeof menuTop === 'number' ? menuTop < Math.floor(windowTop) : undefined,
+      right: typeof menuRight === 'number' ? menuRight > Math.ceil(windowLeft + windowWidth) : undefined,
+      bottom: typeof menuBottom === 'number' ? menuBottom > Math.ceil(windowTop + windowHeight) : undefined,
+      left: typeof menuLeft === 'number' ? menuLeft < Math.floor(windowLeft) : undefined,
     };
   }
 
-  getTextAreaOrInputUnderlinePosition(element, position, flipped) {
+  getTextAreaOrInputUnderlinePosition(element: HTMLInputElement | HTMLTextAreaElement, position: number, flipped?: unknown): Coordinate | undefined {
     const properties = [
       'direction',
       'boxSizing',
@@ -393,26 +468,24 @@ class TributeRange {
       'wordSpacing',
     ];
 
-    const isFirefox = window.mozInnerScreenX !== null;
-
     const div = this.getDocument().createElement('div');
     div.id = 'input-textarea-caret-position-mirror-div';
     this.getDocument().body.appendChild(div);
 
-    const style = div.style;
-    const computed = window.getComputedStyle ? getComputedStyle(element) : element.currentStyle;
+    const computed = getComputedStyle(element);
 
-    style.whiteSpace = 'pre-wrap';
+    div.style.whiteSpace = 'pre-wrap';
     if (element.nodeName !== 'INPUT') {
-      style.wordWrap = 'break-word';
+      div.style.wordWrap = 'break-word';
     }
 
-    style.position = 'absolute';
-    style.visibility = 'hidden';
+    div.style.position = 'absolute';
+    div.style.visibility = 'hidden';
 
     // transfer the element's properties to the div
     for (const prop of properties) {
-      style[prop] = computed[prop];
+      const value = computed.getPropertyValue(prop);
+      div.style.setProperty(prop, value);
     }
 
     //NOT SURE WHY THIS IS HERE AND IT DOESNT SEEM HELPFUL
@@ -428,7 +501,7 @@ class TributeRange {
     span0.textContent = element.value.substring(0, position);
     div.appendChild(span0);
 
-    if (element.nodeName === 'INPUT') {
+    if (element.nodeName === 'INPUT' && div.textContent !== null) {
       div.textContent = div.textContent.replace(/\s/g, ' ');
     }
 
@@ -460,8 +533,9 @@ class TributeRange {
     return this.getFixedCoordinatesRelativeToRect(spanRect);
   }
 
-  getContentEditableCaretPosition(selectedNodePosition) {
+  getContentEditableCaretPosition(selectedNodePosition: number) {
     const sel = this.getWindowSelection();
+    if (sel === null || sel.anchorNode === null) return;
 
     const range = this.getDocument().createRange();
     range.setStart(sel.anchorNode, selectedNodePosition);
@@ -474,8 +548,8 @@ class TributeRange {
     return this.getFixedCoordinatesRelativeToRect(rect);
   }
 
-  getFixedCoordinatesRelativeToRect(rect) {
-    const coordinates = {
+  getFixedCoordinatesRelativeToRect(rect: Rect) {
+    const coordinates: Coordinate = {
       position: 'fixed',
       left: rect.left,
       top: rect.top + rect.height,
@@ -487,15 +561,16 @@ class TributeRange {
     const availableSpaceOnBottom = window.innerHeight - (rect.top + rect.height);
 
     //check to see where's the right place to put the menu vertically
-    if (availableSpaceOnBottom < menuDimensions.height) {
-      if (availableSpaceOnTop >= menuDimensions.height || availableSpaceOnTop > availableSpaceOnBottom) {
+    const height = menuDimensions.height;
+    if (height !== null && availableSpaceOnBottom < height) {
+      if (availableSpaceOnTop >= height || availableSpaceOnTop > availableSpaceOnBottom) {
         coordinates.top = 'auto';
         coordinates.bottom = window.innerHeight - rect.top;
-        if (availableSpaceOnBottom < menuDimensions.height) {
+        if (availableSpaceOnBottom < height) {
           coordinates.maxHeight = availableSpaceOnTop;
         }
       } else {
-        if (availableSpaceOnTop < menuDimensions.height) {
+        if (availableSpaceOnTop < height) {
           coordinates.maxHeight = availableSpaceOnBottom;
         }
       }
@@ -505,15 +580,16 @@ class TributeRange {
     const availableSpaceOnRight = window.innerWidth - rect.left;
 
     //check to see where's the right place to put the menu horizontally
-    if (availableSpaceOnRight < menuDimensions.width) {
-      if (availableSpaceOnLeft >= menuDimensions.width || availableSpaceOnLeft > availableSpaceOnRight) {
+    const width = menuDimensions.width;
+    if (width !== null && availableSpaceOnRight < width) {
+      if (availableSpaceOnLeft >= width || availableSpaceOnLeft > availableSpaceOnRight) {
         coordinates.left = 'auto';
         coordinates.right = window.innerWidth - rect.left;
-        if (availableSpaceOnRight < menuDimensions.width) {
+        if (availableSpaceOnRight < width) {
           coordinates.maxWidth = availableSpaceOnLeft;
         }
       } else {
-        if (availableSpaceOnLeft < menuDimensions.width) {
+        if (availableSpaceOnLeft < width) {
           coordinates.maxWidth = availableSpaceOnRight;
         }
       }
@@ -522,20 +598,23 @@ class TributeRange {
     return coordinates;
   }
 
-  scrollIntoView(elem) {
+  menu?: Node;
+  scrollIntoView(elem?: unknown) {
     const reasonableBuffer = 20;
-    let clientRect;
+    let clientRect: DOMRect | undefined;
     const maxScrollDisplacement = 100;
     let e = this.menu;
 
     if (typeof e === 'undefined') return;
 
     while (clientRect === undefined || clientRect.height === 0) {
-      clientRect = e.getBoundingClientRect();
+      if (e instanceof HTMLElement) {
+        clientRect = e.getBoundingClientRect();
+      }
 
-      if (clientRect.height === 0) {
+      if (clientRect?.height === 0) {
         e = e.childNodes[0];
-        if (e === undefined || !e.getBoundingClientRect) {
+        if (e === undefined || !('getBoundingClientRect' in e)) {
           return;
         }
       }

@@ -1,11 +1,12 @@
 import terser from '@rollup/plugin-terser';
+import typescript from '@rollup/plugin-typescript';
 import { copy } from '@web/rollup-plugin-copy';
 import livereload from 'rollup-plugin-livereload';
 import serve from 'rollup-plugin-serve';
 
 const production = !process.env.ROLLUP_WATCH;
 export default {
-  input: 'src/index.js',
+  input: './src/index.ts',
   output: [
     {
       name: 'Tribute',
@@ -35,6 +36,7 @@ export default {
     },
   ],
   plugins: [
+    typescript(),
     copy({ rootDir: 'src', patterns: '**/*.css' }),
     !production && serve({ openPage: '/', contentBase: ['example'] }),
     !production &&

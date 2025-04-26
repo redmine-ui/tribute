@@ -1,4 +1,4 @@
-import Tribute from '../../../src/index.js';
+import Tribute from '../../../src/index';
 
 export const attachTribute = (collectionObject, inputElementId) => {
   const tribute = new Tribute(collectionObject);
@@ -9,3 +9,7 @@ export const attachTribute = (collectionObject, inputElementId) => {
 export const detachTribute = (tribute, inputElementId) => {
   tribute.detach(document.getElementById(inputElementId));
 };
+
+export function isContentEditable(element) {
+  return element.nodeName !== 'INPUT' && element.nodeName !== 'TEXTAREA';
+}

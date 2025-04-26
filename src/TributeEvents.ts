@@ -1,31 +1,48 @@
-import { addHandler } from './helpers.js';
+import { addHandler } from './helpers';
+import type { ITribute } from './type';
 
-class TributeEvents {
-  constructor(tribute) {
+const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arrowdown'] as const;
+type hotkeyType = (typeof hotkeys)[number];
+
+class TributeEvents<T extends {}> {
+  removers: (() => void)[];
+  tribute: ITribute<T>;
+  inputEvent: boolean;
+  commandEvent?: boolean;
+
+  constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
+    this.removers = [];
+    this.inputEvent = false;
   }
 
-  bind(element) {
-    this.removers = [
-      addHandler(element, 'keydown', (event) => {
+  bind(element: EventTarget) {
+    this.removers.push(
+      addHandler(element, 'keydown', (event: Event) => {
         this.keydown(event);
       }),
-      addHandler(element, 'keyup', (event) => {
+    );
+    this.removers.push(
+      addHandler(element, 'keyup', (event: Event) => {
         this.keyup(event);
       }),
-      addHandler(element, 'input', (event) => {
+    );
+    this.removers.push(
+      addHandler(element, 'input', (event: Event) => {
         this.input(event);
       }),
-    ];
+    );
   }
 
-  unbind(element) {
+  unbind(element: EventTarget) {
     for (const remover of this.removers) {
       remover();
     }
   }
 
-  keydown(event) {
+  keydown(event: Event) {
+    if (!(event instanceof KeyboardEvent)) return;
+
     const element = event.currentTarget;
     if (this.shouldDeactivate(event)) {
       this.tribute.isActive = false;
@@ -34,21 +51,24 @@ class TributeEvents {
     this.commandEvent = false;
 
     const key = getCode(event.key);
-    const callback = this.callbacks[key];
-    if (callback) {
+    if (isHotkey(key) && element instanceof HTMLElement) {
       this.commandEvent = true;
-      callback(event, element);
+      this.callbacks[key](event, element);
     }
   }
 
-  input(event) {
+  input(event: Event) {
     const element = event.currentTarget;
     this.inputEvent = true;
     this.keyup(event);
   }
 
-  keyup(event) {
+  keyup(event: Event) {
+    if (!(event instanceof KeyboardEvent)) return;
+
     const element = event.currentTarget;
+    if (!(element instanceof HTMLElement)) return;
+
     if (this.inputEvent) {
       this.inputEvent = false;
     }
@@ -72,7 +92,7 @@ class TributeEvents {
         if (Number.isNaN(charCode) || !charCode) return;
 
         const trigger = this.tribute.triggers().find((trigger) => {
-          return trigger.charCodeAt(0) === charCode;
+          return trigger?.charCodeAt(0) === charCode;
         });
 
         if (typeof trigger !== 'undefined') {
@@ -91,14 +111,14 @@ class TributeEvents {
     }
   }
 
-  shouldDeactivate(event) {
+  shouldDeactivate(event: Event) {
     if (!this.tribute.isActive) return false;
+    if (!(event instanceof KeyboardEvent)) return false;
 
-    if (this.tribute.current.mentionText.length === 0) {
+    if (this.tribute.current.mentionText?.length === 0) {
       let eventKeyPressed = false;
       const key = getCode(event.key);
-      const callback = this.callbacks[key];
-      if (callback) {
+      if (isHotkey(key)) {
         eventKeyPressed = true;
       }
 
@@ -109,17 +129,16 @@ class TributeEvents {
   }
 
   getTriggerCharCode() {
-    let char;
     const tribute = this.tribute;
     const info = tribute.range.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces, tribute.autocompleteMode);
 
-    if (info) {
+    if (info?.mentionTriggerChar) {
       return info.mentionTriggerChar.charCodeAt(0);
     }
     return false;
   }
 
-  updateSelection(el) {
+  updateSelection(el: HTMLElement) {
     this.tribute.current.element = el;
     const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
@@ -128,7 +147,7 @@ class TributeEvents {
     }
   }
 
-  triggerChar(e, el, trigger) {
+  triggerChar(e: Event, el: HTMLElement, trigger: string) {
     const tribute = this.tribute;
     tribute.current.trigger = trigger;
 
@@ -138,32 +157,33 @@ class TributeEvents {
 
     tribute.current.collection = collectionItem;
 
-    if (!tribute.current.isMentionLengthUnderMinimum && tribute.inputEvent) {
+    if (!tribute.current.isMentionLengthUnderMinimum && this.inputEvent) {
       tribute.showMenuFor(el, true);
     }
   }
 
-  get callbacks() {
+  _callbacks?: { [key in hotkeyType]: (e: Event, el: HTMLElement) => void };
+  get callbacks(): { [key in hotkeyType]: (e: Event, el: HTMLElement) => void } {
     if (!this._callbacks) {
       this._callbacks = {
-        enter: (e, el) => {
+        enter: (e: Event, el: HTMLElement) => {
           // choose selection
           const filteredItems = this.tribute.current.filteredItems;
           if (this.tribute.isActive && filteredItems && filteredItems.length) {
             e.preventDefault();
             e.stopPropagation();
 
-            if (this.tribute.current.filteredItems.length === 0) {
-              this.tribute.menuSelected = -1;
+            if (this.tribute.current.filteredItems?.length === 0) {
+              this.tribute.menu.unselect();
             }
 
             setTimeout(() => {
-              this.tribute.selectItemAtIndex(this.tribute.menuSelected, e);
+              this.tribute.selectItemAtIndex(this.tribute.menu.selected.toString(), e);
               this.tribute.hideMenu();
             }, 0);
           }
         },
-        escape: (e, el) => {
+        escape: (e: Event, el: HTMLElement) => {
           if (this.tribute.isActive) {
             e.preventDefault();
             e.stopPropagation();
@@ -171,14 +191,14 @@ class TributeEvents {
             this.tribute.hideMenu();
           }
         },
-        tab: (e, el) => {
+        tab: (e: Event, el: HTMLElement) => {
           // choose first match
-          this.callbacks().enter(e, el);
+          this.callbacks.enter(e, el);
         },
-        space: (e, el) => {
+        space: (e: Event, el: HTMLElement) => {
           if (this.tribute.isActive) {
             if (this.tribute.spaceSelectsMatch) {
-              this.callbacks().enter(e, el);
+              this.callbacks.enter(e, el);
             } else if (!this.tribute.allowSpaces) {
               e.stopPropagation();
               setTimeout(() => {
@@ -188,59 +208,33 @@ class TributeEvents {
             }
           }
         },
-        arrowup: (e, el) => {
+        arrowup: (e: Event, el: HTMLElement) => {
           // navigate up ul
           if (this.tribute.isActive && this.tribute.current.filteredItems) {
             e.preventDefault();
             e.stopPropagation();
+
             const count = this.tribute.current.filteredItems.length;
-            const lis = this.tribute.menu.querySelectorAll('li');
-
-            //If menuSelected is -1 then there are no valid, non-disabled items
-            //to navigate through
-            if (this.tribute.menuSelected === -1) {
-              return;
-            }
-
-            do {
-              this.tribute.menuSelected--;
-              if (this.tribute.menuSelected === -1) {
-                this.tribute.menuSelected = count - 1;
-                this.tribute.menu.scrollTop = this.tribute.menu.scrollHeight;
-              }
-            } while (lis[this.tribute.menuSelected].getAttribute('data-disabled') === 'true');
-            this.setActiveLi();
+            this.tribute.menu.up(count);
           }
         },
-        arrowdown: (e, el) => {
+        arrowdown: (e: Event, el: HTMLElement) => {
           // navigate down ul
           if (this.tribute.isActive && this.tribute.current.filteredItems) {
             e.preventDefault();
             e.stopPropagation();
+
             const count = this.tribute.current.filteredItems.length;
-            const lis = this.tribute.menu.querySelectorAll('li');
-
-            //If menuSelected is -1 then there are no valid, non-disabled items
-            //to navigate through
-            if (this.tribute.menuSelected === -1) {
-              return;
-            }
-
-            do {
-              this.tribute.menuSelected++;
-              if (this.tribute.menuSelected >= count) {
-                this.tribute.menuSelected = 0;
-                this.tribute.menu.scrollTop = 0;
-              }
-            } while (lis[this.tribute.menuSelected].getAttribute('data-disabled') === 'true');
-            this.setActiveLi();
+            this.tribute.menu.down(count);
           }
         },
-        backspace: (e, el) => {
-          if (this.tribute.isActive && this.tribute.current.mentionText.length < 1) {
-            this.tribute.hideMenu();
-          } else if (this.tribute.isActive) {
-            this.tribute.showMenuFor(el);
+        backspace: (e: Event, el: HTMLElement) => {
+          if (this.tribute.isActive) {
+            if (this.tribute.current && this.tribute.current.mentionText.length < 1) {
+              this.tribute.hideMenu();
+            } else {
+              this.tribute.showMenuFor(el);
+            }
           }
         },
       };
@@ -250,7 +244,15 @@ class TributeEvents {
 }
 
 function getCode(key: string) {
-  return key === ' ' ?  'space' : key.toLowerCase();
+  return key === ' ' ? 'space' : key.toLowerCase();
+}
+
+function includes<A extends ReadonlyArray<unknown>>(array: A, input: unknown): input is A[number] {
+  return array.includes(input);
+}
+
+function isHotkey(code: string): code is hotkeyType {
+  return includes(hotkeys, code);
 }
 
 export default TributeEvents;

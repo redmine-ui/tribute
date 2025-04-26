@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 
-import { isContentEditable } from '../../src/helpers.js';
-import Tribute from '../../src/index.js';
+import Tribute from '../../src/index';
 import bigList from './utils/bigList.json' with { type: 'json' };
 
 import { clearDom, createDomElement, fillIn, press, simulateElementScroll, simulateMouseClick } from './utils/dom-helpers';
@@ -38,7 +37,7 @@ describe('Tribute @mentions cases', () => {
           trigger: trigger,
           selectTemplate: function (item) {
             if (typeof item === 'undefined') return null;
-            if (isContentEditable(this.current.element)) {
+            if (Tribute.isContentEditable(this.current.element)) {
               return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
@@ -88,7 +87,7 @@ describe('Tribute @mentions cases', () => {
           menuItemLimit: 25,
           selectTemplate: function (item) {
             if (typeof item === 'undefined') return null;
-            if (isContentEditable(this.current.element)) {
+            if (Tribute.isContentEditable(this.current.element)) {
               return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
@@ -246,7 +245,7 @@ describe('Tribute autocomplete mode cases', () => {
 
         selectTemplate: function (item) {
           if (typeof item === 'undefined') return null;
-          if (isContentEditable(this.current.element)) {
+          if (Tribute.isContentEditable(this.current.element)) {
             return `&nbsp;<a contenteditable=false>${item.original.value}</a>`;
           }
 

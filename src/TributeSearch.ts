@@ -1,20 +1,24 @@
 // Thanks to https://github.com/mattyork/fuzzy
-class TributeSearch {
-  constructor(tribute) {
+import type { ITribute, ITributeSearch, TributeItem, TributeSearchOpts } from './type';
+
+class TributeSearch<T extends {}> implements ITributeSearch<T> {
+  tribute: ITribute<T>;
+
+  constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
   }
 
-  simpleFilter(pattern, array) {
+  simpleFilter(pattern: string, array: string[]) {
     return array.filter((string) => {
       return this.test(pattern, string);
     });
   }
 
-  test(pattern, string) {
+  test(pattern: string, string: string) {
     return this.match(pattern, string) !== null;
   }
 
-  match(pattern, string, opts) {
+  match(pattern: string, string: string, opts?: TributeSearchOpts<T>) {
     const _opts = opts || {};
     const pre = _opts.pre || '';
     const post = _opts.post || '';
@@ -36,9 +40,10 @@ class TributeSearch {
     };
   }
 
-  traverse(string, pattern, stringIndex, patternIndex, patternCache) {
+  traverse(string: string, pattern: string, stringIndex: number, patternIndex: number, patternCache: number[]): { score: number; cache: number[] } | undefined {
     // if the pattern search at end
     const _pattern = this.tribute.autocompleteSeparator ? pattern.split(this.tribute.autocompleteSeparator).splice(-1)[0] : pattern;
+    if (typeof _pattern === 'undefined') return;
 
     if (_pattern.length === patternIndex) {
       // calculate score and copy the cache containing the indices where it's found
@@ -54,9 +59,10 @@ class TributeSearch {
     }
 
     const c = _pattern[patternIndex];
+    if (!c) return;
     let index = string.indexOf(c, stringIndex);
-    let best;
-    let temp;
+    let best: { score: number; cache: number[] } | undefined;
+    let temp: { score: number; cache: number[] } | undefined;
 
     while (index > -1) {
       patternCache.push(index);
@@ -78,13 +84,14 @@ class TributeSearch {
     return best;
   }
 
-  calculateScore(patternCache) {
+  calculateScore(patternCache: number[]) {
     let score = 0;
     let temp = 1;
 
     patternCache.forEach((index, i) => {
       if (i > 0) {
-        if (patternCache[i - 1] + 1 === index) {
+        const prev = patternCache[i - 1];
+        if (typeof prev !== 'undefined' && prev + 1 === index) {
           temp += 1;
         } else {
           temp = 1;
@@ -97,7 +104,7 @@ class TributeSearch {
     return score;
   }
 
-  render(string, indices, pre, post) {
+  render(string: string, indices: number[], pre: string, post: string) {
     let rendered = string.substring(0, indices[0]);
 
     indices.forEach((index, i) => {
@@ -107,11 +114,11 @@ class TributeSearch {
     return rendered;
   }
 
-  filter(pattern, arr, opts) {
+  filter(pattern: string, arr: T[], opts?: TributeSearchOpts<T>) {
     const _opts = opts || {};
     return arr
-      .reduce((prev, element, idx, arr) => {
-        let str = element;
+      .reduce((prev: TributeItem<T>[], element: T, idx: number, arr) => {
+        let str: string | T | null | undefined = element;
 
         if (_opts.extract) {
           str = _opts.extract(element);
@@ -122,7 +129,7 @@ class TributeSearch {
           }
         }
 
-        const rendered = this.match(pattern, str, _opts);
+        const rendered = typeof str === 'string' ? this.match(pattern, str, _opts) : null;
 
         if (rendered != null) {
           prev[prev.length] = {
@@ -136,7 +143,7 @@ class TributeSearch {
         return prev;
       }, [])
 
-      .sort((a, b) => {
+      .sort((a: TributeItem<T>, b: TributeItem<T>) => {
         const compare = b.score - a.score;
         if (compare) return compare;
         return a.index - b.index;
