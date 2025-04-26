@@ -1,45 +1,45 @@
-import terser from "@rollup/plugin-terser";
-import serve from "rollup-plugin-serve";
-import livereload from "rollup-plugin-livereload";
+import terser from '@rollup/plugin-terser';
 import { copy } from '@web/rollup-plugin-copy';
+import livereload from 'rollup-plugin-livereload';
+import serve from 'rollup-plugin-serve';
 
 const production = !process.env.ROLLUP_WATCH;
 export default {
-  input: "src/index.js",
+  input: 'src/index.js',
   output: [
     {
       name: 'Tribute',
       file: 'dist/tribute.js',
-      format: "umd"
+      format: 'umd',
     },
     {
       name: 'Tribute',
-      file: "dist/tribute.min.js",
-      format: "umd",
+      file: 'dist/tribute.min.js',
+      format: 'umd',
       plugins: [terser()],
-      sourcemap: true
+      sourcemap: true,
     },
     {
       file: 'dist/tribute.mjs',
-      format: "es"
+      format: 'es',
     },
     {
       file: 'example/tribute.mjs',
-      format: "es"
+      format: 'es',
     },
     {
-      file: "dist/tribute.min.mjs",
-      format: "es",
+      file: 'dist/tribute.min.mjs',
+      format: 'es',
       plugins: [terser()],
-      sourcemap: true
-    }
+      sourcemap: true,
+    },
   ],
   plugins: [
-    copy({rootDir: 'src', patterns: '**/*.css'}),
-    !production && serve({ openPage: "/", contentBase: ["example"] }),
+    copy({ rootDir: 'src', patterns: '**/*.css' }),
+    !production && serve({ openPage: '/', contentBase: ['example'] }),
     !production &&
-    livereload({
-      watch: ["dist", "example/*.html"]
-    })
-  ]
+      livereload({
+        watch: ['dist', 'example/*.html'],
+      }),
+  ],
 };

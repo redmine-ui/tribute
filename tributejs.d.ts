@@ -21,6 +21,7 @@ export type TributeCollection<T extends {}> = {
   trigger?: string;
 
   // element to target for @mentions
+  // biome-ignore lint/suspicious/noExplicitAny: for compatibility
   iframe?: any;
 
   // class added in the flyout menu for active item
@@ -32,7 +33,7 @@ export type TributeCollection<T extends {}> = {
   itemClass?: string;
 
   // function called on select that returns the content to insert
-  selectTemplate?: (item: TributeItem<T>|undefined) => string | HTMLElement;
+  selectTemplate?: (item: TributeItem<T> | undefined) => string | HTMLElement;
 
   // template for displaying item in menu
   menuItemTemplate?: (item: TributeItem<T>) => string | HTMLElement;
@@ -91,13 +92,15 @@ export type TributeCollection<T extends {}> = {
 
   // specify whether to close when scrolled, and optionally an element to bind
   // the scroll event to.
-  closeOnScroll?: any
+  // biome-ignore lint/suspicious/noExplicitAny: for compatibility
+  closeOnScroll?: any;
 };
 
 export type TributeOptions<T extends {}> =
   | TributeCollection<T>
   | {
       // pass an array of config objects
+      // biome-ignore lint/suspicious/noExplicitAny: for compatibility
       collection: Array<TributeCollection<{ [key: string]: any }>>;
     };
 

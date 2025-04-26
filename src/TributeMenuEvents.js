@@ -14,7 +14,7 @@ class TributeMenuEvents {
         }
       },
       10,
-      false
+      false,
     );
     this.windowResizeEvent = this.debounce(
       () => {
@@ -23,68 +23,63 @@ class TributeMenuEvents {
         }
       },
       10,
-      false
+      false,
     );
-    this.closeOnScrollEvent = this.debounce(() => {
-      if (this.tribute.isActive) {
-        this.tribute.hideMenu()
-      }
-    }, 10, false)
+    this.closeOnScrollEvent = this.debounce(
+      () => {
+        if (this.tribute.isActive) {
+          this.tribute.hideMenu();
+        }
+      },
+      10,
+      false,
+    );
 
     // fixes IE11 issues with mousedown
-    this.tribute.range
-      .getDocument()
-      .addEventListener("MSPointerDown", this.menuClickEvent, false);
-    this.tribute.range
-      .getDocument()
-      .addEventListener("mousedown", this.menuClickEvent, false);
-    window.addEventListener("resize", this.windowResizeEvent);
+    this.tribute.range.getDocument().addEventListener('MSPointerDown', this.menuClickEvent, false);
+    this.tribute.range.getDocument().addEventListener('mousedown', this.menuClickEvent, false);
+    window.addEventListener('resize', this.windowResizeEvent);
 
-    if (this.tribute.closeOnScroll == true) {
-      window.addEventListener('scroll', this.closeOnScrollEvent)
-    } else if (this.tribute.closeOnScroll != false) {
-      this.tribute.closeOnScroll.addEventListener('scroll', this.closeOnScrollEvent, false)
+    if (this.tribute.closeOnScroll === true) {
+      window.addEventListener('scroll', this.closeOnScrollEvent);
+    } else if (this.tribute.closeOnScroll !== false) {
+      this.tribute.closeOnScroll.addEventListener('scroll', this.closeOnScrollEvent, false);
     } else {
       if (this.menuContainer) {
-        this.menuContainer.addEventListener('scroll', this.menuContainerScrollEvent, false)
+        this.menuContainer.addEventListener('scroll', this.menuContainerScrollEvent, false);
       } else {
-        window.addEventListener('scroll', this.menuContainerScrollEvent)
+        window.addEventListener('scroll', this.menuContainerScrollEvent);
       }
     }
   }
 
   unbind(menu) {
-    this.tribute.range
-      .getDocument()
-      .removeEventListener("mousedown", this.menuClickEvent, false);
-    this.tribute.range
-      .getDocument()
-      .removeEventListener("MSPointerDown", this.menuClickEvent, false);
-    window.removeEventListener("resize", this.windowResizeEvent);
+    this.tribute.range.getDocument().removeEventListener('mousedown', this.menuClickEvent, false);
+    this.tribute.range.getDocument().removeEventListener('MSPointerDown', this.menuClickEvent, false);
+    window.removeEventListener('resize', this.windowResizeEvent);
 
     if (this.tribute.closeOnScroll === true) {
-      window.removeEventListener('scroll', this.closeOnScrollEvent)
-    } else if (this.tribute.closeOnScroll != false) {
-      this.tribute.closeOnScroll.removeEventListener('scroll', this.closeOnScrollEvent)
+      window.removeEventListener('scroll', this.closeOnScrollEvent);
+    } else if (this.tribute.closeOnScroll !== false) {
+      this.tribute.closeOnScroll.removeEventListener('scroll', this.closeOnScrollEvent);
     } else {
       if (this.menuContainer) {
-        this.menuContainer.removeEventListener('scroll', this.menuContainerScrollEvent, false)
+        this.menuContainer.removeEventListener('scroll', this.menuContainerScrollEvent, false);
       } else {
-        window.removeEventListener('scroll', this.menuContainerScrollEvent)
+        window.removeEventListener('scroll', this.menuContainerScrollEvent);
       }
     }
   }
 
-  debounce(func, wait, immediate) {
-    var timeout;
+  debounce(func, wait, immediate, ...args) {
+    let timeout;
     return () => {
-      var context = this,
-        args = arguments;
-      var later = () => {
+      const context = this;
+      const later = () => {
         timeout = null;
         if (!immediate) func.apply(context, args);
       };
-      var callNow = immediate && !timeout;
+      const callNow = immediate && !timeout;
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
       if (callNow) func.apply(context, args);

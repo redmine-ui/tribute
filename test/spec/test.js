@@ -1,168 +1,143 @@
 import { expect } from 'chai';
 
-import Tribute from '../../src/index.js'
-import bigList from "./utils/bigList.json" with { type: "json" };
+import Tribute from '../../src/index.js';
+import bigList from './utils/bigList.json' with { type: 'json' };
 
-import {
-  clearDom,
-  createDomElement,
-  fillIn,
-  press,
-  simulateMouseClick,
-  simulateElementScroll
-} from './utils/dom-helpers';
+import { clearDom, createDomElement, fillIn, press, simulateElementScroll, simulateMouseClick } from './utils/dom-helpers';
 
-import { attachTribute, detachTribute } from "./utils/tribute-helpers";
+import { attachTribute, detachTribute } from './utils/tribute-helpers';
 
-describe("Tribute instantiation", () => {
-  it("should not error in the base case from the README", () => {
+describe('Tribute instantiation', () => {
+  it('should not error in the base case from the README', () => {
     const options = [
-      { key: "Phil Heartman", value: "pheartman" },
-      { key: "Gordon Ramsey", value: "gramsey" }
+      { key: 'Phil Heartman', value: 'pheartman' },
+      { key: 'Gordon Ramsey', value: 'gramsey' },
     ];
     const tribute = new Tribute({
-      values: options
+      values: options,
     });
 
     expect(tribute.collection[0].values).to.equal(options);
   });
 });
 
-describe("Tribute @mentions cases", () => {
+describe('Tribute @mentions cases', () => {
   afterEach(() => {
     clearDom();
   });
 
-  ["text", "contenteditable"].forEach(elementType => {
-    ["@", "$("].forEach(trigger => {
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['text', 'contenteditable'].forEach((elementType) => {
+    // biome-ignore lint/complexity/noForEach: test code.
+    ['@', '$('].forEach((trigger) => {
       it(`when values key is predefined array. For : ${elementType} / ${trigger}`, async () => {
-        let input = createDomElement(elementType);
+        const input = createDomElement(elementType);
 
         const collectionObject = {
           trigger: trigger,
-          selectTemplate: function(item) {
-            if (typeof item === "undefined") return null;
+          selectTemplate: function (item) {
+            if (typeof item === 'undefined') return null;
             if (this.range.isContentEditable(this.current.element)) {
-              return (
-                '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
-                item.original.email +
-                '">' +
-                item.original.value +
-                "</a></span>"
-              );
+              return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
             return trigger + item.original.value;
           },
           values: [
             {
-              key: "Jordan Humphreys",
-              value: "Jordan Humphreys",
-              email: "getstarted@zurb.com"
+              key: 'Jordan Humphreys',
+              value: 'Jordan Humphreys',
+              email: 'getstarted@zurb.com',
             },
             {
-              key: "Sir Walter Riley",
-              value: "Sir Walter Riley",
-              email: "getstarted+riley@zurb.com"
-            }
-          ]
+              key: 'Sir Walter Riley',
+              value: 'Sir Walter Riley',
+              email: 'getstarted+riley@zurb.com',
+            },
+          ],
         };
 
-        let tribute = attachTribute(collectionObject, input.id);
+        const tribute = attachTribute(collectionObject, input.id);
 
-        await fillIn(input, " " + trigger);
-        let popupList = document.querySelectorAll(
-          ".tribute-container > ul > li"
-        );
+        await fillIn(input, ` ${trigger}`);
+        let popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(2);
         simulateMouseClick(popupList[0]); // click on Jordan Humphreys
 
-        if (elementType === "text") {
-          expect(input.value).to.equal(" " + trigger + "Jordan Humphreys ");
-        } else if (elementType === "contenteditable") {
+        if (elementType === 'text') {
+          expect(input.value).to.equal(` ${trigger}Jordan Humphreys `);
+        } else if (elementType === 'contenteditable') {
           expect(input.innerHTML).to.equal(
-            '&nbsp;<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="getstarted@zurb.com">Jordan Humphreys</a></span>&nbsp;'
+            '&nbsp;<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="getstarted@zurb.com">Jordan Humphreys</a></span>&nbsp;',
           );
         }
 
-        await fillIn(input, " " + trigger + "sir");
-        popupList = document.querySelectorAll(".tribute-container > ul > li");
+        await fillIn(input, ` ${trigger}sir`);
+        popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(1);
 
         detachTribute(tribute, input.id);
       });
 
       it(`when values array is large and menuItemLimit is set. For : ${elementType} / ${trigger}`, async () => {
-        let input = createDomElement(elementType);
+        const input = createDomElement(elementType);
 
-        let collectionObject = {
+        const collectionObject = {
           trigger: trigger,
           menuItemLimit: 25,
-          selectTemplate: function(item) {
-            if (typeof item === "undefined") return null;
+          selectTemplate: function (item) {
+            if (typeof item === 'undefined') return null;
             if (this.range.isContentEditable(this.current.element)) {
-              return (
-                '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
-                item.original.email +
-                '">' +
-                item.original.value +
-                "</a></span>"
-              );
+              return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
             return trigger + item.original.value;
           },
-          values: bigList
+          values: bigList,
         };
 
-        let tribute = attachTribute(collectionObject, input.id);
+        const tribute = attachTribute(collectionObject, input.id);
 
-        await fillIn(input, " " + trigger);
-        let popupList = document.querySelectorAll(
-          ".tribute-container > ul > li"
-        );
+        await fillIn(input, ` ${trigger}`);
+        let popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(25);
 
-        await fillIn(input, " " + trigger + "an");
-        popupList = document.querySelectorAll(".tribute-container > ul > li");
+        await fillIn(input, ` ${trigger}an`);
+        popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(25);
 
         detachTribute(tribute, input.id);
       });
 
-      it("should add itemClass to list items when set it config", async () => {
-        let input = createDomElement(elementType);
+      it('should add itemClass to list items when set it config', async () => {
+        const input = createDomElement(elementType);
 
-        let collectionObject = {
+        const collectionObject = {
           trigger: trigger,
-          itemClass: "mention-list-item",
-          selectClass: "mention-selected",
+          itemClass: 'mention-list-item',
+          selectClass: 'mention-selected',
           values: [
             {
-              key: "Jordan Humphreys",
-              value: "Jordan Humphreys",
-              email: "getstarted@zurb.com"
+              key: 'Jordan Humphreys',
+              value: 'Jordan Humphreys',
+              email: 'getstarted@zurb.com',
             },
             {
-              key: "Sir Walter Riley",
-              value: "Sir Walter Riley",
-              email: "getstarted+riley@zurb.com"
-            }
-          ]
+              key: 'Sir Walter Riley',
+              value: 'Sir Walter Riley',
+              email: 'getstarted+riley@zurb.com',
+            },
+          ],
         };
 
-        let tribute = attachTribute(collectionObject, input.id);
+        const tribute = attachTribute(collectionObject, input.id);
 
-        await fillIn(input, " " + trigger);
-        let popupList = document.querySelectorAll(
-          ".tribute-container > ul > li"
-        );
+        await fillIn(input, ` ${trigger}`);
+        const popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(2);
 
-        expect(popupList[0].className).to.equal(
-          "mention-list-item mention-selected"
-        );
-        expect(popupList[1].className).to.equal("mention-list-item");
+        expect(popupList[0].className).to.equal('mention-list-item mention-selected');
+        expect(popupList[1].className).to.equal('mention-list-item');
 
         detachTribute(tribute, input.id);
       });
@@ -170,28 +145,27 @@ describe("Tribute @mentions cases", () => {
   });
 });
 
-describe("Tribute autocomplete mode cases", () => {
+describe('Tribute autocomplete mode cases', () => {
   afterEach(() => {
     clearDom();
   });
 
-  ['text', 'contenteditable'].forEach(elementType => {
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['text', 'contenteditable'].forEach((elementType) => {
     it(`when values key with autocompleteSeparator option. For : ${elementType}`, async () => {
-      let input = createDomElement(elementType);
+      const input = createDomElement(elementType);
 
-      let collectionObject = {
-        selectTemplate: function (item) {
-          return item.original.value;
-        },
+      const collectionObject = {
+        selectTemplate: (item) => item.original.value,
         autocompleteMode: true,
         autocompleteSeparator: new RegExp(/\-|\+/),
         values: [
           { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
-          { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' }
+          { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
         ],
-      }
+      };
 
-      let tribute = attachTribute(collectionObject, input.id);
+      const tribute = attachTribute(collectionObject, input.id);
 
       await fillIn(input, '+J');
       let popupList = document.querySelectorAll('.tribute-container > ul > li');
@@ -212,65 +186,65 @@ describe("Tribute autocomplete mode cases", () => {
     });
   });
 
-  ["text", "contenteditable"].forEach(elementType => {
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['text', 'contenteditable'].forEach((elementType) => {
     it(`when values key is predefined array. For : ${elementType}`, async () => {
-      let input = createDomElement(elementType);
+      const input = createDomElement(elementType);
 
-      let collectionObject = {
-        selectTemplate: function(item) {
-          return item.original.value;
-        },
+      const collectionObject = {
+        selectTemplate: (item) => item.original.value,
         autocompleteMode: true,
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       };
 
-      let tribute = attachTribute(collectionObject, input.id);
+      const tribute = attachTribute(collectionObject, input.id);
 
       await fillIn(input, ' J');
-      let popupList = document.querySelectorAll(".tribute-container > ul > li");
+      let popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(popupList.length).to.equal(1);
       simulateMouseClick(popupList[0]); // click on Jordan Humphreys
 
-      if (elementType === "text") {
-        expect(input.value).to.equal(" Jordan Humphreys ");
-      } else if (elementType === "contenteditable") {
+      if (elementType === 'text') {
+        expect(input.value).to.equal(' Jordan Humphreys ');
+      } else if (elementType === 'contenteditable') {
         // surrounded by nbsp, not spaces
-        expect(input.innerText).to.equal(" Jordan Humphreys ");
+        expect(input.innerText).to.equal(' Jordan Humphreys ');
       }
 
       await fillIn(input, ' Si');
-      popupList = document.querySelectorAll(".tribute-container > ul > li");
+      popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(popupList.length).to.equal(1);
 
       detachTribute(tribute, input.id);
     });
   });
 
-  ["text", "contenteditable"].forEach(elementType => {
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['text', 'contenteditable'].forEach((elementType) => {
     it(`when values key is a function. For : ${elementType}`, async () => {
-      let input = createDomElement(elementType);
+      const input = createDomElement(elementType);
 
-      let collectionObject = {
+      const collectionObject = {
         autocompleteMode: true,
-        selectClass: "sample-highlight",
+        selectClass: 'sample-highlight',
 
-        noMatchTemplate: function() {
+        noMatchTemplate: function () {
           this.hideMenu();
         },
 
-        selectTemplate: function(item) {
-          if (typeof item === "undefined") return null;
+        selectTemplate: function (item) {
+          if (typeof item === 'undefined') return null;
           if (this.range.isContentEditable(this.current.element)) {
             return `&nbsp;<a contenteditable=false>${item.original.value}</a>`;
           }
@@ -278,321 +252,307 @@ describe("Tribute autocomplete mode cases", () => {
           return item.original.value;
         },
 
-        values: function(text, cb) {
-          searchFn(text, users => cb(users));
-        }
+        values: (text, cb) => {
+          searchFn(text, (users) => cb(users));
+        },
       };
 
       function searchFn(text, cb) {
-        if (text === "a") {
+        if (text === 'a') {
           cb([
-            { key: "Alabama", value: "Alabama" },
-            { key: "Alaska", value: "Alaska" },
-            { key: "Arizona", value: "Arizona" },
-            { key: "Arkansas", value: "Arkansas" }
+            { key: 'Alabama', value: 'Alabama' },
+            { key: 'Alaska', value: 'Alaska' },
+            { key: 'Arizona', value: 'Arizona' },
+            { key: 'Arkansas', value: 'Arkansas' },
           ]);
-        } else if (text === "c") {
+        } else if (text === 'c') {
           cb([
-            { key: "California", value: "California" },
-            { key: "Colorado", value: "Colorado" }
+            { key: 'California', value: 'California' },
+            { key: 'Colorado', value: 'Colorado' },
           ]);
         } else {
           cb([]);
         }
       }
 
-      let tribute = attachTribute(collectionObject, input.id);
+      const tribute = attachTribute(collectionObject, input.id);
 
       await fillIn(input, ' a');
-      let popupList = document.querySelectorAll(".tribute-container > ul > li");
+      let popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(popupList.length).to.equal(4);
       simulateMouseClick(popupList[0]);
 
-      if (elementType === "text") {
-        expect(input.value).to.equal(" Alabama ");
-      } else if (elementType === "contenteditable") {
+      if (elementType === 'text') {
+        expect(input.value).to.equal(' Alabama ');
+      } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal("  Alabama ");
+        expect(input.innerText).to.equal('  Alabama ');
       }
 
       await fillIn(input, ' c');
-      popupList = document.querySelectorAll(".tribute-container > ul > li");
+      popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(popupList.length).to.equal(2);
       simulateMouseClick(popupList[1]);
 
-      if (elementType === "text") {
-        expect(input.value).to.equal(" Alabama  Colorado ");
-      } else if (elementType === "contenteditable") {
+      if (elementType === 'text') {
+        expect(input.value).to.equal(' Alabama  Colorado ');
+      } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal("  Alabama   Colorado ");
+        expect(input.innerText).to.equal('  Alabama   Colorado ');
       }
 
       await fillIn(input, ' none');
-      let popupListWrapper = document.querySelector(".tribute-container");
-      expect(popupListWrapper.style.display).to.equal("none");
+      const popupListWrapper = document.querySelector('.tribute-container');
+      expect(popupListWrapper.style.display).to.equal('none');
 
       detachTribute(tribute, input.id);
     });
   });
 
-  ["contenteditable"].forEach(elementType => {
-    it(`should work with newlines`, async () => {
-      let input = createDomElement(elementType);
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['contenteditable'].forEach((elementType) => {
+    it('should work with newlines', async () => {
+      const input = createDomElement(elementType);
 
-      let collectionObject = {
-        selectTemplate: function(item) {
-          return item.original.value;
-        },
+      const collectionObject = {
+        selectTemplate: (item) => item.original.value,
         autocompleteMode: true,
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       };
 
-      let tribute = attachTribute(collectionObject, input.id);
-      await fillIn(input, "random{newline}J");
-      let popupList = document.querySelectorAll(".tribute-container > ul > li");
+      const tribute = attachTribute(collectionObject, input.id);
+      await fillIn(input, 'random{newline}J');
+      const popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(popupList.length).to.equal(1);
       detachTribute(tribute, input.id);
     });
   });
 });
 
-describe("When Tribute searchOpts.skip", () => {
+describe('When Tribute searchOpts.skip', () => {
   afterEach(() => {
     clearDom();
   });
 
-  it("should skip local filtering and display all items", async () => {
-    let input = createDomElement();
+  it('should skip local filtering and display all items', async () => {
+    const input = createDomElement();
 
-    let collectionObject = {
+    const collectionObject = {
       searchOpts: { skip: true },
-      noMatchTemplate: function() {
+      noMatchTemplate: function () {
         this.hideMenu();
       },
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
+      selectTemplate: (item) => item.original.value,
       values: [
-        { key: "Tributação e Divisas", value: "Tributação e Divisas" },
-        { key: "Tributação e Impostos", value: "Tributação e Impostos" },
-        { key: "Tributação e Taxas", value: "Tributação e Taxas" }
-      ]
+        { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
+        { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
+        { key: 'Tributação e Taxas', value: 'Tributação e Taxas' },
+      ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
 
-    let popupList = document.querySelectorAll(".tribute-container > ul > li");
+    const popupList = document.querySelectorAll('.tribute-container > ul > li');
     expect(popupList.length).to.equal(3);
 
     detachTribute(tribute, input.id);
   });
 });
 
-describe("Tribute NoMatchTemplate cases", () => {
+describe('Tribute NoMatchTemplate cases', () => {
   afterEach(() => {
     clearDom();
   });
 
-  it("should display template when specified as text", async () => {
-    let input = createDomElement();
-
-    let collectionObject = {
-      noMatchTemplate: "testcase",
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
-      values: [
-        {
-          key: "Jordan Humphreys",
-          value: "Jordan Humphreys",
-          email: "getstarted@zurb.com"
-        },
-        {
-          key: "Sir Walter Riley",
-          value: "Sir Walter Riley",
-          email: "getstarted+riley@zurb.com"
-        }
-      ]
-    };
-
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
-
-    let containerDiv = document.getElementsByClassName("tribute-container")[0];
-    expect(containerDiv.innerText).to.equal("testcase");
-
-    detachTribute(tribute, input.id);
-  });
-
-  it("should display template when specified as function", async () => {
-    let input = createDomElement();
-
-    let collectionObject = {
-      noMatchTemplate: function() {
-        return "testcase";
-      },
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
-      values: [
-        {
-          key: "Jordan Humphreys",
-          value: "Jordan Humphreys",
-          email: "getstarted@zurb.com"
-        },
-        {
-          key: "Sir Walter Riley",
-          value: "Sir Walter Riley",
-          email: "getstarted+riley@zurb.com"
-        }
-      ]
-    };
-
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
-
-    let containerDiv = document.getElementsByClassName("tribute-container")[0];
-    expect(containerDiv.innerText).to.equal("testcase");
-
-    detachTribute(tribute, input.id);
-  });
-
-  it("should display no menu container when text is empty", async () => {
-    let input = createDomElement();
-
-    let collectionObject = {
-      noMatchTemplate: "",
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
-      values: [
-        {
-          key: "Jordan Humphreys",
-          value: "Jordan Humphreys",
-          email: "getstarted@zurb.com"
-        },
-        {
-          key: "Sir Walter Riley",
-          value: "Sir Walter Riley",
-          email: "getstarted+riley@zurb.com"
-        }
-      ]
-    };
-
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
-
-    let popupListWrapper = document.querySelector(".tribute-container");
-    expect(popupListWrapper.style.display).to.equal("none");
-
-    detachTribute(tribute, input.id);
-  });
-
-  it("should display no menu when function returns empty string", async () => {
-    let input = createDomElement();
-
-    let collectionObject = {
-      noMatchTemplate: function() {
-        return "";
-      },
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
-      values: [
-        {
-          key: "Jordan Humphreys",
-          value: "Jordan Humphreys",
-          email: "getstarted@zurb.com"
-        },
-        {
-          key: "Sir Walter Riley",
-          value: "Sir Walter Riley",
-          email: "getstarted+riley@zurb.com"
-        }
-      ]
-    };
-
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
-
-    let popupListWrapper = document.querySelector(".tribute-container");
-    expect(popupListWrapper.style.display).to.equal("none");
-
-    detachTribute(tribute, input.id);
-  });
-
-  it("should display indivisual messages when a template set in each collection", async () => {
+  it('should display template when specified as text', async () => {
     const input = createDomElement();
 
     const collectionObject = {
-      collection: [{
-        trigger: "@",
-        noMatchTemplate: "template 1",
-        values: [
-          {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
-          }
-        ]
-      }, {
-        trigger: "#",
-        noMatchTemplate: "template 2",
-        values: [
-          {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
-      }],
-      selectTemplate: function(item) {
-        return item.original.value;
-      }
-    }
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@random-text");
+      noMatchTemplate: 'testcase',
+      selectTemplate: (item) => item.original.value,
+      values: [
+        {
+          key: 'Jordan Humphreys',
+          value: 'Jordan Humphreys',
+          email: 'getstarted@zurb.com',
+        },
+        {
+          key: 'Sir Walter Riley',
+          value: 'Sir Walter Riley',
+          email: 'getstarted+riley@zurb.com',
+        },
+      ],
+    };
 
-    let containerDiv = document.getElementsByClassName("tribute-container")[0];
-    expect(containerDiv.innerText).to.equal("template 1");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const containerDiv = document.getElementsByClassName('tribute-container')[0];
+    expect(containerDiv.innerText).to.equal('testcase');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should display template when specified as function', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      noMatchTemplate: () => 'testcase',
+      selectTemplate: (item) => item.original.value,
+      values: [
+        {
+          key: 'Jordan Humphreys',
+          value: 'Jordan Humphreys',
+          email: 'getstarted@zurb.com',
+        },
+        {
+          key: 'Sir Walter Riley',
+          value: 'Sir Walter Riley',
+          email: 'getstarted+riley@zurb.com',
+        },
+      ],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const containerDiv = document.getElementsByClassName('tribute-container')[0];
+    expect(containerDiv.innerText).to.equal('testcase');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should display no menu container when text is empty', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      noMatchTemplate: '',
+      selectTemplate: (item) => item.original.value,
+      values: [
+        {
+          key: 'Jordan Humphreys',
+          value: 'Jordan Humphreys',
+          email: 'getstarted@zurb.com',
+        },
+        {
+          key: 'Sir Walter Riley',
+          value: 'Sir Walter Riley',
+          email: 'getstarted+riley@zurb.com',
+        },
+      ],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const popupListWrapper = document.querySelector('.tribute-container');
+    expect(popupListWrapper.style.display).to.equal('none');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should display no menu when function returns empty string', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      noMatchTemplate: () => '',
+      selectTemplate: (item) => item.original.value,
+      values: [
+        {
+          key: 'Jordan Humphreys',
+          value: 'Jordan Humphreys',
+          email: 'getstarted@zurb.com',
+        },
+        {
+          key: 'Sir Walter Riley',
+          value: 'Sir Walter Riley',
+          email: 'getstarted+riley@zurb.com',
+        },
+      ],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const popupListWrapper = document.querySelector('.tribute-container');
+    expect(popupListWrapper.style.display).to.equal('none');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should display indivisual messages when a template set in each collection', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      collection: [
+        {
+          trigger: '@',
+          noMatchTemplate: 'template 1',
+          values: [
+            {
+              key: 'Jordan Humphreys',
+              value: 'Jordan Humphreys',
+              email: 'getstarted@zurb.com',
+            },
+          ],
+        },
+        {
+          trigger: '#',
+          noMatchTemplate: 'template 2',
+          values: [
+            {
+              key: 'Sir Walter Riley',
+              value: 'Sir Walter Riley',
+              email: 'getstarted+riley@zurb.com',
+            },
+          ],
+        },
+      ],
+      selectTemplate: (item) => item.original.value,
+    };
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const containerDiv = document.getElementsByClassName('tribute-container')[0];
+    expect(containerDiv.innerText).to.equal('template 1');
 
     detachTribute(tribute, input.id);
   });
 });
 
-describe("Tribute menu positioning", () => {
+describe('Tribute menu positioning', () => {
   afterEach(() => {
     clearDom();
   });
 
   async function checkPosition(collectionObject, input) {
-    let bottomContent = document.createElement("div");
-    bottomContent.style = "background: blue; height: 400px; width: 10px;";
+    const bottomContent = document.createElement('div');
+    bottomContent.style = 'background: blue; height: 400px; width: 10px;';
     document.body.appendChild(bottomContent);
 
-    let inputRect = input.getBoundingClientRect();
-    let inputX = inputRect.x;
-    let inputY = inputRect.y;
+    const inputRect = input.getBoundingClientRect();
+    const inputX = inputRect.x;
+    const inputY = inputRect.y;
 
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
 
-    let popupListWrapper = document.querySelector(".tribute-container");
-    let menuRect = popupListWrapper.getBoundingClientRect();
-    let menuX = menuRect.x;
-    let menuY = menuRect.y;
+    const popupListWrapper = document.querySelector('.tribute-container');
+    const menuRect = popupListWrapper.getBoundingClientRect();
+    const menuX = menuRect.x;
+    const menuY = menuRect.y;
 
     detachTribute(tribute, input.id);
     bottomContent.remove();
@@ -600,92 +560,92 @@ describe("Tribute menu positioning", () => {
     return { x: menuX, y: menuY };
   }
 
-  it("should display a container menu in the same position when menuContainer is specified on an input as when the menuContainer is the body", async () => {
+  it('should display a container menu in the same position when menuContainer is specified on an input as when the menuContainer is the body', async () => {
     let input = createDomElement();
-    let container = input.parentElement;
-    container.style = "position: relative;";
-    let { x: specifiedX, y: specifiedY } = await checkPosition(
+    const container = input.parentElement;
+    container.style = 'position: relative;';
+    const { x: specifiedX, y: specifiedY } = await checkPosition(
       {
         menuContainer: container,
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       },
-      input
+      input,
     );
 
     input = createDomElement();
-    let { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
+    const { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
       {
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       },
-      input
+      input,
     );
 
     expect(unspecifiedY).to.equal(specifiedY);
     expect(unspecifiedX).to.equal(specifiedX);
   });
 
-  it("should display a container menu in the same position when menuContainer is specified on an contenteditable as when the menuContainer is the body", async () => {
-    let input = createDomElement("contenteditable");
-    let container = input.parentElement;
-    container.style = "position: relative;";
-    let { x: specifiedX, y: specifiedY } = await checkPosition(
+  it('should display a container menu in the same position when menuContainer is specified on an contenteditable as when the menuContainer is the body', async () => {
+    let input = createDomElement('contenteditable');
+    const container = input.parentElement;
+    container.style = 'position: relative;';
+    const { x: specifiedX, y: specifiedY } = await checkPosition(
       {
         menuContainer: container,
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       },
-      input
+      input,
     );
 
-    input = createDomElement("contenteditable");
-    let { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
+    input = createDomElement('contenteditable');
+    const { x: unspecifiedX, y: unspecifiedY } = await checkPosition(
       {
         values: [
           {
-            key: "Jordan Humphreys",
-            value: "Jordan Humphreys",
-            email: "getstarted@zurb.com"
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+            email: 'getstarted@zurb.com',
           },
           {
-            key: "Sir Walter Riley",
-            value: "Sir Walter Riley",
-            email: "getstarted+riley@zurb.com"
-          }
-        ]
+            key: 'Sir Walter Riley',
+            value: 'Sir Walter Riley',
+            email: 'getstarted+riley@zurb.com',
+          },
+        ],
       },
-      input
+      input,
     );
 
     expect(unspecifiedY).to.equal(specifiedY);
@@ -693,108 +653,104 @@ describe("Tribute menu positioning", () => {
   });
 });
 
-describe("Multi-char tests", () => {
+describe('Multi-char tests', () => {
   afterEach(() => {
     clearDom();
   });
 
-  it("should display no menu when only first char of multi-char trigger is used", async () => {
-    let input = createDomElement();
+  it('should display no menu when only first char of multi-char trigger is used', async () => {
+    const input = createDomElement();
 
-    let collectionObject = {
-      trigger: "$(",
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
+    const collectionObject = {
+      trigger: '$(',
+      selectTemplate: (item) => item.original.value,
       values: [
         {
-          key: "Jordan Humphreys",
-          value: "Jordan Humphreys",
-          email: "getstarted@zurb.com"
+          key: 'Jordan Humphreys',
+          value: 'Jordan Humphreys',
+          email: 'getstarted@zurb.com',
         },
         {
-          key: "Sir Walter Riley",
-          value: "Sir Walter Riley",
-          email: "getstarted+riley@zurb.com"
-        }
-      ]
+          key: 'Sir Walter Riley',
+          value: 'Sir Walter Riley',
+          email: 'getstarted+riley@zurb.com',
+        },
+      ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, " $");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, ' $');
 
-    let popupListWrapper = document.querySelector(".tribute-container");
+    const popupListWrapper = document.querySelector('.tribute-container');
     expect(popupListWrapper).to.equal(null);
 
     detachTribute(tribute, input.id);
   });
 
-  describe("Tribute events", () => {
+  describe('Tribute events', () => {
     afterEach(() => {
       clearDom();
     });
 
-    it("should raise tribute-active-true", async () => {
-      let input = createDomElement();
+    it('should raise tribute-active-true', async () => {
+      const input = createDomElement();
 
-      let called = false
-      var eventSpy = () => { called = true };
-      input.addEventListener("tribute-active-true", eventSpy);
+      let called = false;
+      const eventSpy = () => {
+        called = true;
+      };
+      input.addEventListener('tribute-active-true', eventSpy);
 
-      let collectionObject = {
-        noMatchTemplate: function() {
+      const collectionObject = {
+        noMatchTemplate: function () {
           this.hideMenu();
         },
-        selectTemplate: function(item) {
-          return item.original.value;
-        },
+        selectTemplate: (item) => item.original.value,
         values: [
-          { key: "Tributação e Divisas", value: "Tributação e Divisas" },
-          { key: "Tributação e Impostos", value: "Tributação e Impostos" },
-          { key: "Tributação e Taxas", value: "Tributação e Taxas" }
-        ]
+          { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
+          { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
+          { key: 'Tributação e Taxas', value: 'Tributação e Taxas' },
+        ],
       };
 
-      let tribute = attachTribute(collectionObject, input.id);
-      await fillIn(input, "@random-text");
+      const tribute = attachTribute(collectionObject, input.id);
+      await fillIn(input, '@random-text');
 
-      let popupList = document.querySelectorAll(".tribute-container > ul > li");
+      const popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(called).to.be.true;
 
       detachTribute(tribute, input.id);
     });
   });
 
-  describe("Tribute events", () => {
+  describe('Tribute events', () => {
     afterEach(() => {
       clearDom();
     });
 
-    it("should raise tribute-active-false", async () => {
-      let input = createDomElement();
+    it('should raise tribute-active-false', async () => {
+      const input = createDomElement();
 
-      let called = false
-      var eventSpy = () => { called = true };
-      input.addEventListener("tribute-active-false", eventSpy);
+      let called = false;
+      const eventSpy = () => {
+        called = true;
+      };
+      input.addEventListener('tribute-active-false', eventSpy);
 
-      let collectionObject = {
-        noMatchTemplate: function() {
-          return "";
-        },
-        selectTemplate: function(item) {
-          return item.original.value;
-        },
+      const collectionObject = {
+        noMatchTemplate: () => '',
+        selectTemplate: (item) => item.original.value,
         values: [
-          { key: "Tributação e Divisas", value: "Tributação e Divisas" },
-          { key: "Tributação e Impostos", value: "Tributação e Impostos" },
-          { key: "Tributação e Taxas", value: "Tributação e Taxas" }
-        ]
+          { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
+          { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
+          { key: 'Tributação e Taxas', value: 'Tributação e Taxas' },
+        ],
       };
 
-      let tribute = attachTribute(collectionObject, input.id);
-      await fillIn(input, "@random-text");
+      const tribute = attachTribute(collectionObject, input.id);
+      await fillIn(input, '@random-text');
 
-      let popupList = document.querySelectorAll(".tribute-container > ul > li");
+      const popupList = document.querySelectorAll('.tribute-container > ul > li');
       expect(called).to.be.true;
 
       detachTribute(tribute, input.id);
@@ -802,42 +758,47 @@ describe("Multi-char tests", () => {
   });
 });
 
-describe("Tribute loadingItemTemplate", () => {
+describe('Tribute loadingItemTemplate', () => {
   afterEach(() => {
     clearDom();
   });
 
-  ["text", "contenteditable"].forEach(elementType => {
+  // biome-ignore lint/complexity/noForEach: test code.
+  ['text', 'contenteditable'].forEach((elementType) => {
     it(`Shows loading item template. For : ${elementType}`, async () => {
-      let input = createDomElement(elementType);
+      const input = createDomElement(elementType);
 
-      let collectionObject = {
+      const collectionObject = {
         loadingItemTemplate: '<div class="loading">Loading</div>',
-        values: function(_, cb) {
-          setTimeout(() => cb([
-            {
-              key: "Jordan Humphreys",
-              value: "Jordan Humphreys",
-              email: "getstarted@zurb.com"
-            },
-            {
-              key: "Sir Walter Riley",
-              value: "Sir Walter Riley",
-              email: "getstarted+riley@zurb.com"
-            }
-          ]), 500)
+        values: (_, cb) => {
+          setTimeout(
+            () =>
+              cb([
+                {
+                  key: 'Jordan Humphreys',
+                  value: 'Jordan Humphreys',
+                  email: 'getstarted@zurb.com',
+                },
+                {
+                  key: 'Sir Walter Riley',
+                  value: 'Sir Walter Riley',
+                  email: 'getstarted+riley@zurb.com',
+                },
+              ]),
+            500,
+          );
         },
       };
 
-      let tribute = attachTribute(collectionObject, input.id);
+      const tribute = attachTribute(collectionObject, input.id);
 
-      await fillIn(input, "@J");
+      await fillIn(input, '@J');
 
-      const loadingItemTemplate = document.querySelectorAll(".loading");
+      const loadingItemTemplate = document.querySelectorAll('.loading');
       expect(loadingItemTemplate.length).to.equal(1);
 
       setTimeout(() => {
-        const popupList = document.querySelectorAll(".tribute-container > ul > li");
+        const popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(1);
         detachTribute(tribute, input.id);
       }, 1000);
@@ -845,49 +806,45 @@ describe("Tribute loadingItemTemplate", () => {
   });
 });
 
-describe("Tribute disabled items cases", () => {
+describe('Tribute disabled items cases', () => {
   afterEach(() => {
     clearDom();
   });
 
-  it("should prevent selecting disabled items with the mouse", async () => {
-    let input = createDomElement();
+  it('should prevent selecting disabled items with the mouse', async () => {
+    const input = createDomElement();
 
-    let collectionObject = {
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
+    const collectionObject = {
+      selectTemplate: (item) => item.original.value,
       values: [
-        { key: "First item", value: "First item" },
-        { key: "Second item (disabled)", value: "Second item (disabled)", disabled:true },
-        { key: "Third item", value: "Third item" }
-      ]
+        { key: 'First item', value: 'First item' },
+        { key: 'Second item (disabled)', value: 'Second item (disabled)', disabled: true },
+        { key: 'Third item', value: 'Third item' },
+      ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
 
-    let popupList = document.querySelectorAll(".tribute-container > ul > li");
+    const popupList = document.querySelectorAll('.tribute-container > ul > li');
     simulateMouseClick(popupList[1]);
-    expect(input.value).to.equal("@");
+    expect(input.value).to.equal('@');
   });
 
-  it("should prevent selecting disabled items with the keyboard", async () => {
-    let input = createDomElement();
+  it('should prevent selecting disabled items with the keyboard', async () => {
+    const input = createDomElement();
 
-    let collectionObject = {
-      selectTemplate: function(item) {
-        return item.original.value;
-      },
+    const collectionObject = {
+      selectTemplate: (item) => item.original.value,
       values: [
-        { key: "First item", value: "First item" },
-        { key: "Second item (disabled)", value: "Second item (disabled)", disabled:true },
-        { key: "Third item", value: "Third item" }
-      ]
+        { key: 'First item', value: 'First item' },
+        { key: 'Second item (disabled)', value: 'Second item (disabled)', disabled: true },
+        { key: 'Third item', value: 'Third item' },
+      ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
-    await fillIn(input, "@");
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
 
     //send down arrow
     await press('ArrowDown');
@@ -897,10 +854,10 @@ describe("Tribute disabled items cases", () => {
 
     //The down arrow key navigation should have skipped the second so we should see
     //the third item in the text
-    expect(input.value).to.equal("Third item ");
+    expect(input.value).to.equal('Third item ');
 
     //Now lets try again and test up arrow navigation
-    await fillIn(input,"@");
+    await fillIn(input, '@');
 
     //send down arrow so we're on the 3rd item, then we can test the up arrow to go
     //back to the 1st
@@ -915,7 +872,7 @@ describe("Tribute disabled items cases", () => {
     //The selection should have been on the first item when
     //we triggered enter, so the first item should be appended
     //to the existing text
-    expect(input.value).to.equal("Third item First item ");
+    expect(input.value).to.equal('Third item First item ');
 
     detachTribute(tribute, input.id);
   });
@@ -927,18 +884,18 @@ describe('closeOnScroll tests', () => {
   });
 
   it('Tribute should close when the window is scrolled', async () => {
-    let input = createDomElement();
+    const input = createDomElement();
 
-    let collectionObject = {
+    const collectionObject = {
       trigger: '@',
       closeOnScroll: true,
       values: [
         { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
-        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' }
+        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
       ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
+    const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@');
 
     expect(tribute.isActive).to.be.true;
@@ -947,25 +904,25 @@ describe('closeOnScroll tests', () => {
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
       expect(tribute.isActive).to.be.false;
-    }, 50)
+    }, 50);
 
     detachTribute(tribute, input.id);
   });
 
   it('Tribute should close when the container is scrolled', async () => {
-    let input = createDomElement();
-    let container = document.createElement('div');
+    const input = createDomElement();
+    const container = document.createElement('div');
 
-    let collectionObject = {
+    const collectionObject = {
       trigger: '@',
       closeOnScroll: container,
       values: [
         { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
-        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' }
+        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
       ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
+    const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@');
 
     expect(tribute.isActive).to.be.true;
@@ -974,23 +931,23 @@ describe('closeOnScroll tests', () => {
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
       expect(tribute.isActive).to.be.false;
-    }, 50)
+    }, 50);
 
     detachTribute(tribute, input.id);
   });
 
   it('Tribute should not close when scrolled without the closeOnScroll set', async () => {
-    let input = createDomElement();
+    const input = createDomElement();
 
-    let collectionObject = {
+    const collectionObject = {
       trigger: '@',
       values: [
         { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
-        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' }
+        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
       ],
     };
 
-    let tribute = attachTribute(collectionObject, input.id);
+    const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@');
 
     expect(tribute.isActive).to.be.true;
@@ -999,7 +956,7 @@ describe('closeOnScroll tests', () => {
     // Need a slight delay otherwise we'll check for the result to fast
     setTimeout(() => {
       expect(tribute.isActive).to.be.true;
-    }, 50)
+    }, 50);
 
     detachTribute(tribute, input.id);
   });

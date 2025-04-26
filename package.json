@@ -5,10 +5,7 @@
   "exports": "./dist/tribute.mjs",
   "type": "module",
   "types": "tributejs.d.ts",
-  "files": [
-    "dist",
-    "tributejs.d.ts"
-  ],
+  "files": ["dist", "tributejs.d.ts"],
   "devDependencies": {
     "rollup": "^4.34.4",
     "@rollup/plugin-terser": "^0.4.4",

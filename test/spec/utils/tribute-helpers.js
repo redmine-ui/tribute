@@ -1,11 +1,11 @@
-import Tribute from '../../../src/index.js'
+import Tribute from '../../../src/index.js';
 
-export const attachTribute = function(collectionObject, inputElementId) {
-  let tribute = new Tribute(collectionObject);
+export const attachTribute = (collectionObject, inputElementId) => {
+  const tribute = new Tribute(collectionObject);
   tribute.attach(document.getElementById(inputElementId));
   return tribute;
-}
+};
 
-export const detachTribute = function(tribute, inputElementId) {
+export const detachTribute = (tribute, inputElementId) => {
   tribute.detach(document.getElementById(inputElementId));
-}
+};

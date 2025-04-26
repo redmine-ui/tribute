@@ -1,7 +1,7 @@
-import TributeEvents from "./TributeEvents.js";
-import TributeMenuEvents from "./TributeMenuEvents.js";
-import TributeRange from "./TributeRange.js";
-import TributeSearch from "./TributeSearch.js";
+import TributeEvents from './TributeEvents.js';
+import TributeMenuEvents from './TributeMenuEvents.js';
+import TributeRange from './TributeRange.js';
+import TributeSearch from './TributeSearch.js';
 
 class Tribute {
   constructor({
@@ -9,16 +9,16 @@ class Tribute {
     loadingItemTemplate = null,
     iframe = null,
     shadowRoot = null,
-    selectClass = "highlight",
-    containerClass = "tribute-container",
-    itemClass = "",
-    trigger = "@",
+    selectClass = 'highlight',
+    containerClass = 'tribute-container',
+    itemClass = '',
+    trigger = '@',
     autocompleteMode = false,
     autocompleteSeparator = /\s+/,
     selectTemplate = null,
     menuItemTemplate = null,
-    lookup = "key",
-    fillAttr = "value",
+    lookup = 'key',
+    fillAttr = 'value',
     collection = null,
     menuContainer = null,
     noMatchTemplate = null,
@@ -32,7 +32,7 @@ class Tribute {
     menuShowMinLength = 0,
     closeOnScroll = false,
     maxDisplayItems = null,
-    isBlocked = false
+    isBlocked = false,
   }) {
     this.autocompleteMode = autocompleteMode;
     this.autocompleteSeparator = autocompleteSeparator;
@@ -49,7 +49,7 @@ class Tribute {
     this.closeOnScroll = closeOnScroll;
 
     if (this.autocompleteMode) {
-      trigger = "";
+      trigger = '';
       allowSpaces = false;
     }
 
@@ -75,31 +75,22 @@ class Tribute {
           itemClass: itemClass,
 
           // function called on select that retuns the content to insert
-          selectTemplate: (
-            selectTemplate || Tribute.defaultSelectTemplate
-          ).bind(this),
+          selectTemplate: selectTemplate ? selectTemplate.bind(this) : (item) => defaultSelectTemplate(this, item),
 
           // function called that returns content for an item
-          menuItemTemplate: (
-            menuItemTemplate || Tribute.defaultMenuItemTemplate
-          ).bind(this),
+          menuItemTemplate: (menuItemTemplate || defaultMenuItemTemplate).bind(this),
 
           // function called when menu is empty, disables hiding of menu.
-          noMatchTemplate: (t => {
-            if (typeof t === "string") {
-              if (t.trim() === "") return null;
+          noMatchTemplate: ((t) => {
+            if (typeof t === 'string') {
+              if (t.trim() === '') return null;
               return t;
             }
-            if (typeof t === "function") {
+            if (typeof t === 'function') {
               return t.bind(this);
             }
 
-            return (
-              noMatchTemplate ||
-              function() {
-                return "<li>No Match Found!</li>";
-              }.bind(this)
-            );
+            return noMatchTemplate || (() => '<li>No Match Found!</li>').bind(this);
           })(noMatchTemplate),
 
           // column to search against in the object
@@ -125,43 +116,31 @@ class Tribute {
           // Fix for maximum number of items added to the input for the specific Collection
           maxDisplayItems: maxDisplayItems,
 
-          isBlocked: isBlocked
-       }
+          isBlocked: isBlocked,
+        },
       ];
     } else if (collection) {
-      if (this.autocompleteMode)
-        console.warn(
-          "Tribute in autocomplete mode does not work for collections"
-        );
-      this.collection = collection.map(item => {
+      if (this.autocompleteMode) console.warn('Tribute in autocomplete mode does not work for collections');
+      this.collection = collection.map((item) => {
         return {
           trigger: item.trigger || trigger,
           iframe: item.iframe || iframe,
           selectClass: item.selectClass || selectClass,
           containerClass: item.containerClass || containerClass,
           itemClass: item.itemClass || itemClass,
-          selectTemplate: (
-            item.selectTemplate || Tribute.defaultSelectTemplate
-          ).bind(this),
-          menuItemTemplate: (
-            item.menuItemTemplate || Tribute.defaultMenuItemTemplate
-          ).bind(this),
+          selectTemplate: item.selectTemplate ? item.selectTemplate.bind(this) : (item) => defaultSelectTemplate(this, item),
+          menuItemTemplate: (item.menuItemTemplate || defaultMenuItemTemplate).bind(this),
           // function called when menu is empty, disables hiding of menu.
-          noMatchTemplate: (t => {
-            if (typeof t === "string") {
-              if (t.trim() === "") return null;
+          noMatchTemplate: ((t) => {
+            if (typeof t === 'string') {
+              if (t.trim() === '') return null;
               return t;
             }
-            if (typeof t === "function") {
+            if (typeof t === 'function') {
               return t.bind(this);
             }
 
-            return (
-              noMatchTemplate ||
-              function() {
-                return "<li>No Match Found!</li>";
-              }.bind(this)
-            );
+            return noMatchTemplate || (() => '<li>No Match Found!</li>').bind(this);
           })(item.noMatchTemplate),
           lookup: item.lookup || lookup,
           fillAttr: item.fillAttr || fillAttr,
@@ -174,11 +153,11 @@ class Tribute {
 
           // Set maximum number of items added to the input for the specific Collection
           maxDisplayItems: item.maxDisplayItems || maxDisplayItems,
-          isBlocked: item.isBlocked || isBlocked
+          isBlocked: item.isBlocked || isBlocked,
         };
       });
     } else {
-      throw new Error("[Tribute] No collection specified.");
+      throw new Error('[Tribute] No collection specified.');
     }
 
     new TributeRange(this);
@@ -192,95 +171,67 @@ class Tribute {
   }
 
   set isActive(val) {
-    if (this._isActive != val) {
+    if (this._isActive !== val) {
       this._isActive = val;
       if (this.current.element) {
-        let noMatchEvent = new CustomEvent(`tribute-active-${val}`);
+        const noMatchEvent = new CustomEvent(`tribute-active-${val}`);
         this.current.element.dispatchEvent(noMatchEvent);
       }
     }
   }
 
-  static defaultSelectTemplate(item) {
-    if (typeof item === "undefined")
-      return `${this.current.collection.trigger}${this.current.mentionText}`;
-    if (this.range.isContentEditable(this.current.element)) {
-      return (
-        '<span class="tribute-mention">' +
-        (this.current.collection.trigger +
-          item.original[this.current.collection.fillAttr]) +
-        "</span>"
-      );
-    }
-
-    return (
-      this.current.collection.trigger +
-      item.original[this.current.collection.fillAttr]
-    );
-  }
-
-  static defaultMenuItemTemplate(matchItem) {
-    return matchItem.string;
-  }
-
   static inputTypes() {
-    return ["TEXTAREA", "INPUT"];
+    return ['TEXTAREA', 'INPUT'];
   }
 
   triggers() {
-    return this.collection.map(config => {
+    return this.collection.map((config) => {
       return config.trigger;
     });
   }
 
   attach(el) {
     if (!el) {
-      throw new Error("[Tribute] Must pass in a DOM node or NodeList.");
+      throw new Error('[Tribute] Must pass in a DOM node or NodeList.');
     }
 
     // Check if it is a jQuery collection
-    if (typeof jQuery !== "undefined" && el instanceof jQuery) {
-      el = el.get();
-    }
+    const _el = typeof jQuery !== 'undefined' && el instanceof jQuery ? el.get() : el;
 
     // Is el an Array/Array-like object?
-    if (
-      el.constructor === NodeList ||
-      el.constructor === HTMLCollection ||
-      el.constructor === Array
-    ) {
-      let length = el.length;
-      for (var i = 0; i < length; ++i) {
-        this._attach(el[i]);
+    if (_el.constructor === NodeList || _el.constructor === HTMLCollection || _el.constructor === Array) {
+      const length = _el.length;
+      for (let i = 0; i < length; ++i) {
+        this._attach(_el[i]);
       }
     } else {
-      this._attach(el);
+      this._attach(_el);
     }
   }
 
   _attach(el) {
-    if (el.hasAttribute("data-tribute")) {
-      console.warn("Tribute was already bound to " + el.nodeName);
+    if (el.hasAttribute('data-tribute')) {
+      console.warn(`Tribute was already bound to ${el.nodeName}`);
     }
 
     this.ensureEditable(el);
     this.events.bind(el);
-    el.setAttribute("data-tribute", true);
+    el.setAttribute('data-tribute', true);
   }
 
   ensureEditable(element) {
     if (Tribute.inputTypes().indexOf(element.nodeName) === -1) {
-      if (typeof element.contentEditable === "string") {
+      if (typeof element.contentEditable === 'string') {
         element.contentEditable = true;
       } else {
-        throw new Error("[Tribute] Cannot bind to " + element.nodeName + ", not contentEditable");
+        throw new Error(`[Tribute] Cannot bind to ${element.nodeName}, not contentEditable`);
       }
     }
   }
 
   createMenu(containerClass) {
-    let wrapper = this.range.getDocument().createElement("div"),
-      ul = this.range.getDocument().createElement("ul");
+    const wrapper = this.range.getDocument().createElement('div');
+    const ul = this.range.getDocument().createElement('ul');
     wrapper.className = containerClass;
     wrapper.appendChild(ul);
 
@@ -293,11 +244,10 @@ class Tribute {
 
   showMenuFor(element, scrollTo) {
     // Check for maximum number of items added to the input for the specific Collection
-    if(
-      (
-        this.current.collection.maxDisplayItems &&
-        element.querySelectorAll('[data-tribute-trigger="' + this.current.collection.trigger + '"]').length >= this.current.collection.maxDisplayItems
-      ) || this.current.collection.isBlocked
+    if (
+      (this.current.collection.maxDisplayItems &&
+        element.querySelectorAll(`[data-tribute-trigger="${this.current.collection.trigger}"]`).length >= this.current.collection.maxDisplayItems) ||
+      this.current.collection.isBlocked
     ) {
       //console.log("Tribute: Maximum number of items added!");
       return;
@@ -316,34 +266,32 @@ class Tribute {
     this.menuSelected = 0;
     window.setTimeout(() => {
       this.menu.scrollTop = 0;
-    },0)
+    }, 0);
 
     if (!this.current.mentionText) {
-      this.current.mentionText = "";
+      this.current.mentionText = '';
     }
 
-    const processValues = values => {
+    const processValues = (values) => {
       // Tribute may not be active any more by the time the value callback returns
       if (!this.isActive) {
         return;
       }
 
       let items = this.search.filter(this.current.mentionText, values, {
-        pre: this.current.collection.searchOpts.pre || "<span>",
-        post: this.current.collection.searchOpts.post || "</span>",
+        pre: this.current.collection.searchOpts.pre || '<span>',
+        post: this.current.collection.searchOpts.post || '</span>',
         skip: this.current.collection.searchOpts.skip || false,
         caseSensitive: this.current.collection.searchOpts.caseSensitive || false,
-        extract: el => {
-          if (typeof this.current.collection.lookup === "string") {
+        extract: (el) => {
+          if (typeof this.current.collection.lookup === 'string') {
             return el[this.current.collection.lookup];
-          } else if (typeof this.current.collection.lookup === "function") {
-            return this.current.collection.lookup(el, this.current.mentionText);
-          } else {
-            throw new Error(
-              "Invalid lookup attribute, lookup must be string or function."
-            );
           }
-        }
+          if (typeof this.current.collection.lookup === 'function') {
+            return this.current.collection.lookup(el, this.current.mentionText);
+          }
+          throw new Error('Invalid lookup attribute, lookup must be string or function.');
+        },
       });
 
       if (this.current.collection.menuItemLimit) {
@@ -352,41 +300,39 @@ class Tribute {
 
       this.current.filteredItems = items;
 
-      let ul = this.menu.querySelector("ul");
+      const ul = this.menu.querySelector('ul');
 
       if (!items.length) {
-        let noMatchEvent = new CustomEvent("tribute-no-match", {
-          detail: this.menu
+        const noMatchEvent = new CustomEvent('tribute-no-match', {
+          detail: this.menu,
         });
         this.current.element.dispatchEvent(noMatchEvent);
         if (
-          (typeof this.current.collection.noMatchTemplate === "function" &&
-            !this.current.collection.noMatchTemplate()) ||
+          (typeof this.current.collection.noMatchTemplate === 'function' && !this.current.collection.noMatchTemplate()) ||
           !this.current.collection.noMatchTemplate
         ) {
           this.hideMenu();
         } else {
-          typeof this.current.collection.noMatchTemplate === "function"
-            ? (ul.innerHTML = this.current.collection.noMatchTemplate())
-            : (ul.innerHTML = this.current.collection.noMatchTemplate);
-            this.range.positionMenuAtCaret(scrollTo);
+          ul.innerHTML =
+            typeof this.current.collection.noMatchTemplate === 'function' ? this.current.collection.noMatchTemplate() : this.current.collection.noMatchTemplate;
+          this.range.positionMenuAtCaret(scrollTo);
         }
 
         return;
       }
 
-      ul.innerHTML = "";
-      let fragment = this.range.getDocument().createDocumentFragment();
+      ul.innerHTML = '';
+      const fragment = this.range.getDocument().createDocumentFragment();
 
-      this.menuSelected = items.findIndex(item => item.original.disabled !== true);
+      this.menuSelected = items.findIndex((item) => item.original.disabled !== true);
 
       items.forEach((item, index) => {
-        let li = this.range.getDocument().createElement("li");
-        li.setAttribute("data-index", index);
-        if (item.original.disabled) li.setAttribute("data-disabled","true");
+        const li = this.range.getDocument().createElement('li');
+        li.setAttribute('data-index', index);
+        if (item.original.disabled) li.setAttribute('data-disabled', 'true');
         li.className = this.current.collection.itemClass;
-        li.addEventListener("mousemove", e => {
-          let [li, index] = this._findLiTarget(e.target);
+        li.addEventListener('mousemove', (e) => {
+          const [li, index] = this._findLiTarget(e.target);
           if (e.movementY !== 0) {
             this.events.setActiveLi(index);
           }
@@ -397,7 +343,7 @@ class Tribute {
         // remove all content in the li and append the content of menuItemTemplate
         const menuItemDomOrString = this.current.collection.menuItemTemplate(item);
         if (menuItemDomOrString instanceof Element) {
-          li.innerHTML = "";
+          li.innerHTML = '';
           li.appendChild(menuItemDomOrString);
         } else {
           li.innerHTML = menuItemDomOrString;
@@ -409,9 +355,9 @@ class Tribute {
       this.range.positionMenuAtCaret(scrollTo);
     };
 
-    if (typeof this.current.collection.values === "function") {
+    if (typeof this.current.collection.values === 'function') {
       if (this.current.collection.loadingItemTemplate) {
-        this.menu.querySelector("ul").innerHTML = this.current.collection.loadingItemTemplate;
+        this.menu.querySelector('ul').innerHTML = this.current.collection.loadingItemTemplate;
         this.range.positionMenuAtCaret(scrollTo);
       }
 
@@ -423,17 +369,17 @@ class Tribute {
 
   _findLiTarget(el) {
     if (!el) return [];
-    const index = el.getAttribute("data-index");
+    const index = el.getAttribute('data-index');
     return !index ? this._findLiTarget(el.parentNode) : [el, index];
   }
 
   showMenuForCollection(element, collectionIndex) {
     // Check for maximum number of items added to the input for the specific Collection
-    if(
-      (
-        this.collection[collectionIndex || 0].maxDisplayItems &&
-        element.querySelectorAll('[data-tribute-trigger="' +  this.collection[collectionIndex || 0].trigger + '"]').length >= this.collection[collectionIndex || 0].maxDisplayItems
-      ) || this.collection[collectionIndex || 0].isBlocked
+    if (
+      (this.collection[collectionIndex || 0].maxDisplayItems &&
+        element.querySelectorAll(`[data-tribute-trigger="${this.collection[collectionIndex || 0].trigger}"]`).length >=
+          this.collection[collectionIndex || 0].maxDisplayItems) ||
+      this.collection[collectionIndex || 0].isBlocked
     ) {
       //console.log("Tribute: Maximum number of items added!");
       return;
@@ -447,8 +393,7 @@ class Tribute {
     this.current.externalTrigger = true;
     this.current.element = element;
 
-    if (element.isContentEditable)
-      this.insertTextAtCursor(this.current.collection.trigger);
+    if (element.isContentEditable) this.insertTextAtCursor(this.current.collection.trigger);
     else this.insertAtCaret(element, this.current.collection.trigger);
 
     this.showMenuFor(element);
@@ -457,18 +402,15 @@ class Tribute {
   // TODO: make sure this works for inputs/textareas
   placeCaretAtEnd(el) {
     el.focus();
-    if (
-      typeof window.getSelection != "undefined" &&
-      typeof document.createRange != "undefined"
-    ) {
-      var range = document.createRange();
+    if (typeof window.getSelection !== 'undefined' && typeof document.createRange !== 'undefined') {
+      const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
-      var sel = window.getSelection();
+      const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-    } else if (typeof document.body.createTextRange != "undefined") {
-      var textRange = document.body.createTextRange();
+    } else if (typeof document.body.createTextRange !== 'undefined') {
+      const textRange = document.body.createTextRange();
       textRange.moveToElementText(el);
       textRange.collapse(false);
       textRange.select();
@@ -477,11 +419,11 @@ class Tribute {
 
   // for contenteditable
   insertTextAtCursor(text) {
-    var sel, range, html;
-    sel = window.getSelection();
-    range = sel.getRangeAt(0);
+    let html;
+    const sel = window.getSelection();
+    const range = sel.getRangeAt(0);
     range.deleteContents();
-    var textNode = document.createTextNode(text);
+    const textNode = document.createTextNode(text);
     range.insertNode(textNode);
     range.selectNodeContents(textNode);
     range.collapse(false);
@@ -491,14 +433,11 @@ class Tribute {
 
   // for regular inputs
   insertAtCaret(textarea, text) {
-    var scrollPos = textarea.scrollTop;
-    var caretPos = textarea.selectionStart;
+    const scrollPos = textarea.scrollTop;
+    let caretPos = textarea.selectionStart;
 
-    var front = textarea.value.substring(0, caretPos);
-    var back = textarea.value.substring(
-      textarea.selectionEnd,
-      textarea.value.length
-    );
+    const front = textarea.value.substring(0, caretPos);
+    const back = textarea.value.substring(textarea.selectionEnd, textarea.value.length);
     textarea.value = front + text + back;
     caretPos = caretPos + text.length;
     textarea.selectionStart = caretPos;
@@ -509,7 +448,7 @@ class Tribute {
 
   hideMenu() {
     if (this.menu) {
-      this.menu.style.cssText = "display: none;";
+      this.menu.style.cssText = 'display: none;';
       this.isActive = false;
       this.menuSelected = 0;
       this.current = {};
@@ -517,15 +456,15 @@ class Tribute {
   }
 
   selectItemAtIndex(index, originalEvent) {
-    index = parseInt(index);
-    if (typeof index !== "number" || isNaN(index) || !this.current.filteredItems) return;
-    let item = this.current.filteredItems[index];
-    let content = this.current.collection.selectTemplate(item);
+    const _index = Number.parseInt(index);
+    if (typeof _index !== 'number' || Number.isNaN(_index) || !this.current.filteredItems) return;
+    const item = this.current.filteredItems[_index];
+    const content = this.current.collection.selectTemplate(item);
 
-    if (index === -1) {
-      let selectedNoMatchEvent = new CustomEvent('tribute-selected-no-match', { detail: content })
+    if (_index === -1) {
+      const selectedNoMatchEvent = new CustomEvent('tribute-selected-no-match', { detail: content });
       this.current.element.dispatchEvent(selectedNoMatchEvent);
-      return
+      return;
     }
 
     if (content !== null) this.replaceText(content, originalEvent, item);
@@ -536,9 +475,10 @@ class Tribute {
   }
 
   _append(collection, newValues, replace) {
-    if (typeof collection.values === "function") {
-      throw new Error("Unable to append to values, as it is a function.");
-    } else if (!replace) {
+    if (typeof collection.values === 'function') {
+      throw new Error('Unable to append to values, as it is a function.');
+    }
+    if (!replace) {
       collection.values = collection.values.concat(newValues);
     } else {
       collection.values = newValues;
@@ -546,11 +486,10 @@ class Tribute {
   }
 
   append(collectionIndex, newValues, replace) {
-    let index = parseInt(collectionIndex);
-    if (typeof index !== "number")
-      throw new Error("please provide an index for the collection to update.");
+    const index = Number.parseInt(collectionIndex);
+    if (typeof index !== 'number') throw new Error('please provide an index for the collection to update.');
 
-    let collection = this.collection[index];
+    const collection = this.collection[index];
 
     this._append(collection, newValues, replace);
   }
@@ -559,34 +498,26 @@ class Tribute {
     if (this.isActive) {
       this._append(this.current.collection, newValues, replace);
     } else {
-      throw new Error(
-        "No active state. Please use append instead and pass an index."
-      );
+      throw new Error('No active state. Please use append instead and pass an index.');
     }
   }
 
   detach(el) {
     if (!el) {
-      throw new Error("[Tribute] Must pass in a DOM node or NodeList.");
+      throw new Error('[Tribute] Must pass in a DOM node or NodeList.');
     }
 
     // Check if it is a jQuery collection
-    if (typeof jQuery !== "undefined" && el instanceof jQuery) {
-      el = el.get();
-    }
+    const _el = typeof jQuery !== 'undefined' && el instanceof jQuery ? el.get() : el;
 
     // Is el an Array/Array-like object?
-    if (
-      el.constructor === NodeList ||
-      el.constructor === HTMLCollection ||
-      el.constructor === Array
-    ) {
-      let length = el.length;
-      for (var i = 0; i < length; ++i) {
-        this._detach(el[i]);
+    if (_el.constructor === NodeList || _el.constructor === HTMLCollection || _el.constructor === Array) {
+      const length = _el.length;
+      for (let i = 0; i < length; ++i) {
+        this._detach(_el[i]);
       }
     } else {
-      this._detach(el);
+      this._detach(_el);
     }
   }
 
@@ -597,13 +528,27 @@ class Tribute {
     }
 
     setTimeout(() => {
-      el.removeAttribute("data-tribute");
+      el.removeAttribute('data-tribute');
       this.isActive = false;
       if (el.tributeMenu) {
         el.tributeMenu.remove();
       }
     });
   }
+}
+
+function defaultSelectTemplate(tribute, item) {
+  if (typeof item === 'undefined') return `${tribute.current.collection.trigger}${tribute.current.mentionText}`;
+
+  if (tribute.range.isContentEditable(tribute.current.element)) {
+    return `<span class="tribute-mention">${tribute.current.collection.trigger + item.original[tribute.current.collection.fillAttr]}</span>`;
+  }
+
+  return tribute.current.collection.trigger + item.original[tribute.current.collection.fillAttr];
+}
+
+function defaultMenuItemTemplate(matchItem) {
+  return matchItem.string;
 }
 
 export default Tribute;
