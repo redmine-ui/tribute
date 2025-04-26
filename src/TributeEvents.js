@@ -1,3 +1,5 @@
+import { addHandler } from './helpers.js';
+
 class TributeEvents {
   constructor(tribute) {
     this.tribute = tribute;
@@ -38,120 +40,88 @@ class TributeEvents {
   }
 
   bind(element) {
-    element.boundKeydown = this.keydown.bind(element, this);
-    element.boundKeyup = this.keyup.bind(element, this);
-    element.boundInput = this.input.bind(element, this);
-
-    element.addEventListener('keydown', element.boundKeydown, true);
-    element.addEventListener('keyup', element.boundKeyup, true);
-    element.addEventListener('input', element.boundInput, true);
+    this.removers = [
+      addHandler(element, 'keydown', (event) => {
+        this.keydown(event);
+      }),
+      addHandler(element, 'keyup', (event) => {
+        this.keyup(event);
+      }),
+      addHandler(element, 'input', (event) => {
+        this.input(event);
+      }),
+    ];
   }
 
   unbind(element) {
-    element.removeEventListener('keydown', element.boundKeydown, true);
-    element.removeEventListener('keyup', element.boundKeyup, true);
-    element.removeEventListener('input', element.boundInput, true);
-
-    element.boundKeydown = undefined;
-    element.boundKeyup = undefined;
-    element.boundInput = undefined;
+    for (const remover of this.removers) {
+      remover();
+    }
   }
 
-  keydown(instance, event) {
-    if (instance.shouldDeactivate(event)) {
-      instance.tribute.isActive = false;
-      instance.tribute.hideMenu();
+  keydown(event) {
+    const element = event.currentTarget;
+    if (this.shouldDeactivate(event)) {
+      this.tribute.isActive = false;
+      this.tribute.hideMenu();
     }
-    instance.commandEvent = false;
+    this.commandEvent = false;
 
     for (const o of TributeEvents.keys()) {
       if (o.key === event.keyCode) {
-        instance.commandEvent = true;
-        instance.callbacks()[o.value.toLowerCase()](event, this);
+        this.commandEvent = true;
+        this.callbacks()[o.value.toLowerCase()](event, element);
       }
     }
   }
 
-  input(instance, event) {
-    instance.inputEvent = true;
-    instance.keyup.call(this, instance, event);
+  input(event) {
+    const element = event.currentTarget;
+    this.inputEvent = true;
+    this.keyup(event);
   }
 
-  click(instance, event) {
-    const tribute = instance.tribute;
-    if (tribute.menu?.contains(event.target)) {
-      let li = event.target;
-      event.preventDefault();
-      event.stopPropagation();
-      while (li.nodeName.toLowerCase() !== 'li') {
-        li = li.parentNode;
-        if (!li || li === tribute.menu) {
-          // When li === tribute.menu, it's either a click on the entire component or on the scrollbar (if visible)
-          li = undefined;
-          break;
-        }
-      }
-
-      if (!li) {
-        return;
-      }
-
-      if (li.getAttribute('data-disabled') === 'true') {
-        return;
-      }
-      if (tribute.current.filteredItems.length === 0) li.setAttribute('data-index', -1);
-
-      tribute.selectItemAtIndex(li.getAttribute('data-index'), event);
-      tribute.hideMenu();
-
-      // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (tribute.current.externalTrigger) {
-      tribute.current.externalTrigger = false;
-    } else if (tribute.current.element && !tribute.current.externalTrigger) {
-      setTimeout(() => tribute.hideMenu());
+  keyup(event) {
+    const element = event.currentTarget;
+    if (this.inputEvent) {
+      this.inputEvent = false;
     }
-  }
-
-  keyup(instance, event) {
-    if (instance.inputEvent) {
-      instance.inputEvent = false;
-    }
-    instance.updateSelection(this);
+    this.updateSelection(element);
 
     if (!event.keyCode || event.keyCode === 27) return;
 
-    if (!instance.tribute.allowSpaces && instance.tribute.hasTrailingSpace) {
-      instance.tribute.hasTrailingSpace = false;
-      instance.commandEvent = true;
-      instance.callbacks().space(event, this);
+    if (!this.tribute.allowSpaces && this.tribute.hasTrailingSpace) {
+      this.tribute.hasTrailingSpace = false;
+      this.commandEvent = true;
+      this.callbacks().space(event, element);
       return;
     }
 
-    if (!instance.tribute.isActive) {
-      if (instance.tribute.autocompleteMode) {
-        instance.callbacks().triggerChar(event, this, '');
+    if (!this.tribute.isActive) {
+      if (this.tribute.autocompleteMode) {
+        this.callbacks().triggerChar(event, element, '');
       } else {
-        const keyCode = instance.getKeyCode(instance, this, event);
+        const keyCode = this.getKeyCode(element, event);
 
         if (Number.isNaN(keyCode) || !keyCode) return;
 
-        const trigger = instance.tribute.triggers().find((trigger) => {
+        const trigger = this.tribute.triggers().find((trigger) => {
           return trigger.charCodeAt(0) === keyCode;
         });
 
         if (typeof trigger !== 'undefined') {
-          instance.callbacks().triggerChar(event, this, trigger);
+          this.callbacks().triggerChar(event, element, trigger);
         }
       }
     }
 
-    if (instance.tribute.current.mentionText.length < instance.tribute.current.collection.menuShowMinLength) {
-      instance.tribute.hideMenu();
+    if (this.tribute.current.mentionText.length < this.tribute.current.collection.menuShowMinLength) {
+      this.tribute.hideMenu();
       return;
     }
 
-    if (((instance.tribute.current.trigger || instance.tribute.autocompleteMode) && instance.commandEvent === false) || event.keyCode === 8) {
-      instance.tribute.showMenuFor(this, true);
+    if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || event.keyCode === 8) {
+      this.tribute.showMenuFor(element, true);
     }
   }
 
@@ -172,9 +142,9 @@ class TributeEvents {
     return false;
   }
 
-  getKeyCode(instance, el, event) {
+  getKeyCode(el, event) {
     let char;
-    const tribute = instance.tribute;
+    const tribute = this.tribute;
     const info = tribute.range.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces, tribute.autocompleteMode);
 
     if (info) {

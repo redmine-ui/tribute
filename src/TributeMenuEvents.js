@@ -1,3 +1,5 @@
+import { addHandler } from './helpers.js';
+
 class TributeMenuEvents {
   constructor(tribute) {
     this.tribute = tribute;
@@ -6,8 +8,7 @@ class TributeMenuEvents {
   }
 
   bind(menu) {
-    this.menuClickEvent = this.tribute.events.click.bind(null, this);
-    this.menuContainerScrollEvent = this.debounce(
+    const menuContainerScrollEvent = this.debounce(
       () => {
         if (this.tribute.isActive) {
           this.tribute.hideMenu();
@@ -16,7 +17,7 @@ class TributeMenuEvents {
       10,
       false,
     );
-    this.windowResizeEvent = this.debounce(
+    const windowResizeEvent = this.debounce(
       () => {
         if (this.tribute.isActive) {
           this.tribute.hideMenu();
@@ -25,7 +26,7 @@ class TributeMenuEvents {
       10,
       false,
     );
-    this.closeOnScrollEvent = this.debounce(
+    const closeOnScrollEvent = this.debounce(
       () => {
         if (this.tribute.isActive) {
           this.tribute.hideMenu();
@@ -35,39 +36,63 @@ class TributeMenuEvents {
       false,
     );
 
-    // fixes IE11 issues with mousedown
-    this.tribute.range.getDocument().addEventListener('MSPointerDown', this.menuClickEvent, false);
-    this.tribute.range.getDocument().addEventListener('mousedown', this.menuClickEvent, false);
-    window.addEventListener('resize', this.windowResizeEvent);
+    this.removers = [
+      addHandler(this.tribute.range.getDocument(), 'mousedown', (event) => this.click(event), false),
+      addHandler(window, 'resize', windowResizeEvent),
+    ];
 
     if (this.tribute.closeOnScroll === true) {
-      window.addEventListener('scroll', this.closeOnScrollEvent);
+      this.removers.push(addHandler(window, 'scroll', closeOnScrollEvent));
     } else if (this.tribute.closeOnScroll !== false) {
-      this.tribute.closeOnScroll.addEventListener('scroll', this.closeOnScrollEvent, false);
+      this.removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', closeOnScrollEvent, false));
     } else {
-      if (this.menuContainer) {
-        this.menuContainer.addEventListener('scroll', this.menuContainerScrollEvent, false);
+      if (this.tribute.menuContainer) {
+        this.removers.push(addHandler(this.tribute.menuContainer, 'scroll', menuContainerScrollEvent, false));
       } else {
-        window.addEventListener('scroll', this.menuContainerScrollEvent);
+        this.removers.push(addHandler(window, 'scroll', menuContainerScrollEvent));
       }
     }
   }
 
   unbind(menu) {
-    this.tribute.range.getDocument().removeEventListener('mousedown', this.menuClickEvent, false);
-    this.tribute.range.getDocument().removeEventListener('MSPointerDown', this.menuClickEvent, false);
-    window.removeEventListener('resize', this.windowResizeEvent);
+    for (const remover of this.removers) {
+      remover();
+    }
+  }
 
-    if (this.tribute.closeOnScroll === true) {
-      window.removeEventListener('scroll', this.closeOnScrollEvent);
-    } else if (this.tribute.closeOnScroll !== false) {
-      this.tribute.closeOnScroll.removeEventListener('scroll', this.closeOnScrollEvent);
-    } else {
-      if (this.menuContainer) {
-        this.menuContainer.removeEventListener('scroll', this.menuContainerScrollEvent, false);
-      } else {
-        window.removeEventListener('scroll', this.menuContainerScrollEvent);
+  click(event) {
+    const element = event.currentTarget;
+    const tribute = this.tribute;
+    if (tribute.menu?.contains(event.target)) {
+      let li = event.target;
+      event.preventDefault();
+      event.stopPropagation();
+      while (li.nodeName.toLowerCase() !== 'li') {
+        li = li.parentNode;
+        if (!li || li === tribute.menu) {
+          // When li === tribute.menu, it's either a click on the entire component or on the scrollbar (if visible)
+          li = undefined;
+          break;
+        }
       }
+
+      if (!li) {
+        return;
+      }
+
+      if (li.getAttribute('data-disabled') === 'true') {
+        return;
+      }
+      if (tribute.current.filteredItems.length === 0) li.setAttribute('data-index', -1);
+
+      tribute.selectItemAtIndex(li.getAttribute('data-index'), event);
+      tribute.hideMenu();
+
+      // TODO: should fire with externalTrigger and target is outside of menu
+    } else if (tribute.current.externalTrigger) {
+      tribute.current.externalTrigger = false;
+    } else if (tribute.current.element && !tribute.current.externalTrigger) {
+      setTimeout(() => tribute.hideMenu());
     }
   }
 
