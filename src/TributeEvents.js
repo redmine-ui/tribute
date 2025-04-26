@@ -3,7 +3,6 @@ import { addHandler } from './helpers.js';
 class TributeEvents {
   constructor(tribute) {
     this.tribute = tribute;
-    this.tribute.events = this;
   }
 
   bind(element) {
@@ -247,46 +246,6 @@ class TributeEvents {
       };
     }
     return this._callbacks;
-  }
-
-  setActiveLi(index) {
-    const lis = this.tribute.menu.querySelectorAll('li');
-    const length = lis.length >>> 0;
-
-    if (index) this.tribute.menuSelected = Number.parseInt(index);
-
-    for (let i = 0; i < length; i++) {
-      const li = lis[i];
-      if (i === this.tribute.menuSelected) {
-        if (li.getAttribute('data-disabled') !== 'true') {
-          li.classList.add(this.tribute.current.collection.selectClass);
-        }
-
-        const liClientRect = li.getBoundingClientRect();
-        const menuClientRect = this.tribute.menu.getBoundingClientRect();
-
-        if (liClientRect.bottom > menuClientRect.bottom) {
-          const scrollDistance = liClientRect.bottom - menuClientRect.bottom;
-          this.tribute.menu.scrollTop += scrollDistance;
-        } else if (liClientRect.top < menuClientRect.top) {
-          const scrollDistance = menuClientRect.top - liClientRect.top;
-          this.tribute.menu.scrollTop -= scrollDistance;
-        }
-      } else {
-        li.classList.remove(this.tribute.current.collection.selectClass);
-      }
-    }
-  }
-
-  getFullHeight(elem, includeMargin) {
-    const height = elem.getBoundingClientRect().height;
-
-    if (includeMargin) {
-      const style = elem.currentStyle || window.getComputedStyle(elem);
-      return height + Number.parseFloat(style.marginTop) + Number.parseFloat(style.marginBottom);
-    }
-
-    return height;
   }
 }
 

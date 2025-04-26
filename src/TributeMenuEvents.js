@@ -3,7 +3,6 @@ import { addHandler } from './helpers.js';
 class TributeMenuEvents {
   constructor(tribute) {
     this.tribute = tribute;
-    this.tribute.menuEvents = this;
     this.menu = this.tribute.menu;
   }
 

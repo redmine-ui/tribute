@@ -2,7 +2,6 @@
 class TributeSearch {
   constructor(tribute) {
     this.tribute = tribute;
-    this.tribute.search = this;
   }
 
   simpleFilter(pattern, array) {
@@ -17,16 +16,9 @@ class TributeSearch {
 
   match(pattern, string, opts) {
     const _opts = opts || {};
-    const patternIdx = 0;
-    const result = [];
-    const len = string.length;
-    const totalScore = 0;
-    const currScore = 0;
     const pre = _opts.pre || '';
     const post = _opts.post || '';
     const compareString = (_opts.caseSensitive && string) || string.toLowerCase();
-    let ch;
-    let compareChar;
 
     if (_opts.skip) {
       return { rendered: string, score: 0 };

@@ -3,7 +3,6 @@
 class TributeRange {
   constructor(tribute) {
     this.tribute = tribute;
-    this.tribute.range = this;
   }
 
   getDocument() {
@@ -21,135 +20,97 @@ class TributeRange {
 
   positionMenuAtCaret(scrollTo) {
     const context = this.tribute.current;
-    let coordinates;
-
     const info = this.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
-    if (typeof info !== 'undefined') {
-      if (!this.tribute.positionMenu) {
-        this.tribute.menu.style.cssText = 'display: block;';
-        return;
-      }
-
-      if (!this.isContentEditable(context.element)) {
-        coordinates = this.getTextAreaOrInputUnderlinePosition(this.tribute.current.element, info.mentionPosition);
-      } else {
-        coordinates = this.getContentEditableCaretPosition(info.mentionPosition);
-      }
-
-      this.tribute.menu.style.cssText = `top: ${coordinates.top}px;
-                                     left: ${coordinates.left}px;
-                                     right: ${coordinates.right}px;
-                                     bottom: ${coordinates.bottom}px;
-                                     max-height: ${coordinates.maxHeight || 500}px;
-                                     max-width: ${coordinates.maxWidth || 300}px;
-                                     position: ${coordinates.position || 'absolute'};
-                                     display: block;`;
-
-      if (coordinates.left === 'auto') {
-        this.tribute.menu.style.left = 'auto';
-      }
-
-      if (coordinates.top === 'auto') {
-        this.tribute.menu.style.top = 'auto';
-      }
-
-      if (scrollTo) this.scrollIntoView();
-    } else {
+    if (typeof info === 'undefined') {
       this.tribute.menu.style.cssText = 'display: none';
+      return;
     }
+
+    if (!this.tribute.positionMenu) {
+      this.tribute.menu.style.cssText = 'display: block;';
+      return;
+    }
+
+    const coordinates = this.isContentEditable(context.element)
+      ? this.getContentEditableCaretPosition(info.mentionPosition)
+      : this.getTextAreaOrInputUnderlinePosition(this.tribute.current.element, info.mentionPosition);
+
+    this.tribute.menu.style.cssText = `top: ${coordinates.top}px;
+                                   left: ${coordinates.left}px;
+                                   right: ${coordinates.right}px;
+                                   bottom: ${coordinates.bottom}px;
+                                   max-height: ${coordinates.maxHeight || 500}px;
+                                   max-width: ${coordinates.maxWidth || 300}px;
+                                   position: ${coordinates.position || 'absolute'};
+                                   display: block;`;
+
+    if (coordinates.left === 'auto') {
+      this.tribute.menu.style.left = 'auto';
+    }
+
+    if (coordinates.top === 'auto') {
+      this.tribute.menu.style.top = 'auto';
+    }
+
+    if (scrollTo) this.scrollIntoView();
   }
 
   get menuContainerIsBody() {
     return this.tribute.menuContainer === document.body || !this.tribute.menuContainer;
   }
 
-  selectElement(targetElement, path, offset) {
-    let elem = targetElement;
-
-    if (path) {
-      for (let i = 0; i < path.length; i++) {
-        elem = elem.childNodes[path[i]];
-        if (elem === undefined) {
-          return;
-        }
-        let _offset = offset;
-        while (elem.length < _offset) {
-          _offset -= elem.length;
-          elem = elem.nextSibling;
-        }
-        if (elem.childNodes.length === 0 && !elem.length) {
-          elem = elem.previousSibling;
-        }
-      }
-    }
-    const sel = this.getWindowSelection();
-
-    const range = this.getDocument().createRange();
-    range.setStart(elem, _offset);
-    range.setEnd(elem, _offset);
-    range.collapse(true);
-
-    try {
-      sel.removeAllRanges();
-    } catch (error) {}
-
-    sel.addRange(range);
-    targetElement.focus();
-  }
-
   replaceTriggerText(text, requireLeadingSpace, hasTrailingSpace, originalEvent, item) {
     const info = this.getTriggerInfo(true, hasTrailingSpace, requireLeadingSpace, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
-    if (info !== undefined) {
-      const context = this.tribute.current;
-      const replaceEvent = new CustomEvent('tribute-replaced', {
-        detail: {
-          item: item,
-          instance: context,
-          context: info,
-          event: originalEvent,
-        },
-      });
+    if (typeof info === 'undefined') return;
 
-      if (!this.isContentEditable(context.element)) {
-        const myField = this.tribute.current.element;
-        const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : ' ';
-        const _text = text + textSuffix;
-        const startPos = info.mentionPosition;
-        let endPos = info.mentionPosition + info.mentionText.length + (textSuffix === '' ? 1 : textSuffix.length);
-        if (!this.tribute.autocompleteMode) {
-          endPos += info.mentionTriggerChar.length - 1;
-        }
-        myField.value = myField.value.substring(0, startPos) + _text + myField.value.substring(endPos, myField.value.length);
-        myField.selectionStart = startPos + _text.length;
-        myField.selectionEnd = startPos + _text.length;
-      } else {
-        let _text = text;
-        if (_text instanceof HTMLElement) {
-          // skip adding suffix yet - TODO later
-          // text.appendChild(this.getDocument().createTextNode(textSuffix))
-        } else {
-          // add a space to the end of the pasted text
-          const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : '\xA0';
-          _text += textSuffix;
-        }
-        let endPos = info.mentionPosition + info.mentionText.length;
-        if (!this.tribute.autocompleteMode) {
-          endPos += info.mentionTriggerChar.length;
-        }
-        this.pasteHtml(_text, info.mentionPosition, endPos);
+    const context = this.tribute.current;
+    const replaceEvent = new CustomEvent('tribute-replaced', {
+      detail: {
+        item: item,
+        instance: context,
+        context: info,
+        event: originalEvent,
+      },
+    });
+
+    if (!this.isContentEditable(context.element)) {
+      const myField = this.tribute.current.element;
+      const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : ' ';
+      const _text = text + textSuffix;
+      const startPos = info.mentionPosition;
+      let endPos = info.mentionPosition + info.mentionText.length + (textSuffix === '' ? 1 : textSuffix.length);
+      if (!this.tribute.autocompleteMode) {
+        endPos += info.mentionTriggerChar.length - 1;
       }
-
-      context.element.dispatchEvent(new CustomEvent('input', { bubbles: true }));
-      context.element.dispatchEvent(replaceEvent);
+      myField.value = myField.value.substring(0, startPos) + _text + myField.value.substring(endPos, myField.value.length);
+      myField.selectionStart = startPos + _text.length;
+      myField.selectionEnd = startPos + _text.length;
+    } else {
+      let _text = text;
+      if (_text instanceof HTMLElement) {
+        // skip adding suffix yet - TODO later
+        // text.appendChild(this.getDocument().createTextNode(textSuffix))
+      } else {
+        // add a space to the end of the pasted text
+        const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : '\xA0';
+        _text += textSuffix;
+      }
+      let endPos = info.mentionPosition + info.mentionText.length;
+      if (!this.tribute.autocompleteMode) {
+        endPos += info.mentionTriggerChar.length;
+      }
+      this.pasteHtml(_text, info.mentionPosition, endPos);
     }
+
+    context.element.dispatchEvent(new CustomEvent('input', { bubbles: true }));
+    context.element.dispatchEvent(replaceEvent);
   }
 
   pasteHtml(htmlOrElem, startPos, endPos) {
     let range;
-    let sel;
-    sel = this.getWindowSelection();
+    const sel = this.getWindowSelection();
     range = this.getDocument().createRange();
     range.setStart(sel.anchorNode, startPos);
     range.setEnd(sel.anchorNode, endPos);

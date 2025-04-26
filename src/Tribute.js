@@ -160,10 +160,10 @@ class Tribute {
       throw new Error('[Tribute] No collection specified.');
     }
 
-    new TributeRange(this);
-    new TributeEvents(this);
-    new TributeMenuEvents(this);
-    new TributeSearch(this);
+    this.range = new TributeRange(this);
+    this.events = new TributeEvents(this);
+    this.menuEvents = new TributeMenuEvents(this);
+    this.search = new TributeSearch(this);
   }
 
   get isActive() {
@@ -334,7 +334,7 @@ class Tribute {
         li.addEventListener('mousemove', (e) => {
           const [li, index] = this._findLiTarget(e.target);
           if (e.movementY !== 0) {
-            this.events.setActiveLi(index);
+            this.setActiveLi(index);
           }
         });
         if (this.menuSelected === index) {
@@ -534,6 +534,37 @@ class Tribute {
         el.tributeMenu.remove();
       }
     });
+  }
+
+  setActiveLi(index) {
+    const lis = this.menu.querySelectorAll('li');
+    const length = lis.length >>> 0;
+
+    if (index) {
+      this.menuSelected = Number.parseInt(index);
+    }
+
+    for (let i = 0; i < length; i++) {
+      const li = lis[i];
+      if (i === this.menuSelected) {
+        if (li.getAttribute('data-disabled') !== 'true') {
+          li.classList.add(this.current.collection.selectClass);
+        }
+
+        const liClientRect = li.getBoundingClientRect();
+        const menuClientRect = this.menu.getBoundingClientRect();
+
+        if (liClientRect.bottom > menuClientRect.bottom) {
+          const scrollDistance = liClientRect.bottom - menuClientRect.bottom;
+          this.menu.scrollTop += scrollDistance;
+        } else if (liClientRect.top < menuClientRect.top) {
+          const scrollDistance = menuClientRect.top - liClientRect.top;
+          this.menu.scrollTop -= scrollDistance;
+        }
+      } else {
+        li.classList.remove(this.current.collection.selectClass);
+      }
+    }
   }
 }
 
