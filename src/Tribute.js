@@ -1,3 +1,4 @@
+import TributeContext from './TributeContext.js';
 import TributeEvents from './TributeEvents.js';
 import TributeMenuEvents from './TributeMenuEvents.js';
 import TributeRange from './TributeRange.js';
@@ -37,7 +38,7 @@ class Tribute {
     this.autocompleteMode = autocompleteMode;
     this.autocompleteSeparator = autocompleteSeparator;
     this.menuSelected = 0;
-    this.current = {};
+    this.current = new TributeContext(this);
     this.inputEvent = false;
     this.isActive = false;
     this.menuContainer = menuContainer;
@@ -272,105 +273,7 @@ class Tribute {
       this.current.mentionText = '';
     }
 
-    const processValues = (values) => {
-      // Tribute may not be active any more by the time the value callback returns
-      if (!this.isActive) {
-        return;
-      }
-
-      let items = this.search.filter(this.current.mentionText, values, {
-        pre: this.current.collection.searchOpts.pre || '<span>',
-        post: this.current.collection.searchOpts.post || '</span>',
-        skip: this.current.collection.searchOpts.skip || false,
-        caseSensitive: this.current.collection.searchOpts.caseSensitive || false,
-        extract: (el) => {
-          if (typeof this.current.collection.lookup === 'string') {
-            return el[this.current.collection.lookup];
-          }
-          if (typeof this.current.collection.lookup === 'function') {
-            return this.current.collection.lookup(el, this.current.mentionText);
-          }
-          throw new Error('Invalid lookup attribute, lookup must be string or function.');
-        },
-      });
-
-      if (this.current.collection.menuItemLimit) {
-        items = items.slice(0, this.current.collection.menuItemLimit);
-      }
-
-      this.current.filteredItems = items;
-
-      const ul = this.menu.querySelector('ul');
-
-      if (!items.length) {
-        const noMatchEvent = new CustomEvent('tribute-no-match', {
-          detail: this.menu,
-        });
-        this.current.element.dispatchEvent(noMatchEvent);
-        if (
-          (typeof this.current.collection.noMatchTemplate === 'function' && !this.current.collection.noMatchTemplate()) ||
-          !this.current.collection.noMatchTemplate
-        ) {
-          this.hideMenu();
-        } else {
-          ul.innerHTML =
-            typeof this.current.collection.noMatchTemplate === 'function' ? this.current.collection.noMatchTemplate() : this.current.collection.noMatchTemplate;
-          this.range.positionMenuAtCaret(scrollTo);
-        }
-
-        return;
-      }
-
-      ul.innerHTML = '';
-      const fragment = this.range.getDocument().createDocumentFragment();
-
-      this.menuSelected = items.findIndex((item) => item.original.disabled !== true);
-
-      items.forEach((item, index) => {
-        const li = this.range.getDocument().createElement('li');
-        li.setAttribute('data-index', index);
-        if (item.original.disabled) li.setAttribute('data-disabled', 'true');
-        li.className = this.current.collection.itemClass;
-        li.addEventListener('mousemove', (e) => {
-          const [li, index] = this._findLiTarget(e.target);
-          if (e.movementY !== 0) {
-            this.setActiveLi(index);
-          }
-        });
-        if (this.menuSelected === index) {
-          li.classList.add(this.current.collection.selectClass);
-        }
-        // remove all content in the li and append the content of menuItemTemplate
-        const menuItemDomOrString = this.current.collection.menuItemTemplate(item);
-        if (menuItemDomOrString instanceof Element) {
-          li.innerHTML = '';
-          li.appendChild(menuItemDomOrString);
-        } else {
-          li.innerHTML = menuItemDomOrString;
-        }
-        fragment.appendChild(li);
-      });
-      ul.appendChild(fragment);
-
-      this.range.positionMenuAtCaret(scrollTo);
-    };
-
-    if (typeof this.current.collection.values === 'function') {
-      if (this.current.collection.loadingItemTemplate) {
-        this.menu.querySelector('ul').innerHTML = this.current.collection.loadingItemTemplate;
-        this.range.positionMenuAtCaret(scrollTo);
-      }
-
-      this.current.collection.values(this.current.mentionText, processValues);
-    } else {
-      processValues(this.current.collection.values);
-    }
-  }
-
-  _findLiTarget(el) {
-    if (!el) return [];
-    const index = el.getAttribute('data-index');
-    return !index ? this._findLiTarget(el.parentNode) : [el, index];
+    this.current.process(scrollTo);
   }
 
   showMenuForCollection(element, collectionIndex) {
@@ -451,7 +354,7 @@ class Tribute {
       this.menu.style.cssText = 'display: none;';
       this.isActive = false;
       this.menuSelected = 0;
-      this.current = {};
+      this.current = new TributeContext(this);
     }
   }
 

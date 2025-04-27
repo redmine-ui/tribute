@@ -81,7 +81,7 @@ class TributeEvents {
       }
     }
 
-    if (this.tribute.current.mentionText.length < this.tribute.current.collection.menuShowMinLength) {
+    if (this.tribute.current.isMentionLengthUnderMinimum) {
       this.tribute.hideMenu();
       return;
     }
@@ -124,9 +124,7 @@ class TributeEvents {
     const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
     if (info) {
-      this.tribute.current.selectedPath = info.mentionSelectedPath;
-      this.tribute.current.mentionText = info.mentionText;
-      this.tribute.current.selectedOffset = info.mentionSelectedOffset;
+      this.tribute.current.updateSelection(info);
     }
   }
 
@@ -140,7 +138,7 @@ class TributeEvents {
 
     tribute.current.collection = collectionItem;
 
-    if (tribute.current.mentionText.length >= tribute.current.collection.menuShowMinLength && tribute.inputEvent) {
+    if (!tribute.current.isMentionLengthUnderMinimum && tribute.inputEvent) {
       tribute.showMenuFor(el, true);
     }
   }
