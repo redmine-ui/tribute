@@ -1,4 +1,5 @@
 // Thanks to https://github.com/jeff-collins/ment.io
+import { isContentEditable } from './helpers.js';
 
 class TributeRange {
   constructor(tribute) {
@@ -22,7 +23,7 @@ class TributeRange {
     const context = this.tribute.current;
     const info = this.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
-    const coordinates = this.isContentEditable(context.element)
+    const coordinates = isContentEditable(context.element)
       ? this.getContentEditableCaretPosition(info.mentionPosition)
       : this.getTextAreaOrInputUnderlinePosition(context.element, info.mentionPosition);
 
@@ -50,7 +51,7 @@ class TributeRange {
       },
     });
 
-    if (!this.isContentEditable(context.element)) {
+    if (!isContentEditable(context.element)) {
       const myField = this.tribute.current.element;
       const textSuffix = typeof this.tribute.replaceTextSuffix === 'string' ? this.tribute.replaceTextSuffix : ' ';
       const _text = text + textSuffix;
@@ -176,7 +177,7 @@ class TributeRange {
     const context = this.tribute.current;
     let text = '';
 
-    if (!this.isContentEditable(context.element)) {
+    if (!isContentEditable(context.element)) {
       const textComponent = this.tribute.current.element;
       if (textComponent) {
         const startPos = textComponent.selectionStart;
@@ -221,7 +222,7 @@ class TributeRange {
     let path;
     let offset;
 
-    if (!this.isContentEditable(ctx.element)) {
+    if (!isContentEditable(ctx.element)) {
       selected = this.tribute.current.element;
     } else {
       const selectionInfo = this.getContentEditableSelectedPath(ctx);
@@ -316,10 +317,6 @@ class TributeRange {
     }
 
     return index;
-  }
-
-  isContentEditable(element) {
-    return element.nodeName !== 'INPUT' && element.nodeName !== 'TEXTAREA';
   }
 
   isMenuOffScreen(coordinates, menuDimensions) {

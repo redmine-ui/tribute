@@ -4,6 +4,7 @@ import TributeMenu from './TributeMenu.js';
 import TributeMenuEvents from './TributeMenuEvents.js';
 import TributeRange from './TributeRange.js';
 import TributeSearch from './TributeSearch.js';
+import { isContentEditable } from './helpers.js';
 
 class Tribute {
   constructor({
@@ -182,10 +183,6 @@ class Tribute {
     }
   }
 
-  static inputTypes() {
-    return ['TEXTAREA', 'INPUT'];
-  }
-
   triggers() {
     return this.collection.map((config) => {
       return config.trigger;
@@ -222,7 +219,7 @@ class Tribute {
   }
 
   ensureEditable(element) {
-    if (Tribute.inputTypes().indexOf(element.nodeName) === -1) {
+    if (isContentEditable(element)) {
       if (typeof element.contentEditable === 'string') {
         element.contentEditable = true;
       } else {
@@ -233,11 +230,7 @@ class Tribute {
 
   showMenuFor(element, scrollTo) {
     // Check for maximum number of items added to the input for the specific Collection
-    if (
-      (this.current.collection.maxDisplayItems &&
-        element.querySelectorAll(`[data-tribute-trigger="${this.current.collection.trigger}"]`).length >= this.current.collection.maxDisplayItems) ||
-      this.current.collection.isBlocked
-    ) {
+    if (isMaximumItemsAdded(this.current.collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
@@ -254,21 +247,14 @@ class Tribute {
     this.isActive = true;
     this.menu.activate();
 
-    if (!this.current.mentionText) {
-      this.current.mentionText = '';
-    }
-
     this.current.process(scrollTo);
   }
 
   showMenuForCollection(element, collectionIndex) {
     // Check for maximum number of items added to the input for the specific Collection
-    if (
-      (this.collection[collectionIndex || 0].maxDisplayItems &&
-        element.querySelectorAll(`[data-tribute-trigger="${this.collection[collectionIndex || 0].trigger}"]`).length >=
-          this.collection[collectionIndex || 0].maxDisplayItems) ||
-      this.collection[collectionIndex || 0].isBlocked
-    ) {
+    const index = collectionIndex || 0;
+    const collection = this.collection[index];
+    if (isMaximumItemsAdded(collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
@@ -277,7 +263,7 @@ class Tribute {
       this.placeCaretAtEnd(element);
     }
 
-    this.current.collection = this.collection[collectionIndex || 0];
+    this.current.collection = collection;
     this.current.externalTrigger = true;
     this.current.element = element;
 
@@ -427,7 +413,7 @@ class Tribute {
 function defaultSelectTemplate(tribute, item) {
   if (typeof item === 'undefined') return `${tribute.current.collection.trigger}${tribute.current.mentionText}`;
 
-  if (tribute.range.isContentEditable(tribute.current.element)) {
+  if (isContentEditable(tribute.current.element)) {
     return `<span class="tribute-mention">${tribute.current.collection.trigger + item.original[tribute.current.collection.fillAttr]}</span>`;
   }
 
@@ -436,6 +422,13 @@ function defaultSelectTemplate(tribute, item) {
 
 function defaultMenuItemTemplate(matchItem) {
   return matchItem.string;
+}
+
+function isMaximumItemsAdded(collection, element) {
+  return (
+    (collection.maxDisplayItems && element.querySelectorAll(`[data-tribute-trigger="${collection.trigger}"]`).length >= collection.maxDisplayItems) ||
+    collection.isBlocked
+  );
 }
 
 export default Tribute;

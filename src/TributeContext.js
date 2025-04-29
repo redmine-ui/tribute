@@ -4,6 +4,10 @@ class TributeContext {
   }
 
   process(scrollTo) {
+    if (!this.mentionText) {
+      this.mentionText = '';
+    }
+
     const ul = this.tribute.menu.element.querySelector('ul');
     const processor = (values) => {
       // Tribute may not be active any more by the time the value callback returns
