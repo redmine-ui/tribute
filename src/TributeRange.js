@@ -22,36 +22,11 @@ class TributeRange {
     const context = this.tribute.current;
     const info = this.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces, this.tribute.autocompleteMode);
 
-    if (typeof info === 'undefined') {
-      this.tribute.menu.style.cssText = 'display: none';
-      return;
-    }
-
-    if (!this.tribute.positionMenu) {
-      this.tribute.menu.style.cssText = 'display: block;';
-      return;
-    }
-
     const coordinates = this.isContentEditable(context.element)
       ? this.getContentEditableCaretPosition(info.mentionPosition)
-      : this.getTextAreaOrInputUnderlinePosition(this.tribute.current.element, info.mentionPosition);
+      : this.getTextAreaOrInputUnderlinePosition(context.element, info.mentionPosition);
 
-    this.tribute.menu.style.cssText = `top: ${coordinates.top}px;
-                                   left: ${coordinates.left}px;
-                                   right: ${coordinates.right}px;
-                                   bottom: ${coordinates.bottom}px;
-                                   max-height: ${coordinates.maxHeight || 500}px;
-                                   max-width: ${coordinates.maxWidth || 300}px;
-                                   position: ${coordinates.position || 'absolute'};
-                                   display: block;`;
-
-    if (coordinates.left === 'auto') {
-      this.tribute.menu.style.left = 'auto';
-    }
-
-    if (coordinates.top === 'auto') {
-      this.tribute.menu.style.top = 'auto';
-    }
+    this.tribute.menu.positionAtCaret(info, coordinates);
 
     if (scrollTo) this.scrollIntoView();
   }
@@ -367,29 +342,6 @@ class TributeRange {
     };
   }
 
-  getMenuDimensions() {
-    // Width of the menu depends of its contents and position
-    // We must check what its width would be without any obstruction
-    // This way, we can achieve good positioning for flipping the menu
-    const dimensions = {
-      width: null,
-      height: null,
-    };
-
-    this.tribute.menu.style.cssText = `top: 0px;
-                                 left: 0px;
-                                 position: fixed;
-                                 display: block;
-                                 visibility; hidden;
-                                 max-height:500px;`;
-    dimensions.width = this.tribute.menu.offsetWidth;
-    dimensions.height = this.tribute.menu.offsetHeight;
-
-    this.tribute.menu.style.cssText = 'display: none;';
-
-    return dimensions;
-  }
-
   getTextAreaOrInputUnderlinePosition(element, position, flipped) {
     const properties = [
       'direction',
@@ -511,7 +463,7 @@ class TributeRange {
       top: rect.top + rect.height,
     };
 
-    const menuDimensions = this.getMenuDimensions();
+    const menuDimensions = this.tribute.menu.getDimensions();
 
     const availableSpaceOnTop = rect.top;
     const availableSpaceOnBottom = window.innerHeight - (rect.top + rect.height);

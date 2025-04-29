@@ -3,7 +3,6 @@ import { addHandler } from './helpers.js';
 class TributeMenuEvents {
   constructor(tribute) {
     this.tribute = tribute;
-    this.menu = this.tribute.menu;
   }
 
   bind(menu) {
@@ -62,13 +61,13 @@ class TributeMenuEvents {
   click(event) {
     const element = event.currentTarget;
     const tribute = this.tribute;
-    if (tribute.menu?.contains(event.target)) {
+    if (tribute.menu.element.contains(event.target)) {
       let li = event.target;
       event.preventDefault();
       event.stopPropagation();
       while (li.nodeName.toLowerCase() !== 'li') {
         li = li.parentNode;
-        if (!li || li === tribute.menu) {
+        if (!li || li === tribute.menu.element) {
           // When li === tribute.menu, it's either a click on the entire component or on the scrollbar (if visible)
           li = undefined;
           break;

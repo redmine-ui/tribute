@@ -1,5 +1,6 @@
 import TributeContext from './TributeContext.js';
 import TributeEvents from './TributeEvents.js';
+import TributeMenu from './TributeMenu.js';
 import TributeMenuEvents from './TributeMenuEvents.js';
 import TributeRange from './TributeRange.js';
 import TributeSearch from './TributeSearch.js';
@@ -37,7 +38,6 @@ class Tribute {
   }) {
     this.autocompleteMode = autocompleteMode;
     this.autocompleteSeparator = autocompleteSeparator;
-    this.menuSelected = 0;
     this.current = new TributeContext(this);
     this.inputEvent = false;
     this.isActive = false;
@@ -48,6 +48,7 @@ class Tribute {
     this.hasTrailingSpace = false;
     this.spaceSelectsMatch = spaceSelectsMatch;
     this.closeOnScroll = closeOnScroll;
+    this.menu = new TributeMenu(this);
 
     if (this.autocompleteMode) {
       trigger = '';
@@ -230,19 +231,6 @@ class Tribute {
     }
   }
 
-  createMenu(containerClass) {
-    const wrapper = this.range.getDocument().createElement('div');
-    const ul = this.range.getDocument().createElement('ul');
-    wrapper.className = containerClass;
-    wrapper.appendChild(ul);
-
-    if (this.menuContainer) {
-      return this.menuContainer.appendChild(wrapper);
-    }
-
-    return this.range.getDocument().body.appendChild(wrapper);
-  }
-
   showMenuFor(element, scrollTo) {
     // Check for maximum number of items added to the input for the specific Collection
     if (
@@ -257,17 +245,14 @@ class Tribute {
     this.currentMentionTextSnapshot = this.current.mentionText;
 
     // create the menu if it doesn't exist.
-    if (!this.menu) {
-      this.menu = this.createMenu(this.current.collection.containerClass);
-      element.tributeMenu = this.menu;
-      this.menuEvents.bind(this.menu);
+    if (!this.menu.element) {
+      this.menu.create(this.range.getDocument(), this.current.collection.containerClass);
+      element.tributeMenu = this.menu.element;
+      this.menuEvents.bind(this.menu.element);
     }
 
     this.isActive = true;
-    this.menuSelected = 0;
-    window.setTimeout(() => {
-      this.menu.scrollTop = 0;
-    }, 0);
+    this.menu.activate();
 
     if (!this.current.mentionText) {
       this.current.mentionText = '';
@@ -350,10 +335,9 @@ class Tribute {
   }
 
   hideMenu() {
-    if (this.menu) {
-      this.menu.style.cssText = 'display: none;';
+    if (this.menu.isActive) {
       this.isActive = false;
-      this.menuSelected = 0;
+      this.menu.deactivate();
       this.current = new TributeContext(this);
     }
   }
@@ -437,37 +421,6 @@ class Tribute {
         el.tributeMenu.remove();
       }
     });
-  }
-
-  setActiveLi(index) {
-    const lis = this.menu.querySelectorAll('li');
-    const length = lis.length >>> 0;
-
-    if (index) {
-      this.menuSelected = Number.parseInt(index);
-    }
-
-    for (let i = 0; i < length; i++) {
-      const li = lis[i];
-      if (i === this.menuSelected) {
-        if (li.getAttribute('data-disabled') !== 'true') {
-          li.classList.add(this.current.collection.selectClass);
-        }
-
-        const liClientRect = li.getBoundingClientRect();
-        const menuClientRect = this.menu.getBoundingClientRect();
-
-        if (liClientRect.bottom > menuClientRect.bottom) {
-          const scrollDistance = liClientRect.bottom - menuClientRect.bottom;
-          this.menu.scrollTop += scrollDistance;
-        } else if (liClientRect.top < menuClientRect.top) {
-          const scrollDistance = menuClientRect.top - liClientRect.top;
-          this.menu.scrollTop -= scrollDistance;
-        }
-      } else {
-        li.classList.remove(this.current.collection.selectClass);
-      }
-    }
   }
 }
 
