@@ -143,7 +143,7 @@ class TributeRange {
     }
   }
 
-  getContentEditableSelectedPath(ctx) {
+  getContentEditableSelectedPath(context) {
     const sel = this.getWindowSelection();
     let selected = sel.anchorNode;
     const path = [];
@@ -178,7 +178,7 @@ class TributeRange {
     let text = '';
 
     if (!isContentEditable(context.element)) {
-      const textComponent = this.tribute.current.element;
+      const textComponent = context.element;
       if (textComponent) {
         const startPos = textComponent.selectionStart;
         if (textComponent.value && startPos >= 0) {
@@ -217,80 +217,101 @@ class TributeRange {
   }
 
   getTriggerInfo(menuAlreadyActive, hasTrailingSpace, requireLeadingSpace, allowSpaces, isAutocomplete) {
-    const ctx = this.tribute.current;
-    let selected;
-    let path;
-    let offset;
-
-    if (!isContentEditable(ctx.element)) {
-      selected = this.tribute.current.element;
-    } else {
-      const selectionInfo = this.getContentEditableSelectedPath(ctx);
-
-      if (selectionInfo) {
-        selected = selectionInfo.selected;
-        path = selectionInfo.path;
-        offset = selectionInfo.offset;
-      }
-    }
-
+    const context = this.tribute.current;
+    const selectionInfo = this._getSelectionInfo(context);
     const effectiveRange = this.getTextPrecedingCurrentSelection();
-    const lastWordOfEffectiveRange = this.getLastWordInText(effectiveRange);
 
     if (isAutocomplete) {
-      return {
-        mentionPosition: effectiveRange.length - lastWordOfEffectiveRange.length,
-        mentionText: lastWordOfEffectiveRange,
-        mentionSelectedElement: selected,
-        mentionSelectedPath: path,
-        mentionSelectedOffset: offset,
-      };
+      return this._getTriggerInfoWithAutocomplete(selectionInfo, effectiveRange);
     }
 
-    if (effectiveRange !== undefined && effectiveRange !== null) {
-      let mostRecentTriggerCharPos = -1;
-      let triggerChar;
-      let _requireLeadingSpace = requireLeadingSpace;
+    if (effectiveRange === undefined || effectiveRange === null) return;
 
-      for (const config of this.tribute.collection) {
-        const c = config.trigger;
-        const idx = config.requireLeadingSpace ? this.lastIndexWithLeadingSpace(effectiveRange, c) : effectiveRange.lastIndexOf(c);
+    const trigger = this._getTrigger(requireLeadingSpace, effectiveRange);
 
-        if (idx > mostRecentTriggerCharPos) {
-          mostRecentTriggerCharPos = idx;
-          triggerChar = c;
-          _requireLeadingSpace = config.requireLeadingSpace;
-        }
+    if (trigger) {
+      return this._getTriggerInfoNonAutocomplete(menuAlreadyActive, hasTrailingSpace, allowSpaces, effectiveRange, trigger, selectionInfo);
+    }
+  }
+
+  _getSelectionInfo(context) {
+    if (isContentEditable(context.element)) {
+      const selectionInfo = this.getContentEditableSelectedPath(context);
+      if (selectionInfo) {
+        return {
+          selected: selectionInfo.selected,
+          path: selectionInfo.path,
+          offset: selectionInfo.offset,
+        };
       }
+    } else {
+      return { selected: context.element };
+    }
+  }
 
-      if (
-        mostRecentTriggerCharPos >= 0 &&
-        (mostRecentTriggerCharPos === 0 || !_requireLeadingSpace || /\s/.test(effectiveRange.substring(mostRecentTriggerCharPos - 1, mostRecentTriggerCharPos)))
-      ) {
-        let currentTriggerSnippet = effectiveRange.substring(mostRecentTriggerCharPos + triggerChar.length, effectiveRange.length);
+  _getTriggerInfoWithAutocomplete(selectionInfo, effectiveRange) {
+    const lastWordOfEffectiveRange = this.getLastWordInText(effectiveRange);
 
-        triggerChar = effectiveRange.substring(mostRecentTriggerCharPos, mostRecentTriggerCharPos + triggerChar.length);
-        const firstSnippetChar = currentTriggerSnippet.substring(0, 1);
-        const leadingSpace = currentTriggerSnippet.length > 0 && (firstSnippetChar === ' ' || firstSnippetChar === '\xA0');
-        if (hasTrailingSpace) {
-          currentTriggerSnippet = currentTriggerSnippet.trim();
-        }
+    return {
+      mentionPosition: effectiveRange.length - lastWordOfEffectiveRange.length,
+      mentionText: lastWordOfEffectiveRange,
+      mentionSelectedElement: selectionInfo.selected,
+      mentionSelectedPath: selectionInfo.path,
+      mentionSelectedOffset: selectionInfo.offset,
+    };
+  }
 
-        const regex = allowSpaces ? /[^\S ]/g : /[\xA0\s]/g;
+  _getTrigger(requireLeadingSpace, effectiveRange) {
+    let mostRecentTriggerCharPos = -1;
+    let triggerChar;
+    let _requireLeadingSpace = requireLeadingSpace;
 
-        this.tribute.hasTrailingSpace = regex.test(currentTriggerSnippet);
+    for (const config of this.tribute.collection) {
+      const c = config.trigger;
+      const idx = config.requireLeadingSpace ? this.lastIndexWithLeadingSpace(effectiveRange, c) : effectiveRange.lastIndexOf(c);
 
-        if (!leadingSpace && (menuAlreadyActive || !regex.test(currentTriggerSnippet))) {
-          return {
-            mentionPosition: mostRecentTriggerCharPos,
-            mentionText: currentTriggerSnippet,
-            mentionSelectedElement: selected,
-            mentionSelectedPath: path,
-            mentionSelectedOffset: offset,
-            mentionTriggerChar: triggerChar,
-          };
-        }
+      if (idx > mostRecentTriggerCharPos) {
+        mostRecentTriggerCharPos = idx;
+        triggerChar = c;
+        _requireLeadingSpace = config.requireLeadingSpace;
       }
+    }
+
+    if (
+      mostRecentTriggerCharPos >= 0 &&
+      (mostRecentTriggerCharPos === 0 || !_requireLeadingSpace || /\s/.test(effectiveRange.substring(mostRecentTriggerCharPos - 1, mostRecentTriggerCharPos)))
+    ) {
+      return {
+        mostRecentTriggerCharPos,
+        triggerChar,
+        requireLeadingSpace: _requireLeadingSpace,
+      };
+    }
+  }
+
+  _getTriggerInfoNonAutocomplete(menuAlreadyActive, hasTrailingSpace, allowSpaces, effectiveRange, trigger, selectionInfo) {
+    let currentTriggerSnippet = effectiveRange.substring(trigger.mostRecentTriggerCharPos + trigger.triggerChar.length, effectiveRange.length);
+
+    trigger.triggerChar = effectiveRange.substring(trigger.mostRecentTriggerCharPos, trigger.mostRecentTriggerCharPos + trigger.triggerChar.length);
+    const firstSnippetChar = currentTriggerSnippet.substring(0, 1);
+    const leadingSpace = currentTriggerSnippet.length > 0 && (firstSnippetChar === ' ' || firstSnippetChar === '\xA0');
+    if (hasTrailingSpace) {
+      currentTriggerSnippet = currentTriggerSnippet.trim();
+    }
+
+    const regex = allowSpaces ? /[^\S ]/g : /[\xA0\s]/g;
+
+    this.tribute.hasTrailingSpace = regex.test(currentTriggerSnippet);
+
+    if (!leadingSpace && (menuAlreadyActive || !regex.test(currentTriggerSnippet))) {
+      return {
+        mentionPosition: trigger.mostRecentTriggerCharPos,
+        mentionText: currentTriggerSnippet,
+        mentionSelectedElement: selectionInfo.selected,
+        mentionSelectedPath: selectionInfo.path,
+        mentionSelectedOffset: selectionInfo.offset,
+        mentionTriggerChar: trigger.triggerChar,
+      };
     }
   }
 
