@@ -1,4 +1,4 @@
-import { addHandler } from './helpers';
+import { addHandler, isNotContentEditable } from './helpers';
 import type { ITribute } from './type';
 
 const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arrowdown'] as const;
@@ -106,7 +106,7 @@ class TributeEvents<T extends {}> {
       return;
     }
 
-    if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || event.key === 'Backspace') {
+    if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || this.showMenuOnBackspace(event.key)) {
       this.tribute.showMenuFor(element, true);
     }
   }
@@ -240,6 +240,11 @@ class TributeEvents<T extends {}> {
       };
     }
     return this._callbacks;
+  }
+
+  showMenuOnBackspace(key: string) {
+    const isBackspace = key === 'Backspace';
+    return isNotContentEditable(this.tribute.current.element) ? isBackspace : this.tribute.isActive && isBackspace;
   }
 }
 
