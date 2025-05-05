@@ -8,5 +8,5 @@ export function isContentEditable(element: HTMLElement) {
 }
 
 export function isNotContentEditable(element: unknown): element is HTMLInputElement | HTMLTextAreaElement {
-  return  element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
 }

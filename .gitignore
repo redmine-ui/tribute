@@ -8,5 +8,7 @@ dist/*.js
 dist/*.mjs
 dist/*.css
 dist/*.map
+dist/*.d.ts
 example/*.mjs
+example/*.map
 example/*.css
