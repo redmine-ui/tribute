@@ -405,7 +405,7 @@
         ],
         selectTemplate: function(item) {
           if (typeof item === "undefined") return null;
-          if (this.range.isContentEditable(this.current.element)) {
+          if (Tribute.isContentEditable(this.current.element)) {
             return (
               '<span contenteditable="false"><a>' +
               item.original.key +
