@@ -35,7 +35,7 @@ export class Tribute {
     const nodeCache = dag.cacheVolume("node")
     return dag
       .container()
-      .from("mcr.microsoft.com/playwright:v1.50.1-noble")
+      .from("mcr.microsoft.com/playwright:v1.52.0-noble")
       .withDirectory("/src", source)
       .withMountedCache("/src/node_modules", nodeCache)
       .withWorkdir("/src")

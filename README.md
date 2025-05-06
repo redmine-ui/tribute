@@ -114,6 +114,9 @@ Collection object shown with defaults:
   // element to target for @mentions
   iframe: null,
 
+  // is it wrapped in a web component
+  shadowRoot: null,
+
   // class added in the flyout menu for active item
   selectClass: 'highlight',
 

@@ -181,7 +181,7 @@
     </div>
 
     <script type="module">
-      import Tribute from './tribute.mjs';
+      import Tribute from './tribute.min.mjs';
       // example of alternative callback
       const tribute = new Tribute({
         // menuContainer: document.getElementById('content'),
@@ -204,7 +204,7 @@
         ],
         selectTemplate: function(item) {
           if (typeof item === "undefined") return null;
-          if (this.range.isContentEditable(this.current.element)) {
+          if (Tribute.isContentEditable(this.current.element)) {
             return (
               '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
               item.original.email +
@@ -228,7 +228,7 @@
           {
             // The function that gets call on select that retuns the content to insert
             selectTemplate: function(item) {
-              if (this.range.isContentEditable(this.current.element)) {
+              if (Tribute.isContentEditable(this.current.element)) {
                 return (
                   '<a href="http://zurb.com" title="' +
                   item.original.email +
@@ -261,7 +261,7 @@
             loadingItemTemplate: '<div style="padding: 16px">Loading</div>',
             // The function that gets call on select that retuns the content to insert
             selectTemplate: function(item) {
-              if (this.range.isContentEditable(this.current.element)) {
+              if (Tribute.isContentEditable(this.current.element)) {
                 return (
                   '<a href="mailto:' +
                   item.original.email +

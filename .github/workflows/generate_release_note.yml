@@ -12,10 +12,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: 'true'
       - name: Install dependencies
         run: npm install
       - name: Generate Libraries
         run: npm run build
+      - name: Generate a changelog
+        run: npx git-cliff --latest --strip header > ${{ github.workspace }}-CHANGELOG.txt
       - name: Archive Release
         uses: thedoctor0/zip-release@0.7.6
         with:
@@ -25,5 +30,6 @@ jobs:
       - name: Generate release note
         uses: softprops/action-gh-release@v2
         with:
+          body_path: ${{ github.workspace }}-CHANGELOG.txt
           generate_release_notes: true
           files: 'dist/tribute.zip'
