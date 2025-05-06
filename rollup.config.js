@@ -1,6 +1,6 @@
-import { copyFileSync, existsSync } from 'node:fs';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
+import copy from 'rollup-plugin-copy';
 import livereload from 'rollup-plugin-livereload';
 import serve from 'rollup-plugin-serve';
 
@@ -33,19 +33,13 @@ export default {
   ],
   plugins: [
     typescript(),
-    {
-      name: 'copy-files',
-      buildEnd() {
-        copyFileSync('./src/tribute.css', './dist/tribute.css');
-        copyFileSync('./src/tribute.css', './example/tribute.css');
-        if (existsSync('./dist/tribute.min.mjs')) {
-          copyFileSync('./dist/tribute.min.mjs', './example/tribute.min.mjs');
-        }
-        if (existsSync('./dist/tribute.min.mjs.map')) {
-          copyFileSync('./dist/tribute.min.mjs.map', './example/tribute.min.mjs.map');
-        }
-      },
-    },
+    copy({
+      targets: [
+        { src: './src/tribute.css', dest: ['./dist', './example'] },
+        { src: ['./dist/tribute.min.mjs', './dist/tribute.min.mjs.map'], dest: './example' },
+      ],
+      hook: 'writeBundle',
+    }),
     !production && serve({ openPage: '/', contentBase: ['example'] }),
     !production &&
       livereload({
