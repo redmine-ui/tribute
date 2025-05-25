@@ -1,6 +1,6 @@
 {
   "name": "@redmine-ui/tributejs",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
   "type": "module",
