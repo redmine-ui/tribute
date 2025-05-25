@@ -38,6 +38,7 @@ export default {
         { src: './src/tribute.css', dest: ['./dist', './example'] },
         { src: ['./dist/tribute.min.mjs', './dist/tribute.min.mjs.map'], dest: './example' },
       ],
+      copySync: true,
       hook: 'writeBundle',
     }),
     !production && serve({ openPage: '/', contentBase: ['example'] }),

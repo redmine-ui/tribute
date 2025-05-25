@@ -21,6 +21,7 @@
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-serve": "^3.0.0",
     "tslib": "^2.8.1",
+    "glob": "^11.0.2",
     "typescript": "^5.8.3"
   },
   "overrides": {
@@ -34,6 +35,7 @@
   "scripts": {
     "build": "rollup -c",
     "start": "rollup -c -w",
+    "clean": "node script/clean.js",
     "test": "web-test-runner --node-resolve --playwright --browsers chromium",
     "dagger": "dagger call test --source=.",
     "lint": "npx @biomejs/biome check",
