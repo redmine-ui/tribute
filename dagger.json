@@ -1,6 +1,6 @@
 {
   "name": "tribute",
-  "engineVersion": "v0.18.5",
+  "engineVersion": "v0.18.8",
   "sdk": "typescript",
   "source": ".dagger"
 }
