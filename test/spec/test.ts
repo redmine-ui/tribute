@@ -492,6 +492,82 @@ describe('Tribute NoMatchTemplate cases', () => {
     detachTribute(tribute, input.id);
   });
 
+  it('should display no menu container when text is empty with collection', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      noMatchTemplate: '',
+      collection: [
+        {
+          trigger: '@',
+          values: [
+            {
+              key: 'Jordan Humphreys',
+              value: 'Jordan Humphreys',
+              email: 'getstarted@zurb.com',
+            },
+          ],
+        },
+        {
+          trigger: '#',
+          values: [
+            {
+              key: 'Sir Walter Riley',
+              value: 'Sir Walter Riley',
+              email: 'getstarted+riley@zurb.com',
+            },
+          ],
+        },
+      ],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const popupListWrapper = document.querySelector('.tribute-container');
+    expect(popupListWrapper.style.display).to.equal('none');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should display no menu when function returns empty string with collection', async () => {
+    const input = createDomElement();
+
+    const collectionObject = {
+      noMatchTemplate: () => '',
+      collection: [
+        {
+          trigger: '@',
+          values: [
+            {
+              key: 'Jordan Humphreys',
+              value: 'Jordan Humphreys',
+              email: 'getstarted@zurb.com',
+            },
+          ],
+        },
+        {
+          trigger: '#',
+          values: [
+            {
+              key: 'Sir Walter Riley',
+              value: 'Sir Walter Riley',
+              email: 'getstarted+riley@zurb.com',
+            },
+          ],
+        },
+      ],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const popupListWrapper = document.querySelector('.tribute-container');
+    expect(popupListWrapper.style.display).to.equal('none');
+
+    detachTribute(tribute, input.id);
+  });
+
   it('should display indivisual messages when a template set in each collection', async () => {
     const input = createDomElement();
 

@@ -1,6 +1,6 @@
 {
   "name": "@redmine-ui/tributejs",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
   "type": "module",
@@ -11,16 +11,17 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jquery": "^3.5.32",
     "@web/dev-server-esbuild": "^1.0.4",
-    "@web/test-runner": "^0.20.1",
+    "@web/test-runner": "^0.20.2",
     "@web/test-runner-commands": "^0.9.0",
     "@web/test-runner-playwright": "^0.11.0",
     "chai": "^5.2.0",
     "git-cliff": "^2.8.0",
-    "rollup": "^4.34.4",
+    "rollup": "^4.41.1",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-livereload": "^2.0.5",
-    "rollup-plugin-serve": "^1.1.1",
+    "rollup-plugin-serve": "^3.0.0",
     "tslib": "^2.8.1",
+    "glob": "^11.0.2",
     "typescript": "^5.8.3"
   },
   "overrides": {
@@ -34,6 +35,7 @@
   "scripts": {
     "build": "rollup -c",
     "start": "rollup -c -w",
+    "clean": "node script/clean.js",
     "test": "web-test-runner --node-resolve --playwright --browsers chromium",
     "dagger": "dagger call test --source=.",
     "lint": "npx @biomejs/biome check",

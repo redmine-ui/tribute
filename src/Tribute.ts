@@ -177,7 +177,7 @@ class Tribute<T extends {}> implements ITribute<T> {
               return t.bind(this);
             }
 
-            return noMatchTemplate || (() => '<li>No Match Found!</li>').bind(this);
+            return noMatchTemplate ?? (() => '<li>No Match Found!</li>').bind(this);
           })(item.noMatchTemplate),
           lookup: item.lookup || lookup,
           fillAttr: item.fillAttr || fillAttr,
