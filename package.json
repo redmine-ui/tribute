@@ -1,6 +1,6 @@
 {
   "name": "@redmine-ui/tributejs",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
   "type": "module",
@@ -39,7 +39,8 @@
     "test": "web-test-runner --node-resolve --playwright --browsers chromium",
     "dagger": "dagger call test --source=.",
     "lint": "npx @biomejs/biome check",
-    "release_note": "npx git-cliff --latest --strip header"
+    "release_note": "npx git-cliff --latest --strip header",
+    "prepublishOnly": "npm run build"
   },
   "author": "Jordan Humphreys <jordan@zurb.com>",
   "license": "MIT"
