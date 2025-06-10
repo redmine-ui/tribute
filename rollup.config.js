@@ -3,6 +3,7 @@ import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 import livereload from 'rollup-plugin-livereload';
 import serve from 'rollup-plugin-serve';
+import * as pkg from './package.json' with { type: 'json' };
 
 const production = !process.env.ROLLUP_WATCH;
 export default {
@@ -17,7 +18,18 @@ export default {
       name: 'Tribute',
       file: 'dist/tribute.min.js',
       format: 'umd',
-      plugins: [terser()],
+      banner: `/* Tribute.js v${pkg.default.version} license MIT */`,
+      plugins: [
+        terser({
+          format: {
+            comments: (node, comments) => {
+              if (comments.value.match(/Tribute\.js .* MIT/)) {
+                return comments.value;
+              }
+            },
+          },
+        }),
+      ],
       sourcemap: true,
     },
     {
@@ -27,7 +39,18 @@ export default {
     {
       file: 'dist/tribute.min.mjs',
       format: 'es',
-      plugins: [terser()],
+      banner: `/* Tribute.js v${pkg.default.version} license MIT */`,
+      plugins: [
+        terser({
+          format: {
+            comments: (node, comments) => {
+              if (comments.value.match(/Tribute\.js .* MIT/)) {
+                return comments.value;
+              }
+            },
+          },
+        }),
+      ],
       sourcemap: true,
     },
   ],
