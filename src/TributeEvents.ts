@@ -169,7 +169,7 @@ class TributeEvents<T extends {}> {
         enter: (e: Event, _el: HTMLElement) => {
           // choose selection
           const filteredItems = this.tribute.current.filteredItems;
-          if (this.tribute.isActive && filteredItems && filteredItems.length) {
+          if (this.tribute.isActive && filteredItems?.length) {
             e.preventDefault();
             e.stopPropagation();
 
