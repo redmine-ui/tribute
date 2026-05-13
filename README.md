@@ -550,6 +550,43 @@ When using `contenteditable`, Tribute wraps the mention in a `.tribute-mention` 
 
 ## Framework Support
 
+### Using with React
+
+You can use Tribute with React by using `useRef` and `useEffect` hooks.
+
+```jsx
+import React, { useRef, useEffect } from "react";
+import Tribute from "@redmine-ui/tributejs";
+
+const TributeComponent = () => {
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    const el = elementRef.current;
+    if (!el) return;
+
+    const tribute = new Tribute({
+      values: [
+        { key: "Phil Heartman", value: "pheartman" },
+        { key: "Gordon Ramsey", value: "gramsey" }
+      ]
+    });
+
+    tribute.attach(el);
+
+    return () => {
+      tribute.detach(el);
+    };
+  }, []);
+
+  return <textarea ref={elementRef} placeholder="Type @ to mention..." />;
+};
+
+export default TributeComponent;
+```
+
+### Packages for other frameworks
+
 Vue.js — [vue-tribute](https://github.com/syropian/vue-tribute) by **@syropian**
 
 AngularJS 1.5+ — [angular-tribute](https://github.com/zurb/angular-tribute) by **ZURB**
