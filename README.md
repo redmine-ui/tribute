@@ -11,6 +11,7 @@ A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Fir
 - [A Collection](#a-collection)
 - [Events](#events)
 - [Tips](#tips)
+- [Styling](#styling)
 - [Framework Support](#framework-support)
 - [WYSIWYG Editor Support](#wysiwyg-editor-support)
 - [Example](https://redmine-ui.github.io/tribute/example/)
@@ -520,6 +521,32 @@ const tribute = new Tribute({
 ### Grouping values and disabling options
 
 You may provide `disabled` values which can't be selected.  You can use `disabled` items as headers to mimic the functionality of &lt;optgroup> elements in a &lt;select>.  To provide `disabled` items simply return an object that includes a `disabled` property set to `true`.  The menu items for those values will not be selectable with the mouse or keyboard.  If you wish to differentiate them visually, check for the `disabled` attribute in the menuItemTemplate.
+
+## Styling
+
+Tribute provides several CSS custom properties to allow for easy customization of the menu and mention styles.
+
+### Menu Customization
+
+| Property | Description | Default |
+| --- | --- | --- |
+| `--tribute-container-z-index` | The z-index of the menu container. | `999999` |
+| `--tribute-container-margin` | The margin of the menu list. | `2px 0 0 0` |
+| `--tribute-container-bg` | The background color of the menu list. | `#efefef` |
+| `--tribute-container-item-padding` | The padding of each menu item. | `5px 5px` |
+| `--tribute-container-item-hl-bg` | The background color of the highlighted menu item. | `#ddd` |
+| `--tribute-container-item-font-weight` | The font weight of the spans in the menu item. | `bold` |
+| `--tribute-container-hl-font-weight` | The font weight of the highlighted text in the menu. | `bold` |
+
+### Mention Customization
+
+When using `contenteditable`, Tribute wraps the mention in a `.tribute-mention` span. You can customize its appearance using these properties:
+
+| Property | Description | Default |
+| --- | --- | --- |
+| `--tribute-mention-color` | The text color of the mention. | `inherit` |
+| `--tribute-mention-bg` | The background color of the mention. | `transparent` |
+| `--tribute-mention-font-weight` | The font weight of the mention. | `bold` |
 
 ## Framework Support
 
