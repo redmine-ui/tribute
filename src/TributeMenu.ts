@@ -3,6 +3,12 @@ import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
+
+  /* 
+   * Index of the currently highlighted <li>.
+   * -1 means "no selectable (non-disabled) item exists".
+   * Mirrors the "not found" value of Array.prototype.findIndex
+  */
   selected: number;
   tribute: ITribute<T>;
 
@@ -61,11 +67,15 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     return this.items[this.selected]?.getAttribute('data-disabled') === 'true';
   }
 
+  get hasEnabledItems() {
+    return Array.from(this.items).some((el) => el.getAttribute('data-disabled') !== 'true');
+  }
+
   up(count: number) {
     if (this.element === null) return;
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
-    if (this.selected === -1) {
+    if (this.selected === -1 || !this.hasEnabledItems) {
       return;
     }
 
@@ -83,7 +93,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     if (this.element === null) return;
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
-    if (this.selected === -1) {
+    if (this.selected === -1 || !this.hasEnabledItems) {
       return;
     }
 
@@ -100,12 +110,13 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   setActiveLi(index?: number) {
     if (this.element === null) return;
     if (!this.tribute.current.collection) return;
+    if (index !== undefined && this.items[index]?.getAttribute('data-disabled') === 'true') return;
 
     const selectClass = this.tribute.current.collection.selectClass;
     const lis = this.items;
     const _length = lis.length >>> 0;
 
-    if (index) {
+    if (index !== undefined) {
       this.selected = index;
     }
     const element = this.element;
