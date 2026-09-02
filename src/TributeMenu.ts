@@ -181,7 +181,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
                                  left: 0px;
                                  position: fixed;
                                  display: block;
-                                 visibility; hidden;
+                                 visibility: hidden;
                                  max-height:500px;`;
     dimensions.width = this.element.offsetWidth;
     dimensions.height = this.element.offsetHeight;
