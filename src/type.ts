@@ -86,6 +86,8 @@ export interface ITributeRange<T extends {}> {
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>): void;
   getTrigger(charCode?: number): string | undefined;
   getTriggerInfo(menuAlreadyActive: boolean, hasTrailingSpace: boolean, requireLeadingSpace: boolean, allowSpaces: boolean): TriggerInfo | undefined;
+  insertText(text: string): void;
+  focusAtEnd(): void;
 }
 
 export interface ITributeSearch<T extends {}> {

@@ -60,6 +60,16 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
     return this.triggerInfoParser.getTrigger(charCode);
   }
 
+  insertText(text: string): void {
+    if (!this.element) return;
+    this.rangeHandler.insertText(this.element, text);
+  }
+
+  focusAtEnd(): void {
+    if (!this.element) return;
+    this.rangeHandler.focusAtEnd(this.element);
+  }
+
   getDocument() {
     let iframe: HTMLIFrameElement | null | undefined;
     if (this.tribute.current.collection) {
@@ -404,6 +414,8 @@ abstract class BaseRangeHandler<T extends {}> {
   abstract getCoordinate(element: HTMLElement, position: number, _flipped?: unknown): Coordinate | undefined;
 
   abstract replaceTriggerText(info: TriggerInfo, text: string | HTMLElement, element: HTMLElement): void;
+  abstract insertText(element: HTMLElement, text: string): void;
+  abstract focusAtEnd(element: HTMLElement): void;
 
   abstract getSelectionInfo(element: HTMLElement): SelectionInfo | undefined;
 
@@ -470,6 +482,11 @@ class NullRangeHandler<T extends {}> extends BaseRangeHandler<T> {
   }
   getCoordinate(_element: HTMLElement, _position: number, _flipped?: unknown): Coordinate | undefined {
     return;
+  }
+  insertText(element: HTMLElement, text: string): void {
+  }
+
+  focusAtEnd(element: HTMLElement): void {
   }
 }
 
@@ -590,6 +607,32 @@ class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
     myField.selectionEnd = startPos + _text.length;
   }
 
+  insertText(element: HTMLElement, text: string): void {
+    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+
+    const scrollPos = element.scrollTop;
+    let caretPos = element.selectionStart;
+
+    if (caretPos === null || element.selectionEnd === null) return;
+
+    const front = element.value.substring(0, caretPos);
+    const back = element.value.substring(element.selectionEnd, element.value.length);
+    element.value = front + text + back;
+    caretPos = caretPos + text.length;
+    element.selectionStart = caretPos;
+    element.selectionEnd = caretPos;
+    element.focus();
+    element.scrollTop = scrollPos;
+  }
+
+  focusAtEnd(element: HTMLElement): void {
+    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+
+    element.focus();
+    const len = element.value.length;
+    element.setSelectionRange(len, len);
+  }
+
   getSelectionInfo(element: HTMLElement): SelectionInfo | undefined {
     return { selected: element };
   }
@@ -637,6 +680,30 @@ class ContentEditableRangeHandler<T extends {}> extends BaseRangeHandler<T> {
       endPos += info.mentionTriggerChar?.length || 0;
     }
     this.pasteHtml(_text, info.mentionPosition, endPos);
+  }
+
+  insertText(_element: HTMLElement, text: string): void {
+    const sel = window.getSelection();
+    const range = sel?.getRangeAt(0);
+    if (!sel || !range) return;
+
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.selectNodeContents(textNode);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  focusAtEnd(element: HTMLElement): void {
+    element.focus();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
   }
 
   getSelectionInfo(_element: HTMLElement): SelectionInfo | undefined {

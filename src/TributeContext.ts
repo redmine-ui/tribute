@@ -77,18 +77,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
 
     if (element !== document.activeElement) {
-      this.placeCaretAtEnd(element);
+      this.tribute.range.focusAtEnd();
     }
 
     this.collection = collection;
     this.externalTrigger = true;
     this.element = element;
 
-    if (element.isContentEditable) {
-      this.insertTextAtCursor(this.collection.trigger);
-    } else if (isTextAreaOrInput(element)) {
-      this.insertAtCaret(element, this.collection.trigger);
-    }
+    this.tribute.range.insertText(this.collection.trigger);
   }
 
   selectItemAtIndex(index: string, originalEvent: Event) {
@@ -109,49 +105,6 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     if (content !== null) {
       this.tribute.range.replaceTriggerText(content, true, true, originalEvent, item);
     }
-  }
-
-  // TODO: make sure this works for inputs/textareas
-  private placeCaretAtEnd(el: HTMLElement) {
-    el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  }
-
-  // for contenteditable
-  private insertTextAtCursor(text: string): void {
-    const sel = window.getSelection();
-    const range = sel?.getRangeAt(0);
-    if (!sel || !range) return;
-
-    range.deleteContents();
-    const textNode = document.createTextNode(text);
-    range.insertNode(textNode);
-    range.selectNodeContents(textNode);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  // for regular inputs
-  private insertAtCaret(textarea: HTMLInputElement | HTMLTextAreaElement, text: string): void {
-    const scrollPos = textarea.scrollTop;
-    let caretPos = textarea.selectionStart;
-
-    if (caretPos === null || textarea.selectionEnd === null) return;
-
-    const front = textarea.value.substring(0, caretPos);
-    const back = textarea.value.substring(textarea.selectionEnd, textarea.value.length);
-    textarea.value = front + text + back;
-    caretPos = caretPos + text.length;
-    textarea.selectionStart = caretPos;
-    textarea.selectionEnd = caretPos;
-    textarea.focus();
-    textarea.scrollTop = scrollPos;
   }
 
   get isMentionLengthUnderMinimum() {
