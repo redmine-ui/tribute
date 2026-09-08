@@ -550,7 +550,7 @@ class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
     //should be
     const span = this.range.getDocument().createElement('span');
     //we give it no content as this represents the cursor
-    span.textContent = '&#x200B;';
+    span.textContent = '\u200B';
     div.appendChild(span);
 
     const span2 = this.range.getDocument().createElement('span');
