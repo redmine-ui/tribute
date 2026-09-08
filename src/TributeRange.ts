@@ -492,7 +492,7 @@ class NullRangeHandler<T extends {}> extends BaseRangeHandler<T> {
 
 class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
   getCoordinate(element: HTMLElement, position: number, _flipped?: unknown): Coordinate | undefined {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+    if (!isTextAreaOrInput(element)) return;
 
     const properties = [
       'direction',
@@ -592,7 +592,7 @@ class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
   }
 
   replaceTriggerText(info: TriggerInfo, text: string | HTMLElement, element: HTMLElement) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+    if (!isTextAreaOrInput(element)) return;
 
     const myField = element;
     const textSuffix = typeof this.replaceTextSuffix === 'string' ? this.replaceTextSuffix : ' ';
@@ -608,7 +608,7 @@ class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
   }
 
   insertText(element: HTMLElement, text: string): void {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+    if (!isTextAreaOrInput(element)) return;
 
     const scrollPos = element.scrollTop;
     let caretPos = element.selectionStart;
@@ -638,7 +638,7 @@ class TextAreaOrInputRangeHandler<T extends {}> extends BaseRangeHandler<T> {
   }
 
   getTextPrecedingCurrentSelection(element: HTMLElement): string | undefined {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+    if (!isTextAreaOrInput(element)) return;
 
     const textComponent = element;
     const startPos = textComponent.selectionStart;

@@ -3,12 +3,16 @@ export function addHandler(element: EventTarget, ...args: [string, (event: Event
   return () => element.removeEventListener(...args);
 }
 
-export function isNotTextAreaOrInput(element: HTMLElement) {
-  return element.nodeName !== 'INPUT' && element.nodeName !== 'TEXTAREA';
+export function isTextAreaOrInput(element: unknown): element is HTMLInputElement | HTMLTextAreaElement {
+  if (!element || typeof element !== 'object' || !('nodeName' in element)) {
+    return false;
+  }
+  const nodeName = (element as { nodeName?: unknown }).nodeName;
+  return nodeName === 'INPUT' || nodeName === 'TEXTAREA';
 }
 
-export function isTextAreaOrInput(element: unknown): element is HTMLInputElement | HTMLTextAreaElement {
-  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+export function isNotTextAreaOrInput(element: unknown): boolean {
+  return !isTextAreaOrInput(element);
 }
 
 export function isKeyOfObject<T extends object>(key: string | number | symbol, obj: T | undefined): key is keyof T {
