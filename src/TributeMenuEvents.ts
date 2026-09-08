@@ -11,6 +11,15 @@ class TributeMenuEvents<T extends {}> {
   }
 
   bind(menu: EventTarget) {
+    const menuContainerScrollEvent = debounce(
+      () => {
+        if (this.tribute.isActive && this.tribute.current.element) {
+          this.tribute.showMenuFor(this.tribute.current.element, false);
+        }
+      },
+      10,
+      false
+    );
     const hideMenu = debounce(
       () => {
         if (this.tribute.isActive) {
@@ -31,9 +40,9 @@ class TributeMenuEvents<T extends {}> {
       removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
     } else {
       if (this.tribute.menuContainer) {
-        removers.push(addHandler(this.tribute.menuContainer, 'scroll', hideMenu, false));
+        removers.push(addHandler(this.tribute.menuContainer, 'scroll', menuContainerScrollEvent, false));
       } else {
-        removers.push(addHandler(window, 'scroll', hideMenu));
+        removers.push(addHandler(window, 'scroll', menuContainerScrollEvent));
       }
     }
     this.removersMap.set(menu, removers);
