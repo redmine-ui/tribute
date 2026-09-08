@@ -216,9 +216,9 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  append(collectionIndex: string, newValues: [], replace?: boolean): void {
-    const index = Number.parseInt(collectionIndex, 10);
-    if (typeof index !== 'number') throw new Error('please provide an index for the collection to update.');
+  append(collectionIndex: string | number, newValues: T[], replace?: boolean): void {
+    const index = typeof collectionIndex === 'number' ? collectionIndex : Number.parseInt(collectionIndex, 10);
+    if (typeof index !== 'number' || Number.isNaN(index)) throw new Error('please provide an index for the collection to update.');
 
     const collection = this.collection[index];
 
