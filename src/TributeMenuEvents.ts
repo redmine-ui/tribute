@@ -2,15 +2,15 @@ import { addHandler, debounce } from './helpers';
 import type { ITribute } from './type';
 
 class TributeMenuEvents<T extends {}> {
-  removers: (() => void)[];
+  removersMap: WeakMap<EventTarget, (() => void)[]>;
   tribute: ITribute<T>;
 
   constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
-    this.removers = [];
+    this.removersMap = new WeakMap();
   }
 
-  bind(_menu: EventTarget) {
+  bind(menu: EventTarget) {
     const hideMenu = debounce(
       () => {
         if (this.tribute.isActive) {
@@ -21,25 +21,31 @@ class TributeMenuEvents<T extends {}> {
       false,
     );
 
-    this.removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
-    this.removers.push(addHandler(window, 'resize', hideMenu));
+    const removers: (() => void)[] = []
+    removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
+    removers.push(addHandler(window, 'resize', hideMenu));
 
     if (this.tribute.closeOnScroll === true) {
-      this.removers.push(addHandler(window, 'scroll', hideMenu));
+      removers.push(addHandler(window, 'scroll', hideMenu));
     } else if (this.tribute.closeOnScroll !== false) {
-      this.removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
+      removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
     } else {
       if (this.tribute.menuContainer) {
-        this.removers.push(addHandler(this.tribute.menuContainer, 'scroll', hideMenu, false));
+        removers.push(addHandler(this.tribute.menuContainer, 'scroll', hideMenu, false));
       } else {
-        this.removers.push(addHandler(window, 'scroll', hideMenu));
+        removers.push(addHandler(window, 'scroll', hideMenu));
       }
     }
+    this.removersMap.set(menu, removers);
   }
 
-  unbind(_menu: EventTarget) {
-    for (const remover of this.removers) {
-      remover();
+  unbind(menu: EventTarget) {
+    const removers = this.removersMap.get(menu);
+    if (removers) {
+      for (const remover of removers) {
+        remover();
+      }
+      this.removersMap.delete(menu);
     }
   }
 

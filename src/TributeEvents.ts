@@ -5,7 +5,7 @@ const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arr
 type hotkeyType = (typeof hotkeys)[number];
 
 class TributeEvents<T extends {}> {
-  removers: (() => void)[];
+  removersMap: WeakMap<EventTarget, (() => void)[]>;
   tribute: ITribute<T>;
   inputEvent: boolean;
   commandEvent?: boolean;
@@ -13,13 +13,13 @@ class TributeEvents<T extends {}> {
 
   constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
-    this.removers = [];
+    this.removersMap = new WeakMap();
     this.inputEvent = false;
     this.compositionFilter = new CompositionFilter();
   }
 
   bind(element: EventTarget) {
-    this.removers.push(
+    const removers: (() => void)[] = [
       addHandler(element, 'compositionstart', (event: Event) => {
         this.compositionFilter.compositionstart(event);
       }),
@@ -41,12 +41,17 @@ class TributeEvents<T extends {}> {
       addHandler(element, 'input', (event: Event) => {
         this.input(event);
       }),
-    );
+    ];
+    this.removersMap.set(element, removers);
   }
 
-  unbind(_element: EventTarget) {
-    for (const remover of this.removers) {
-      remover();
+  unbind(element: EventTarget) {
+    const removers = this.removersMap.get(element);
+    if (removers) {
+      for (const remover of removers) {
+        remover();
+      }
+      this.removersMap.delete(element);
     }
   }
 
