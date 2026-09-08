@@ -142,7 +142,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     const scrollPos = textarea.scrollTop;
     let caretPos = textarea.selectionStart;
 
-    if (!caretPos || !textarea.selectionEnd) return;
+    if (caretPos === null || textarea.selectionEnd === null) return;
 
     const front = textarea.value.substring(0, caretPos);
     const back = textarea.value.substring(textarea.selectionEnd, textarea.value.length);
