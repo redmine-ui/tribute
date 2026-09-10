@@ -1030,3 +1030,38 @@ describe('closeOnScroll tests', () => {
     detachTribute(tribute, input.id);
   });
 });
+
+describe('Tribute keyboard navigation', () => {
+  afterEach(() => {
+    clearDom();
+  });
+
+  it('unselects the menu when there are no matching items', () => {
+    const input = createDomElement();
+    const tribute = attachTribute(
+      {
+        values: [
+          {
+            key: 'Jordan Humphreys',
+            value: 'Jordan Humphreys',
+          },
+        ],
+      },
+      input.id,
+    );
+
+    tribute.isActive = true;
+    tribute.current.filteredItems = [];
+    tribute.menu.selected = 0;
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      cancelable: true,
+    });
+
+    tribute.events.callbacks.enter(event, input);
+
+    expect(tribute.menu.selected).to.equal(-1);
+    detachTribute(tribute, input.id);
+  });
+});

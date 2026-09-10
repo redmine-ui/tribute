@@ -174,11 +174,11 @@ class TributeEvents<T extends {}> {
         enter: (e: Event, _el: HTMLElement) => {
           // choose selection
           const filteredItems = this.tribute.current.filteredItems;
-          if (this.tribute.isActive && filteredItems?.length) {
+          if (this.tribute.isActive && filteredItems?.length !== undefined) {
             e.preventDefault();
             e.stopPropagation();
 
-            if (this.tribute.current.filteredItems?.length === 0) {
+            if (filteredItems.length === 0) {
               this.tribute.menu.unselect();
             }
 
