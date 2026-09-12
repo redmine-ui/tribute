@@ -37,7 +37,11 @@ export interface ITributeContext<T extends {}> {
   externalTrigger: boolean;
   process(scrollTo?: boolean): void;
   trigger?: string;
-  updateSelection(info: TriggerInfo): void;
+  sessionStarted(inputEvent: boolean, el: HTMLElement, trigger?: string): void;
+  queryChanged(element: HTMLElement, info?: TriggerInfo): void;
+  selectionMoved(direction: 1 | -1): boolean;
+  selectionConfirmed(e: Event): boolean;
+  sessionCanceled(): boolean;
 }
 
 export type Coordinate = {

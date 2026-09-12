@@ -53,6 +53,70 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     this.setActive(false);
   }
 
+  sessionStarted(inputEvent: boolean, el: HTMLElement, trigger?: string) {
+    if (typeof trigger === 'undefined') return;
+
+    this.trigger = trigger;
+    this.element = el;
+
+    this.collection = this.tribute.collection.find((item) => {
+      return item.trigger === trigger;
+    });
+
+    if (!this.isMentionLengthUnderMinimum && inputEvent) {
+      this.tribute.showMenuFor(el, true);
+    }
+  }
+
+  queryChanged(element: HTMLElement, info?: TriggerInfo) {
+    this.element = element;
+
+    if (info) {
+      this.selectedPath   = info.mentionSelectedPath;
+      this.mentionText    = info.mentionText || '';
+      this.selectedOffset = info.mentionSelectedOffset;
+    }
+  }
+
+  selectionMoved(direction: 1 | -1): boolean {
+    if (this.isActive && this.filteredItems) {
+      const count = this.filteredItems.length;
+
+      if (direction === 1) {
+        this.tribute.menu.up(count);
+      } else {
+        this.tribute.menu.down(count);
+      }
+
+      return true
+    }
+    return false
+  }
+
+  selectionConfirmed(e: Event): boolean {
+    const filteredItems = this.filteredItems;
+    if (this.isActive && filteredItems?.length !== undefined) {
+      if (filteredItems.length === 0) {
+        this.tribute.menu.unselect();
+      }
+
+      setTimeout(() => {
+        this.selectItemAtIndex(this.tribute.menu.selected.toString(), e);
+        this.tribute.hideMenu();
+      }, 0);
+      return true;
+    }
+    return false;
+  }
+
+  sessionCanceled(): boolean {
+    if (this.isActive) {
+      this.tribute.hideMenu();
+      return true
+    }
+    return false;
+  }
+
   process(scrollTo: boolean) {
     if (this.tribute.menu.element === null || !this.collection) return;
 
@@ -85,12 +149,6 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     } else if (collection.values !== null) {
       processor(collection.values);
     }
-  }
-
-  updateSelection(info: TriggerInfo) {
-    this.selectedPath = info.mentionSelectedPath;
-    this.mentionText = info.mentionText || '';
-    this.selectedOffset = info.mentionSelectedOffset;
   }
 
   showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void {

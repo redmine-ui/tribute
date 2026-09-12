@@ -100,9 +100,7 @@ class TributeEvents<T extends {}> {
     if (!this.tribute.isActive) {
       const charCode = this.getTriggerCharCode();
       const trigger = this.tribute.range.getTrigger(charCode);
-      if (typeof trigger !== 'undefined') {
-        this.triggerChar(event, element, trigger);
-      }
+      this.tribute.current.sessionStarted(this.inputEvent, element, trigger);
     }
 
     if (this.tribute.current.isMentionLengthUnderMinimum) {
@@ -119,7 +117,7 @@ class TributeEvents<T extends {}> {
     if (!this.tribute.isActive) return false;
     if (!(event instanceof KeyboardEvent)) return false;
 
-    if (this.tribute.current.mentionText?.length === 0) {
+    if (this.tribute.current.mentionText.length === 0) {
       let eventKeyPressed = false;
       const key = getCode(event.key);
       if (isHotkey(key)) {
@@ -143,27 +141,8 @@ class TributeEvents<T extends {}> {
   }
 
   updateSelection(el: HTMLElement) {
-    this.tribute.current.element = el;
     const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
-
-    if (info) {
-      this.tribute.current.updateSelection(info);
-    }
-  }
-
-  triggerChar(_e: Event, el: HTMLElement, trigger: string) {
-    const tribute = this.tribute;
-    tribute.current.trigger = trigger;
-
-    const collectionItem = tribute.collection.find((item) => {
-      return item.trigger === trigger;
-    });
-
-    tribute.current.collection = collectionItem;
-
-    if (!tribute.current.isMentionLengthUnderMinimum && this.inputEvent) {
-      tribute.showMenuFor(el, true);
-    }
+    this.tribute.current.queryChanged(el, info);
   }
 
   _callbacks?: { [key in hotkeyType]: (e: Event, el: HTMLElement) => void };
@@ -172,26 +151,15 @@ class TributeEvents<T extends {}> {
       this._callbacks = {
         enter: (e: Event, _el: HTMLElement) => {
           // choose selection
-          const filteredItems = this.tribute.current.filteredItems;
-          if (this.tribute.isActive && filteredItems?.length !== undefined) {
+          if (this.tribute.current.selectionConfirmed(e)) {
             e.preventDefault();
             e.stopPropagation();
-
-            if (filteredItems.length === 0) {
-              this.tribute.menu.unselect();
-            }
-
-            setTimeout(() => {
-              this.tribute.current.selectItemAtIndex(this.tribute.menu.selected.toString(), e);
-              this.tribute.hideMenu();
-            }, 0);
           }
         },
         escape: (e: Event, _el: HTMLElement) => {
-          if (this.tribute.isActive) {
+          if (this.tribute.current.sessionCanceled()) {
             e.preventDefault();
             e.stopPropagation();
-            this.tribute.hideMenu();
           }
         },
         tab: (e: Event, el: HTMLElement) => {
@@ -212,27 +180,21 @@ class TributeEvents<T extends {}> {
         },
         arrowup: (e: Event, _el: HTMLElement) => {
           // navigate up ul
-          if (this.tribute.isActive && this.tribute.current.filteredItems) {
+          if (this.tribute.current.selectionMoved(1)) {
             e.preventDefault();
             e.stopPropagation();
-
-            const count = this.tribute.current.filteredItems.length;
-            this.tribute.menu.up(count);
           }
         },
         arrowdown: (e: Event, _el: HTMLElement) => {
           // navigate down ul
-          if (this.tribute.isActive && this.tribute.current.filteredItems) {
+          if (this.tribute.current.selectionMoved(-1)) {
             e.preventDefault();
             e.stopPropagation();
-
-            const count = this.tribute.current.filteredItems.length;
-            this.tribute.menu.down(count);
           }
         },
         backspace: (_e: Event, el: HTMLElement) => {
           if (this.tribute.isActive) {
-            if (this.tribute.current && this.tribute.current.mentionText.length < 1) {
+            if (this.tribute.current.mentionText.length < 1) {
               this.tribute.hideMenu();
             } else {
               this.tribute.showMenuFor(el);
