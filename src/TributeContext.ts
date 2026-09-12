@@ -3,6 +3,7 @@ import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo } 
 
 class TributeContext<T extends {}> implements ITributeContext<T> {
   #element?: HTMLElement;
+  #isActive = false;
   filteredItems?: TributeItem<T>[];
   collection?: Collection<T>;
   mentionText: string;
@@ -30,6 +31,28 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     return this.#element;
   }
 
+  private setActive(value: boolean) {
+    if (this.#isActive !== value) {
+      this.#isActive = value;
+      if (this.element) {
+        const noMatchEvent = new CustomEvent(`tribute-active-${value}`);
+        this.element.dispatchEvent(noMatchEvent);
+      }
+    }
+  }
+
+  get isActive() {
+    return this.#isActive;
+  }
+
+  activate() {
+    this.setActive(true);
+  }
+
+  deactivate() {
+    this.setActive(false);
+  }
+
   process(scrollTo: boolean) {
     if (this.tribute.menu.element === null || !this.collection) return;
 
@@ -39,7 +62,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     const collection = this.collection;
     const processor = (values: T[]) => {
       // Tribute may not be active any more by the time the value callback returns
-      if (!this.tribute.isActive) {
+      if (!this.isActive) {
         return;
       }
 

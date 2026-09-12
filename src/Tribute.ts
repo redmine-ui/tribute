@@ -65,7 +65,6 @@ class Tribute<T extends {}> implements ITribute<T> {
   positionMenu: boolean;
   replaceTextSuffix: string | null;
   spaceSelectsMatch: boolean;
-  _isActive: boolean;
   events: ITributeEvents;
   menuEvents: ITributeEvents;
   range: ITributeRange<T>;
@@ -80,11 +79,9 @@ class Tribute<T extends {}> implements ITribute<T> {
       ...compactArgs,
     };
 
-    this._isActive = false;
     this.autocompleteMode = config.autocompleteMode;
     this.autocompleteSeparator = config.autocompleteSeparator;
     this.current = new TributeContext(this);
-    this.isActive = false;
     this.menuContainer = config.menuContainer;
     this.allowSpaces = config.allowSpaces;
     this.replaceTextSuffix = config.replaceTextSuffix;
@@ -107,16 +104,14 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 
   get isActive(): boolean {
-    return this._isActive;
+    return this.current.isActive;
   }
 
-  set isActive(val: boolean) {
-    if (this._isActive !== val) {
-      this._isActive = val;
-      if (this.current.element) {
-        const noMatchEvent = new CustomEvent(`tribute-active-${val}`);
-        this.current.element.dispatchEvent(noMatchEvent);
-      }
+  set isActive(value: boolean) {
+    if (value) {
+      this.current.activate();
+    } else {
+      this.current.deactivate();
     }
   }
 
@@ -191,7 +186,7 @@ class Tribute<T extends {}> implements ITribute<T> {
       this.menuEvents.bind(menu);
     }
 
-    this.isActive = true;
+    this.current.activate();
     this.menu.activate();
 
     this.current.process(scrollTo);
@@ -199,7 +194,7 @@ class Tribute<T extends {}> implements ITribute<T> {
 
   hideMenu(): void {
     if (this.menu.isActive) {
-      this.isActive = false;
+      this.current.deactivate();
       this.menu.deactivate();
       this.current = new TributeContext(this);
     }
@@ -263,7 +258,7 @@ class Tribute<T extends {}> implements ITribute<T> {
 
     setTimeout(() => {
       el.removeAttribute('data-tribute');
-      this.isActive = false;
+      this.current.deactivate();
       if (el.tributeMenu) {
         el.tributeMenu.remove();
       }

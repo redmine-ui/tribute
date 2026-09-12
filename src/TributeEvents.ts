@@ -60,7 +60,6 @@ class TributeEvents<T extends {}> {
 
     const element = event.currentTarget;
     if (this.shouldDeactivate(event)) {
-      this.tribute.isActive = false;
       this.tribute.hideMenu();
     }
     this.commandEvent = false;
@@ -192,7 +191,6 @@ class TributeEvents<T extends {}> {
           if (this.tribute.isActive) {
             e.preventDefault();
             e.stopPropagation();
-            this.tribute.isActive = false;
             this.tribute.hideMenu();
           }
         },
@@ -208,7 +206,6 @@ class TributeEvents<T extends {}> {
               e.stopPropagation();
               setTimeout(() => {
                 this.tribute.hideMenu();
-                this.tribute.isActive = false;
               }, 0);
             }
           }
