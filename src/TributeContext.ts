@@ -1,5 +1,6 @@
 import { isTextAreaOrInput } from './helpers';
-import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo } from './type';
+import { isAsync, isMaximumItemsAdded, query } from './collection';
+import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo, ITributeSearch } from './type';
 
 class TributeContext<T extends {}> implements ITributeContext<T> {
   #element?: HTMLElement;
@@ -63,7 +64,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       return item.trigger === trigger;
     });
 
-    if (!this.isMentionLengthUnderMinimum && inputEvent) {
+    if (this.collection && this.isMentionLengthUnderMinimum && inputEvent) {
       this.tribute.showMenuFor(el, true);
     }
   }
@@ -123,36 +124,25 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     const ul = this.tribute.menu.element.querySelector('ul');
     if (ul === null) throw new Error('menu do not have "ul" element');
 
-    const collection = this.collection;
-    const processor = (values: T[]) => {
-      // Tribute may not be active any more by the time the value callback returns
-      if (!this.isActive) {
-        return;
-      }
+    if (isAsync(this.collection) && this.collection.loadingItemTemplate) {
+      ul.innerHTML = this.collection.loadingItemTemplate;
+      this.tribute.range.positionMenuAtCaret(scrollTo);
+    }
 
-      const items = this._filterItems(collection, values);
+    query(this.collection, this.tribute.search, this.mentionText, (items) => {
+      if (!this.isActive) return;
+
       this.filteredItems = items;
 
-      const scroll = this.tribute.menu.render(items, collection);
+      const scroll = this.tribute.menu.render(items, this.collection!);
       if (scroll === true && scrollTo === true) {
         this.tribute.range.positionMenuAtCaret(scrollTo);
       }
-    };
-
-    if (typeof collection.values === 'function') {
-      if (collection.loadingItemTemplate) {
-        ul.innerHTML = collection.loadingItemTemplate;
-        this.tribute.range.positionMenuAtCaret(scrollTo);
-      }
-
-      collection.values(this.mentionText, processor);
-    } else if (collection.values !== null) {
-      processor(collection.values);
-    }
+    });
   }
 
   showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void {
-    if (typeof collection === 'undefined' || this.isMaximumItemsAdded(collection, element)) {
+    if (typeof collection === 'undefined' || isMaximumItemsAdded(collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
@@ -192,39 +182,6 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     if (!this.collection) return undefined;
 
     return this.mentionText.length < this.collection.menuShowMinLength;
-  }
-
-  _filterItems(collection: Collection<T>, values: T[]) {
-    const opts = collection.searchOpts;
-    const lookup = collection.lookup;
-    const items = this.tribute.search.filter(this.mentionText, values, {
-      pre: opts.pre || '<span>',
-      post: opts.post || '</span>',
-      skip: opts.skip || false,
-      caseSensitive: opts.caseSensitive || false,
-      extract: (el) => {
-        if (typeof lookup === 'string') {
-          return el[lookup];
-        }
-        if (typeof lookup === 'function') {
-          return lookup(el, this.mentionText);
-        }
-        throw new Error('Invalid lookup attribute, lookup must be string or function.');
-      },
-    });
-
-    if (collection.menuItemLimit) {
-      return items.slice(0, collection.menuItemLimit);
-    }
-
-    return items;
-  }
-
-  isMaximumItemsAdded<T extends {}>(collection: Collection<T>, element: HTMLElement): boolean {
-    const result =
-      (collection.maxDisplayItems && element.querySelectorAll(`[data-tribute-trigger="${collection.trigger}"]`).length >= collection.maxDisplayItems) ||
-      collection.isBlocked;
-    return !!result;
   }
 }
 

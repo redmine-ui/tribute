@@ -1,4 +1,5 @@
 import { addHandler } from './helpers';
+import { resolveNoMatchContent, getItemClassName, renderMenuItem } from './collection';
 import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
@@ -218,14 +219,14 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       detail: this.element,
     });
     this.element.dispatchEvent(noMatchEvent);
-    if ((typeof collection.noMatchTemplate === 'function' && !collection.noMatchTemplate()) || !collection.noMatchTemplate) {
-      this.tribute.hideMenu();
-    } else {
-      ul.innerHTML = typeof collection.noMatchTemplate === 'function' ? collection.noMatchTemplate() : collection.noMatchTemplate;
 
-      return true;
+    const content = resolveNoMatchContent(collection);
+    if (content === null) {
+      this.tribute.hideMenu();
+      return false;
     }
-    return false;
+    ul.innerHTML = content;
+    return true;
   }
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
@@ -262,12 +263,10 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     if (item.original.disabled) {
       li.setAttribute('data-disabled', 'true');
     }
-    li.className = collection.itemClass;
-    if (this.selected === index) {
-      li.classList.add(collection.selectClass);
-    }
+    li.className = getItemClassName(collection, this.selected === index);
+
     // remove all content in the li and append the content of menuItemTemplate
-    const menuItemDomOrString = collection.menuItemTemplate !== null ? collection.menuItemTemplate(item, this.tribute) : '';
+    const menuItemDomOrString = renderMenuItem(collection, item, this.tribute);
     if (menuItemDomOrString instanceof Element) {
       li.innerHTML = '';
       li.appendChild(menuItemDomOrString);

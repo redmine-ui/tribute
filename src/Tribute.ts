@@ -5,6 +5,7 @@ import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
 import TributeRange from './TributeRange';
 import TributeSearch from './TributeSearch';
+import { isMaximumItemsAdded, appendValues } from './collection';
 import type {
   Collection,
   ITribute,
@@ -172,7 +173,7 @@ class Tribute<T extends {}> implements ITribute<T> {
     if (typeof this.current.collection === 'undefined') return;
 
     // Check for maximum number of items added to the input for the specific Collection
-    if (this.current.isMaximumItemsAdded(this.current.collection, element)) {
+    if (isMaximumItemsAdded(this.current.collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
@@ -200,17 +201,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  _append(collection: TributeCollection<T>, newValues: T[], replace: boolean): void {
-    if (typeof collection.values === 'function') {
-      throw new Error('Unable to append to values, as it is a function.');
-    }
-    if (replace || collection.values === null) {
-      collection.values = newValues;
-    } else {
-      collection.values = collection.values.concat(newValues);
-    }
-  }
-
   append(collectionIndex: string | number, newValues: T[], replace?: boolean): void {
     const index = typeof collectionIndex === 'number' ? collectionIndex : Number.parseInt(collectionIndex, 10);
     if (typeof index !== 'number' || Number.isNaN(index)) throw new Error('please provide an index for the collection to update.');
@@ -218,13 +208,13 @@ class Tribute<T extends {}> implements ITribute<T> {
     const collection = this.collection[index];
 
     if (typeof collection !== 'undefined') {
-      this._append(collection, newValues, !!replace);
+      appendValues(collection, newValues, !!replace);
     }
   }
 
   appendCurrent(newValues: T[], replace: boolean): void {
     if (this.isActive && typeof this.current.collection !== 'undefined') {
-      this._append(this.current.collection, newValues, replace);
+      appendValues(this.current.collection, newValues, replace);
     } else {
       throw new Error('No active state. Please use append instead and pass an index.');
     }
@@ -315,7 +305,6 @@ function defaultSelectTemplate<T extends {}>(current: ITributeContext<T> | undef
   if (!current?.collection) {
     throw new Error('current Collection is undefined');
   }
-
   const result = isKeyOfObject(current.collection.fillAttr, item?.original)
     ? (item?.original?.[current.collection.fillAttr] ?? current.mentionText)
     : current.mentionText;

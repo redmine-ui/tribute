@@ -1,6 +1,6 @@
 import { esbuildPlugin } from '@web/dev-server-esbuild';
 
 export default {
-  files: ['test/spec/test.ts'],
+  files: ['test/spec/*.test.ts', 'test/spec/test.ts'],
   plugins: [esbuildPlugin({ ts: true })],
 };

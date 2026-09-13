@@ -27,7 +27,6 @@ export interface ITributeContext<T extends {}> {
   deactivate(): void;
   isActive: boolean;
   selectItemAtIndex(index: string, originalEvent: Event): void;
-  isMaximumItemsAdded(collection: Collection<T>, element: HTMLElement & { tributeMenu?: HTMLElement }): boolean;
   showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void;
   element?: HTMLElement;
   filteredItems?: TributeItem<T>[];
