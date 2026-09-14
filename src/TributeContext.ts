@@ -75,6 +75,19 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
   }
 
+  refreshMenu(hotkeyHandledOnKeydown: boolean, showMenuOnBackspace: boolean) {
+    if (!this.element) return;
+
+    if (this.isMentionLengthUnderMinimum) {
+      this.tribute.hideMenu();
+      return;
+    }
+
+    if (((this.trigger || this.tribute.autocompleteMode) && !hotkeyHandledOnKeydown) || showMenuOnBackspace) {
+      this.tribute.showMenuFor(this.element, true);
+    }
+  }
+
   selectionMoved(direction: 1 | -1): boolean {
     if (this.isActive && this.filteredItems) {
       const count = this.filteredItems.length;
@@ -90,7 +103,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     return false
   }
 
-  selectionConfirmed(e: Event): boolean {
+  selectionConfirmed(e: Event, index?: string | null): boolean {
+    if (index !== undefined) {
+      if (index !== null) {
+        this.selectItemAtIndex(index, e);
+      }
+      this.tribute.hideMenu();
+      return true;
+    }
     const filteredItems = this.filteredItems;
     if (this.isActive && filteredItems?.length !== undefined) {
       if (filteredItems.length === 0) {
@@ -112,6 +132,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       return true
     }
     return false;
+  }
+
+  consumeExternalTrigger(): boolean {
+    if (this.externalTrigger) {
+      this.externalTrigger = false;
+      return true;
+    }
+    return !!this.element && false;
   }
 
   process(scrollTo: boolean) {

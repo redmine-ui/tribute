@@ -80,7 +80,8 @@ class TributeEvents<T extends {}> {
     const element = event.currentTarget;
     if (!(element instanceof HTMLElement)) return;
 
-    this.updateSelection(element);
+    const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+    this.tribute.current.queryChanged(element, info);
 
     if (!event.key || event.key === 'Escape') return;
 
@@ -91,20 +92,13 @@ class TributeEvents<T extends {}> {
       return;
     }
 
-    if (!this.tribute.isActive) {
+    if (!this.tribute.current.isActive) {
       const charCode = this.getTriggerCharCode();
       const trigger = this.tribute.range.getTrigger(charCode);
-
-    if (this.tribute.current.isMentionLengthUnderMinimum) {
-      this.tribute.hideMenu();
-      return;
-    }
-
-    if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || this.showMenuOnBackspace(event.key)) {
-      this.tribute.showMenuFor(element, true);
-    }
       this.tribute.current.sessionStarted(element, trigger);
     }
+
+    this.tribute.current.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key));
   }
 
   shouldDeactivate(event: Event) {
@@ -132,11 +126,6 @@ class TributeEvents<T extends {}> {
       return info.mentionTriggerChar.charCodeAt(0);
     }
     return undefined;
-  }
-
-  updateSelection(el: HTMLElement) {
-    const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
-    this.tribute.current.queryChanged(el, info);
   }
 
   _callbacks?: { [key in hotkeyType]: (e: Event, el: HTMLElement) => void };

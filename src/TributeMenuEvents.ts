@@ -61,32 +61,24 @@ class TributeMenuEvents<T extends {}> {
   click(event: Event) {
     const element = event.target;
     const tribute = this.tribute;
-    if (!tribute.current || !(element instanceof HTMLElement)) return;
+    if (!(element instanceof HTMLElement)) return;
 
     if (tribute.menu.element?.contains(element)) {
       event.preventDefault();
       event.stopPropagation();
 
       const li = element.closest('li');
-      if (!(li instanceof HTMLElement)) return;
+      if (!(li instanceof HTMLElement) || li.getAttribute('data-disabled') === 'true') return;
 
-      if (li.getAttribute('data-disabled') === 'true') {
-        return;
-      }
       if (tribute.current.filteredItems?.length === 0) {
         li.setAttribute('data-index', '-1');
       }
 
       const index = li.getAttribute('data-index');
-      if (index !== null) {
-        tribute.current.selectItemAtIndex(index, event);
-      }
-      tribute.hideMenu();
+      tribute.current.selectionConfirmed(event, index);
 
       // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (tribute.current.externalTrigger) {
-      tribute.current.externalTrigger = false;
-    } else if (tribute.current.element && !tribute.current.externalTrigger) {
+    } else if (!tribute.current.consumeExternalTrigger()) {
       setTimeout(() => tribute.hideMenu());
     }
   }

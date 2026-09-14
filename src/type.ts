@@ -33,14 +33,15 @@ export interface ITributeContext<T extends {}> {
   collection?: Collection<T>;
   mentionText: string;
   isMentionLengthUnderMinimum: boolean | undefined;
-  externalTrigger: boolean;
   process(scrollTo?: boolean): void;
   trigger?: string;
   sessionStarted(element: HTMLElement, trigger?: string): void;
   queryChanged(element: HTMLElement, info?: TriggerInfo): void;
+  refreshMenu(commandEvent: boolean, showMenuOnBackspace: boolean): void;
   selectionMoved(direction: 1 | -1): boolean;
-  selectionConfirmed(e: Event): boolean;
+  selectionConfirmed(e: Event, index?: string | null): boolean;
   sessionCanceled(): boolean;
+  consumeExternalTrigger(): boolean;
 }
 
 export type Coordinate = {
