@@ -54,19 +54,15 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     this.setActive(false);
   }
 
-  sessionStarted(inputEvent: boolean, el: HTMLElement, trigger?: string) {
+  sessionStarted(element: HTMLElement, trigger?: string) {
     if (typeof trigger === 'undefined') return;
 
     this.trigger = trigger;
-    this.element = el;
+    this.element = element;
 
     this.collection = this.tribute.collection.find((item) => {
       return item.trigger === trigger;
     });
-
-    if (this.collection && this.isMentionLengthUnderMinimum && inputEvent) {
-      this.tribute.showMenuFor(el, true);
-    }
   }
 
   queryChanged(element: HTMLElement, info?: TriggerInfo) {

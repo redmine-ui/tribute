@@ -7,14 +7,12 @@ type hotkeyType = (typeof hotkeys)[number];
 class TributeEvents<T extends {}> {
   removersMap: WeakMap<EventTarget, (() => void)[]>;
   tribute: ITribute<T>;
-  inputEvent: boolean;
-  commandEvent?: boolean;
+  private hotkeyHandledOnKeydown = false;
   compositionFilter: CompositionFilter;
 
   constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
     this.removersMap = new WeakMap();
-    this.inputEvent = false;
     this.compositionFilter = new CompositionFilter();
   }
 
@@ -62,18 +60,17 @@ class TributeEvents<T extends {}> {
     if (this.shouldDeactivate(event)) {
       this.tribute.hideMenu();
     }
-    this.commandEvent = false;
+    this.hotkeyHandledOnKeydown = false;
 
     const key = getCode(event.key);
     if (isHotkey(key) && element instanceof HTMLElement) {
-      this.commandEvent = true;
+      this.hotkeyHandledOnKeydown = true;
       this.callbacks[key](event, element);
     }
   }
 
   input(event: Event) {
     const _element = event.currentTarget;
-    this.inputEvent = true;
     this.keyup(event);
   }
 
@@ -83,16 +80,13 @@ class TributeEvents<T extends {}> {
     const element = event.currentTarget;
     if (!(element instanceof HTMLElement)) return;
 
-    if (this.inputEvent) {
-      this.inputEvent = false;
-    }
     this.updateSelection(element);
 
     if (!event.key || event.key === 'Escape') return;
 
     if (!this.tribute.allowSpaces && this.tribute.hasTrailingSpace) {
       this.tribute.hasTrailingSpace = false;
-      this.commandEvent = true;
+      this.hotkeyHandledOnKeydown = true;
       this.callbacks.space(event, element);
       return;
     }
@@ -100,8 +94,6 @@ class TributeEvents<T extends {}> {
     if (!this.tribute.isActive) {
       const charCode = this.getTriggerCharCode();
       const trigger = this.tribute.range.getTrigger(charCode);
-      this.tribute.current.sessionStarted(this.inputEvent, element, trigger);
-    }
 
     if (this.tribute.current.isMentionLengthUnderMinimum) {
       this.tribute.hideMenu();
@@ -110,6 +102,8 @@ class TributeEvents<T extends {}> {
 
     if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || this.showMenuOnBackspace(event.key)) {
       this.tribute.showMenuFor(element, true);
+    }
+      this.tribute.current.sessionStarted(element, trigger);
     }
   }
 
