@@ -9,13 +9,13 @@ export interface ITribute<T extends {}> {
   collection: Collection<T>[];
   menu: ITributeMenu<T>;
   hideMenu(): void;
-  range: ITributeRange<T>;
   search: ITributeSearch<T>;
   hasTrailingSpace: boolean;
   isActive: boolean;
   menuContainer?: Element | null;
   positionMenu: boolean;
   replaceTextSuffix: string | null;
+  rangeFor(element: HTMLElement): ITributeRange<T>;
   showMenuFor(element: Element, scrollTo?: boolean): void;
   showMenuForCollection(element: HTMLElement, collectionIndex?: number): void;
   spaceSelectsMatch: boolean;
@@ -36,8 +36,9 @@ export interface ITributeContext<T extends {}> {
   process(scrollTo?: boolean): void;
   trigger?: string;
   sessionStarted(element: HTMLElement, trigger?: string): void;
-  queryChanged(element: HTMLElement, info?: TriggerInfo): void;
+  queryChanged(element: HTMLElement, range: ITributeRange<T>, info?: TriggerInfo): void;
   refreshMenu(commandEvent: boolean, showMenuOnBackspace: boolean): void;
+  range?: ITributeRange<T>;
   selectionMoved(direction: 1 | -1): boolean;
   selectionConfirmed(e: Event, index?: string | null): boolean;
   sessionCanceled(): boolean;
@@ -87,7 +88,6 @@ export interface ITributeEvents {
 }
 
 export interface ITributeRange<T extends {}> {
-  element?: HTMLElement;
   getDocument(): Document;
   positionMenuAtCaret(scrollTo?: boolean): void;
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>): void;

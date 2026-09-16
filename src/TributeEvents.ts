@@ -80,8 +80,9 @@ class TributeEvents<T extends {}> {
     const element = event.currentTarget;
     if (!(element instanceof HTMLElement)) return;
 
-    const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
-    this.tribute.current.queryChanged(element, info);
+    const range = this.tribute.rangeFor(element);
+    const info = range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+    this.tribute.current.queryChanged(element, range, info);
 
     if (!event.key || event.key === 'Escape') return;
 
@@ -94,7 +95,7 @@ class TributeEvents<T extends {}> {
 
     if (!this.tribute.current.isActive) {
       const charCode = this.getTriggerCharCode();
-      const trigger = this.tribute.range.getTrigger(charCode);
+      const trigger = this.tribute.current.range?.getTrigger(charCode);
       this.tribute.current.sessionStarted(element, trigger);
     }
 
@@ -120,7 +121,7 @@ class TributeEvents<T extends {}> {
 
   getTriggerCharCode() {
     const tribute = this.tribute;
-    const info = tribute.range.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces);
+    const info = tribute.current.range?.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces);
 
     if (info?.mentionTriggerChar) {
       return info.mentionTriggerChar.charCodeAt(0);

@@ -22,34 +22,20 @@ type Trigger = {
 };
 
 class TributeRange<T extends {}> implements ITributeRange<T> {
-  tribute: ITribute<T>;
+  readonly tribute: ITribute<T>;
+  private readonly element: HTMLElement;
   private readonly triggerInfoParser: TriggerInfoParser<T>;
-  private rangeHandler: BaseRangeHandler<T>;
-  private readonly nullRangeHandler: NullRangeHandler<T>;
-  private readonly textAreaOrInputRangeHandler: TextAreaOrInputRangeHandler<T>;
-  private readonly contentEditableRangeHandler: ContentEditableRangeHandler<T>;
-  #element?: HTMLElement;
+  private readonly rangeHandler: BaseRangeHandler<T>;
 
-  constructor(tribute: ITribute<T>) {
+  constructor(tribute: ITribute<T>, element: HTMLElement) {
+    this.element = element;
     this.tribute = tribute;
     this.triggerInfoParser = tribute.autocompleteMode
       ? new AutocompleteTriggerInfoParser(this, tribute.autocompleteSeparator)
       : new NonAutocompleteTriggerInfoParser(this, tribute);
-    this.nullRangeHandler = new NullRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.textAreaOrInputRangeHandler = new TextAreaOrInputRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.contentEditableRangeHandler = new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.rangeHandler = this.nullRangeHandler;
-  }
-
-  get element() {
-    return this.#element;
-  }
-
-  set element(element: HTMLElement | undefined) {
-    this.#element = element;
-    if (element) {
-      this.rangeHandler = isTextAreaOrInput(element) ? this.textAreaOrInputRangeHandler : this.contentEditableRangeHandler;
-    }
+    this.rangeHandler = isTextAreaOrInput(element)
+      ? new TextAreaOrInputRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
+      : new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
   }
 
   getTriggerInfo(menuAlreadyActive: boolean, hasTrailingSpace: boolean, requireLeadingSpace: boolean, allowSpaces: boolean): TriggerInfo | undefined {
@@ -61,20 +47,17 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
   }
 
   insertText(text: string): void {
-    if (!this.element) return;
     this.rangeHandler.insertText(this.element, text);
   }
 
   focusAtEnd(): void {
-    if (!this.element) return;
     this.rangeHandler.focusAtEnd(this.element);
   }
 
   getDocument() {
-    let iframe: HTMLIFrameElement | null | undefined;
-    if (this.tribute.current.collection) {
-      iframe = this.tribute.current.collection.iframe;
-    }
+    const iframe = this.tribute.current.collection
+      ? this.tribute.current.collection.iframe
+      : undefined;
 
     if (typeof iframe === 'undefined' || iframe === null || iframe.contentWindow === null) {
       return document;
@@ -83,10 +66,10 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
     return iframe.contentWindow.document;
   }
 
-  positionMenuAtCaret(scrollTo: boolean) {
+  positionMenuAtCaret(scrollTo: boolean): void {
     const info = this.triggerInfoParser.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
 
-    if (typeof info === 'undefined' || typeof this.element === 'undefined') return;
+    if (typeof info === 'undefined') return;
 
     const coordinates = this.rangeHandler.getCoordinate(this.element, info.mentionPosition);
 
@@ -103,11 +86,11 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
     return this.tribute.menuContainer === document.body || !this.tribute.menuContainer;
   }
 
-  replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>) {
+  replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>): void {
     const info = this.triggerInfoParser.getTriggerInfo(true, hasTrailingSpace, requireLeadingSpace, this.tribute.allowSpaces);
     const context = this.tribute.current;
 
-    if (typeof info === 'undefined' || typeof this.element === 'undefined') return;
+    if (typeof info === 'undefined') return;
     const replaceEvent = new CustomEvent('tribute-replaced', {
       detail: {
         item: item,
@@ -123,8 +106,6 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
   }
 
   getSelectionInfo(): SelectionInfo | undefined {
-    if (typeof this.element === 'undefined') return;
-
     return this.rangeHandler.getSelectionInfo(this.element);
   }
 
@@ -144,8 +125,6 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
   }
 
   getTextPrecedingCurrentSelection() {
-    if (typeof this.element === 'undefined') return;
-
     return this.rangeHandler.getTextPrecedingCurrentSelection(this.element);
   }
 
@@ -469,24 +448,6 @@ abstract class BaseRangeHandler<T extends {}> {
     }
 
     return coordinates;
-  }
-}
-
-class NullRangeHandler<T extends {}> extends BaseRangeHandler<T> {
-  replaceTriggerText(_info: TriggerInfo, _text: string | HTMLElement, _element: HTMLElement): void {}
-  getSelectionInfo(_element: HTMLElement): SelectionInfo | undefined {
-    return;
-  }
-  getTextPrecedingCurrentSelection(_element: HTMLElement): string | undefined {
-    return;
-  }
-  getCoordinate(_element: HTMLElement, _position: number, _flipped?: unknown): Coordinate | undefined {
-    return;
-  }
-  insertText(element: HTMLElement, text: string): void {
-  }
-
-  focusAtEnd(element: HTMLElement): void {
   }
 }
 

@@ -31,7 +31,10 @@ class TributeMenuEvents<T extends {}> {
     );
 
     const removers: (() => void)[] = []
-    removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
+    const doc = this.tribute.current.range?.getDocument();
+    if (doc) {
+      removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(event), false));
+    }
     removers.push(addHandler(window, 'resize', hideMenu));
 
     if (this.tribute.closeOnScroll === true) {

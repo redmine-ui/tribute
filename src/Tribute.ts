@@ -68,9 +68,9 @@ class Tribute<T extends {}> implements ITribute<T> {
   spaceSelectsMatch: boolean;
   events: ITributeEvents;
   menuEvents: ITributeEvents;
-  range: ITributeRange<T>;
   search: ITributeSearch<T>;
   current: ITributeContext<T>;
+  private rangeMap = new Map<HTMLElement, TributeRange<T>>();
 
   constructor(args: Partial<TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>>) {
     const compactArgs = compactObject(args);
@@ -98,7 +98,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.collection = this.buildCollection(config);
-    this.range = new TributeRange(this);
     this.events = new TributeEvents(this);
     this.menuEvents = new TributeMenuEvents(this);
     this.search = new TributeSearch(this);
@@ -147,6 +146,7 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.ensureEditable(el);
+    this.rangeMap.set(el, new TributeRange(this, el));
     this.events.bind(el);
     el.setAttribute('data-tribute', 'true');
   }
@@ -182,9 +182,12 @@ class Tribute<T extends {}> implements ITribute<T> {
 
     // create the menu if it doesn't exist.
     if (!this.menu.element) {
-      const menu = this.menu.create(this.range.getDocument(), this.current.collection.containerClass);
-      element.tributeMenu = menu;
-      this.menuEvents.bind(menu);
+      const doc = this.current.range?.getDocument();
+      if (doc) {
+        const menu = this.menu.create(doc, this.current.collection.containerClass);
+        element.tributeMenu = menu;
+        this.menuEvents.bind(menu);
+      }
     }
 
     this.current.activate();
@@ -241,6 +244,7 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 
   _detach(el: HTMLElement & { tributeMenu?: HTMLElement }): void {
+    this.rangeMap.delete(el);
     this.events.unbind(el);
     if (el.tributeMenu) {
       this.menuEvents.unbind(el.tributeMenu);
@@ -253,6 +257,12 @@ class Tribute<T extends {}> implements ITribute<T> {
         el.tributeMenu.remove();
       }
     });
+  }
+
+  rangeFor(element: HTMLElement): ITributeRange<T> {
+    const range = this.rangeMap.get(element);
+    if (!range) throw new Error('Tribute is not attached to this element');
+    return range;
   }
 
   private buildCollection(config: TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>) {

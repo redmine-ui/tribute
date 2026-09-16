@@ -1,6 +1,6 @@
 import { isTextAreaOrInput } from './helpers';
 import { isAsync, isMaximumItemsAdded, query } from './collection';
-import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo, ITributeSearch } from './type';
+import type { Collection, ITribute, ITributeContext, ITributeRange, TributeItem, TriggerInfo, ITributeSearch } from './type';
 
 class TributeContext<T extends {}> implements ITributeContext<T> {
   #element?: HTMLElement;
@@ -10,6 +10,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   mentionText: string;
   externalTrigger: boolean;
   tribute: ITribute<T>;
+  range?: ITributeRange<T>;
   selectedPath?: (number | undefined)[];
   selectedOffset?: number;
   trigger?: string;
@@ -21,10 +22,6 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   }
 
   set element(element: HTMLElement | undefined) {
-    if (element) {
-      this.tribute.range.element = element;
-    }
-
     this.#element = element;
   }
 
@@ -65,8 +62,9 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     });
   }
 
-  queryChanged(element: HTMLElement, info?: TriggerInfo) {
+  queryChanged(element: HTMLElement, range: ITributeRange<T>, info?: TriggerInfo) {
     this.element = element;
+    this.range = range;
 
     if (info) {
       this.selectedPath   = info.mentionSelectedPath;
@@ -150,7 +148,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
     if (isAsync(this.collection) && this.collection.loadingItemTemplate) {
       ul.innerHTML = this.collection.loadingItemTemplate;
-      this.tribute.range.positionMenuAtCaret(scrollTo);
+      this.range?.positionMenuAtCaret(scrollTo);
     }
 
     query(this.collection, this.tribute.search, this.mentionText, (items) => {
@@ -160,7 +158,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
       const scroll = this.tribute.menu.render(items, this.collection!);
       if (scroll === true && scrollTo === true) {
-        this.tribute.range.positionMenuAtCaret(scrollTo);
+        this.range?.positionMenuAtCaret(scrollTo);
       }
     });
   }
@@ -172,14 +170,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
 
     if (element !== document.activeElement) {
-      this.tribute.range.focusAtEnd();
+      this.range?.focusAtEnd();
     }
 
     this.collection = collection;
     this.externalTrigger = true;
     this.element = element;
 
-    this.tribute.range.insertText(this.collection.trigger);
+    this.range?.insertText(this.collection.trigger);
   }
 
   selectItemAtIndex(index: string, originalEvent: Event) {
@@ -198,7 +196,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
 
     if (content !== null) {
-      this.tribute.range.replaceTriggerText(content, true, true, originalEvent, item);
+      this.range?.replaceTriggerText(content, true, true, originalEvent, item);
     }
   }
 

@@ -231,7 +231,9 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
     ul.innerHTML = '';
-    const doc = this.tribute.range.getDocument();
+    const doc = this.tribute.current.range?.getDocument();
+    if (!doc) return false;
+
     const fragment = doc.createDocumentFragment();
 
     this.selected = items.findIndex((item) => item.original.disabled !== true);
