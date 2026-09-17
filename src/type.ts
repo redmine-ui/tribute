@@ -195,8 +195,10 @@ export type TributeTemplate<T extends {}> = {
 
   // template for when no match is found (optional),
   // If no template is provided, menu is hidden.
-  noMatchTemplate: (() => string) | string | null;
+  noMatchTemplate: ((instance?: ITribute<T>) => string) | string | null;
 };
+
+export type CollectionInput<T extends {}> = Partial<Omit<Collection<T>, 'values'>> & Pick<TributeCollection<T>, 'values'>;
 
 export type TributeArgument<T extends {}> = {
   // specify a regex to define after which characters the autocomplete option should open
@@ -209,7 +211,7 @@ export type TributeArgument<T extends {}> = {
   closeOnScroll?: boolean | HTMLElement;
 
   // pass an array of config objects
-  collection: (TributeCollection<T> & TributeTemplate<T>)[] | null;
+  collection: CollectionInput<T>[] | null;
 };
 
 export type TributeElement = HTMLElement | NodeList | HTMLCollection | Array<HTMLElement>;

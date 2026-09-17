@@ -24,7 +24,9 @@
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-serve": "^3.0.0",
     "tslib": "^2.8.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10"
   },
   "overrides": {
     "playwright": "1.60.0",
@@ -38,9 +40,11 @@
     "build": "rollup -c",
     "start": "rollup -c -w",
     "clean": "node script/clean.js",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "web-test-runner --node-resolve --playwright --browsers chromium",
     "dagger": "dagger ./dagger.sh",
     "lint": "npx @biomejs/biome check",
+    "lint:fix": "npx @biomejs/biome check --fix",
     "release_note": "npx git-cliff --latest --strip header",
     "prepublishOnly": "npm run build"
   },

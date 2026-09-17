@@ -55,8 +55,8 @@ describe('Collection#query', () => {
     });
 
     expect(calls).to.have.lengthOf(1);
-    expect(calls[0].pattern).to.equal('a');
-    expect(calls[0].arr).to.equal(values);
+    expect(calls[0]?.pattern).to.equal('a');
+    expect(calls[0]?.arr).to.equal(values);
     expect(result).to.not.equal(undefined);
     expect(result).to.have.lengthOf(2);
   });
@@ -96,10 +96,10 @@ describe('Collection#query', () => {
 
     query(collection, search, 'a', () => {});
 
-    expect(calls[0].opts?.pre).to.equal('<span>');
-    expect(calls[0].opts?.post).to.equal('</span>');
-    expect(calls[0].opts?.skip).to.equal(false);
-    expect(calls[0].opts?.caseSensitive).to.equal(false);
+    expect(calls[0]?.opts?.pre).to.equal('<span>');
+    expect(calls[0]?.opts?.post).to.equal('</span>');
+    expect(calls[0]?.opts?.skip).to.equal(false);
+    expect(calls[0]?.opts?.caseSensitive).to.equal(false);
   });
 
   it('passes through explicit searchOpts instead of the defaults', () => {
@@ -111,10 +111,10 @@ describe('Collection#query', () => {
 
     query(collection, search, 'a', () => {});
 
-    expect(calls[0].opts?.pre).to.equal('<b>');
-    expect(calls[0].opts?.post).to.equal('</b>');
-    expect(calls[0].opts?.skip).to.equal(true);
-    expect(calls[0].opts?.caseSensitive).to.equal(true);
+    expect(calls[0]?.opts?.pre).to.equal('<b>');
+    expect(calls[0]?.opts?.post).to.equal('</b>');
+    expect(calls[0]?.opts?.skip).to.equal(true);
+    expect(calls[0]?.opts?.caseSensitive).to.equal(true);
   });
 
   it('extracts via a string lookup', () => {
@@ -124,7 +124,7 @@ describe('Collection#query', () => {
 
     query(collection, search, 'a', () => {});
 
-    expect(calls[0].opts?.extract?.(item)).to.equal('Alpha');
+    expect(calls[0]?.opts?.extract?.(item)).to.equal('Alpha');
   });
 
   it('extracts via a function lookup, passing the mention text through', () => {
@@ -137,7 +137,7 @@ describe('Collection#query', () => {
 
     query(collection, search, 'query-text', () => {});
 
-    expect(calls[0].opts?.extract?.(item)).to.equal('Alpha:query-text');
+    expect(calls[0]?.opts?.extract?.(item)).to.equal('Alpha:query-text');
   });
 
   it('throws from extract when lookup is neither a string nor a function', () => {
@@ -147,7 +147,7 @@ describe('Collection#query', () => {
 
     query(collection, search, 'a', () => {});
 
-    expect(() => calls[0].opts?.extract?.(item)).to.throw('Invalid lookup attribute');
+    expect(() => calls[0]?.opts?.extract?.(item)).to.throw('Invalid lookup attribute');
   });
 
   it('truncates the results to menuItemLimit when set', () => {

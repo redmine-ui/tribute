@@ -281,7 +281,7 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  private createNoMatchTemplate(template: TributeTemplate<T>['noMatchTemplate'], defaultNoMatchTemplate: TributeTemplate<T>['noMatchTemplate']) {
+  private createNoMatchTemplate(template: TributeTemplate<T>['noMatchTemplate'] | undefined, defaultNoMatchTemplate: TributeTemplate<T>['noMatchTemplate']) {
     if (typeof template === 'string') {
       return template.trim() === '' ? null : template;
     }

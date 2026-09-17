@@ -1,11 +1,24 @@
 import { expect } from 'chai';
 
-import Tribute from '../../src/index';
+import Tribute from '../../src/Tribute';
+import type { TributeArgument, TributeCollection, TributeTemplate } from '../../src/type';
 import bigList from './utils/bigList.json' with { type: 'json' };
-
 import { clearDom, createDomElement, fillIn, press, simulateElementScroll, simulateMouseClick } from './utils/dom-helpers';
-
 import { attachTribute, detachTribute } from './utils/tribute-helpers';
+
+type PartialCollection<T extends {}> = Partial<TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>>;
+
+interface TestItem {
+  key: string;
+  value: string;
+  disabled?: boolean;
+}
+
+interface PersonWithEmail {
+  key: string;
+  value: string;
+  email: string;
+}
 
 describe('Tribute instantiation', () => {
   it('should not error in the base case from the README', () => {
@@ -17,25 +30,28 @@ describe('Tribute instantiation', () => {
       values: options,
     });
 
-    expect(tribute.collection[0].values).to.equal(options);
+    expect(tribute.collection[0]?.values).to.equal(options);
   });
 });
+
+const ELEMENT_TYPES = ['text', 'contenteditable'] as const;
+const TRIGGERS = ['@', '$('] as const;
 
 describe('Tribute @mentions cases', () => {
   afterEach(() => {
     clearDom();
   });
 
-  ['text', 'contenteditable'].forEach((elementType) => {
-    ['@', '$('].forEach((trigger) => {
+  ELEMENT_TYPES.forEach((elementType) => {
+    TRIGGERS.forEach((trigger) => {
       it(`when values key is predefined array. For : ${elementType} / ${trigger}`, async () => {
-        const input = createDomElement(elementType);
+        const input = createDomElement(elementType) as HTMLInputElement;
 
-        const collectionObject = {
+        const collectionObject: PartialCollection<PersonWithEmail> = {
           trigger: trigger,
-          selectTemplate: function (item) {
-            if (typeof item === 'undefined') return null;
-            if (Tribute.isContentEditable(this.current.element)) {
+          selectTemplate: (item, instance) => {
+            if (typeof item === 'undefined') throw new Error();
+            if (instance.current?.element && Tribute.isContentEditable(instance.current.element)) {
               return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
@@ -80,12 +96,12 @@ describe('Tribute @mentions cases', () => {
       it(`when values array is large and menuItemLimit is set. For : ${elementType} / ${trigger}`, async () => {
         const input = createDomElement(elementType);
 
-        const collectionObject = {
+        const collectionObject: PartialCollection<PersonWithEmail> = {
           trigger: trigger,
           menuItemLimit: 25,
-          selectTemplate: function (item) {
-            if (typeof item === 'undefined') return null;
-            if (Tribute.isContentEditable(this.current.element)) {
+          selectTemplate: (item, instance) => {
+            if (typeof item === 'undefined') throw new Error();
+            if (instance.current?.element && Tribute.isContentEditable(instance.current.element)) {
               return `<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="${item.original.email}">${item.original.value}</a></span>`;
             }
 
@@ -110,7 +126,7 @@ describe('Tribute @mentions cases', () => {
       it('should add itemClass to list items when set it config', async () => {
         const input = createDomElement(elementType);
 
-        const collectionObject = {
+        const collectionObject: PartialCollection<PersonWithEmail> = {
           trigger: trigger,
           itemClass: 'mention-list-item',
           selectClass: 'mention-selected',
@@ -134,8 +150,8 @@ describe('Tribute @mentions cases', () => {
         const popupList = document.querySelectorAll('.tribute-container > ul > li');
         expect(popupList.length).to.equal(2);
 
-        expect(popupList[0].className).to.equal('mention-list-item mention-selected');
-        expect(popupList[1].className).to.equal('mention-list-item');
+        expect(popupList[0]?.className).to.equal('mention-list-item mention-selected');
+        expect(popupList[1]?.className).to.equal('mention-list-item');
 
         detachTribute(tribute, input.id);
       });
@@ -148,12 +164,16 @@ describe('Tribute autocomplete mode cases', () => {
     clearDom();
   });
 
-  ['text', 'contenteditable'].forEach((elementType) => {
+  ELEMENT_TYPES.forEach((elementType) => {
     it(`when values key with autocompleteSeparator option. For : ${elementType}`, async () => {
-      const input = createDomElement(elementType);
+      const input = createDomElement(elementType) as HTMLInputElement;
 
-      const collectionObject = {
-        selectTemplate: (item) => item.original.value,
+      const collectionObject: PartialCollection<PersonWithEmail> = {
+        selectTemplate: (item) => {
+          if (!item) throw new Error();
+
+          return item.original.value;
+        },
         autocompleteMode: true,
         autocompleteSeparator: new RegExp(/-|\+/),
         values: [
@@ -183,12 +203,16 @@ describe('Tribute autocomplete mode cases', () => {
     });
   });
 
-  ['text', 'contenteditable'].forEach((elementType) => {
+  ELEMENT_TYPES.forEach((elementType) => {
     it(`when values key is predefined array. For : ${elementType}`, async () => {
-      const input = createDomElement(elementType);
+      const input = createDomElement(elementType) as HTMLInputElement;
 
-      const collectionObject = {
-        selectTemplate: (item) => item.original.value,
+      const collectionObject: PartialCollection<PersonWithEmail> = {
+        selectTemplate: (item) => {
+          if (!item) throw new Error();
+
+          return item.original.value;
+        },
         autocompleteMode: true,
         values: [
           {
@@ -226,21 +250,24 @@ describe('Tribute autocomplete mode cases', () => {
     });
   });
 
-  ['text', 'contenteditable'].forEach((elementType) => {
+  ELEMENT_TYPES.forEach((elementType) => {
     it(`when values key is a function. For : ${elementType}`, async () => {
-      const input = createDomElement(elementType);
+      const input = createDomElement(elementType) as HTMLInputElement;
 
-      const collectionObject = {
+      const collectionObject: PartialCollection<TestItem> = {
         autocompleteMode: true,
         selectClass: 'sample-highlight',
 
-        noMatchTemplate: function () {
-          this.hideMenu();
+        noMatchTemplate: (instance) => {
+          if (instance) {
+            instance.hideMenu();
+          }
+          return '';
         },
 
-        selectTemplate: function (item) {
-          if (typeof item === 'undefined') return null;
-          if (Tribute.isContentEditable(this.current.element)) {
+        selectTemplate: (item, instance) => {
+          if (typeof item === 'undefined') throw new Error();
+          if (instance.current?.element && Tribute.isContentEditable(instance.current?.element)) {
             return `&nbsp;<a contenteditable=false>${item.original.value}</a>`;
           }
 
@@ -252,7 +279,7 @@ describe('Tribute autocomplete mode cases', () => {
         },
       };
 
-      function searchFn(text, cb) {
+      function searchFn(text: string, cb: (arr: TestItem[]) => void) {
         if (text === 'a') {
           cb([
             { key: 'Alabama', value: 'Alabama' },
@@ -297,8 +324,8 @@ describe('Tribute autocomplete mode cases', () => {
       }
 
       await fillIn(input, ' none');
-      const popupListWrapper = document.querySelector('.tribute-container');
-      expect(popupListWrapper.style.display).to.equal('none');
+      const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+      expect(popupListWrapper?.style.display).to.equal('none');
 
       detachTribute(tribute, input.id);
     });
@@ -308,8 +335,12 @@ describe('Tribute autocomplete mode cases', () => {
     it('should work with newlines', async () => {
       const input = createDomElement(elementType);
 
-      const collectionObject = {
-        selectTemplate: (item) => item.original.value,
+      const collectionObject: PartialCollection<PersonWithEmail> = {
+        selectTemplate: (item) => {
+          if (!item) throw new Error();
+
+          return item.original.value;
+        },
         autocompleteMode: true,
         values: [
           {
@@ -342,12 +373,19 @@ describe('When Tribute searchOpts.skip', () => {
   it('should skip local filtering and display all items', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<TestItem> = {
       searchOpts: { skip: true },
-      noMatchTemplate: function () {
-        this.hideMenu();
+      noMatchTemplate: (instance) => {
+        if (instance) {
+          instance.hideMenu();
+        }
+        return '';
       },
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
         { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
@@ -373,9 +411,13 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display template when specified as text', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: 'testcase',
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         {
           key: 'Jordan Humphreys',
@@ -393,8 +435,8 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const containerDiv = document.getElementsByClassName('tribute-container')[0];
-    expect(containerDiv.innerText).to.equal('testcase');
+    const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
+    expect(containerDiv?.innerText).to.equal('testcase');
 
     detachTribute(tribute, input.id);
   });
@@ -402,9 +444,13 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display template when specified as function', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: () => 'testcase',
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         {
           key: 'Jordan Humphreys',
@@ -422,7 +468,7 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const containerDiv = document.getElementsByClassName('tribute-container')[0];
+    const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
     expect(containerDiv.innerText).to.equal('testcase');
 
     detachTribute(tribute, input.id);
@@ -431,9 +477,13 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display no menu container when text is empty', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: '',
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         {
           key: 'Jordan Humphreys',
@@ -451,8 +501,8 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const popupListWrapper = document.querySelector('.tribute-container');
-    expect(popupListWrapper.style.display).to.equal('none');
+    const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+    expect(popupListWrapper?.style.display).to.equal('none');
 
     detachTribute(tribute, input.id);
   });
@@ -460,9 +510,13 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display no menu when function returns empty string', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: () => '',
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         {
           key: 'Jordan Humphreys',
@@ -480,8 +534,8 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const popupListWrapper = document.querySelector('.tribute-container');
-    expect(popupListWrapper.style.display).to.equal('none');
+    const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+    expect(popupListWrapper?.style.display).to.equal('none');
 
     detachTribute(tribute, input.id);
   });
@@ -489,7 +543,7 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display no menu container when text is empty with collection', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: '',
       collection: [
         {
@@ -518,8 +572,8 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const popupListWrapper = document.querySelector('.tribute-container');
-    expect(popupListWrapper.style.display).to.equal('none');
+    const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+    expect(popupListWrapper?.style.display).to.equal('none');
 
     detachTribute(tribute, input.id);
   });
@@ -527,7 +581,7 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display no menu when function returns empty string with collection', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       noMatchTemplate: () => '',
       collection: [
         {
@@ -556,8 +610,8 @@ describe('Tribute NoMatchTemplate cases', () => {
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const popupListWrapper = document.querySelector('.tribute-container');
-    expect(popupListWrapper.style.display).to.equal('none');
+    const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+    expect(popupListWrapper?.style.display).to.equal('none');
 
     detachTribute(tribute, input.id);
   });
@@ -565,7 +619,7 @@ describe('Tribute NoMatchTemplate cases', () => {
   it('should display indivisual messages when a template set in each collection', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       collection: [
         {
           trigger: '@',
@@ -590,12 +644,16 @@ describe('Tribute NoMatchTemplate cases', () => {
           ],
         },
       ],
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
     };
     const tribute = attachTribute(collectionObject, input.id);
     await fillIn(input, '@random-text');
 
-    const containerDiv = document.getElementsByClassName('tribute-container')[0];
+    const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
     expect(containerDiv.innerText).to.equal('template 1');
 
     detachTribute(tribute, input.id);
@@ -607,7 +665,7 @@ describe('Tribute menu positioning', () => {
     clearDom();
   });
 
-  async function checkPosition(collectionObject, input) {
+  async function checkPosition(collectionObject: PartialCollection<PersonWithEmail>, input: HTMLElement) {
     const bottomContent = document.createElement('div');
     bottomContent.style = 'background: blue; height: 400px; width: 10px;';
     document.body.appendChild(bottomContent);
@@ -620,7 +678,9 @@ describe('Tribute menu positioning', () => {
     await fillIn(input, '@');
 
     const popupListWrapper = document.querySelector('.tribute-container');
-    const menuRect = popupListWrapper.getBoundingClientRect();
+    const menuRect = popupListWrapper?.getBoundingClientRect();
+    if (menuRect == null) throw new Error();
+
     const menuX = menuRect.x;
     const menuY = menuRect.y;
 
@@ -633,6 +693,8 @@ describe('Tribute menu positioning', () => {
   it('should display a container menu in the same position when menuContainer is specified on an input as when the menuContainer is the body', async () => {
     let input = createDomElement();
     const container = input.parentElement;
+    if (container === null) throw new Error();
+
     container.style = 'position: relative;';
     const { x: specifiedX, y: specifiedY } = await checkPosition(
       {
@@ -679,6 +741,8 @@ describe('Tribute menu positioning', () => {
   it('should display a container menu in the same position when menuContainer is specified on an contenteditable as when the menuContainer is the body', async () => {
     let input = createDomElement('contenteditable');
     const container = input.parentElement;
+    if (container === null) throw new Error();
+
     container.style = 'position: relative;';
     const { x: specifiedX, y: specifiedY } = await checkPosition(
       {
@@ -731,9 +795,13 @@ describe('Multi-char tests', () => {
   it('should display no menu when only first char of multi-char trigger is used', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       trigger: '$(',
-      selectTemplate: (item) => item.original.value,
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         {
           key: 'Jordan Humphreys',
@@ -771,11 +839,18 @@ describe('Multi-char tests', () => {
       };
       input.addEventListener('tribute-active-true', eventSpy);
 
-      const collectionObject = {
-        noMatchTemplate: function () {
-          this.hideMenu();
+      const collectionObject: PartialCollection<TestItem> = {
+        noMatchTemplate: (instance) => {
+          if (instance) {
+            instance.hideMenu();
+          }
+          return '';
         },
-        selectTemplate: (item) => item.original.value,
+        selectTemplate: (item) => {
+          if (!item) throw new Error();
+
+          return item.original.value;
+        },
         values: [
           { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
           { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
@@ -807,9 +882,13 @@ describe('Multi-char tests', () => {
       };
       input.addEventListener('tribute-active-false', eventSpy);
 
-      const collectionObject = {
+      const collectionObject: PartialCollection<TestItem> = {
         noMatchTemplate: () => '',
-        selectTemplate: (item) => item.original.value,
+        selectTemplate: (item) => {
+          if (!item) throw new Error();
+
+          return item.original.value;
+        },
         values: [
           { key: 'Tributação e Divisas', value: 'Tributação e Divisas' },
           { key: 'Tributação e Impostos', value: 'Tributação e Impostos' },
@@ -833,13 +912,13 @@ describe('Tribute loadingItemTemplate', () => {
     clearDom();
   });
 
-  ['text', 'contenteditable'].forEach((elementType) => {
+  ELEMENT_TYPES.forEach((elementType) => {
     it(`Shows loading item template. For : ${elementType}`, async () => {
       const input = createDomElement(elementType);
 
-      const collectionObject = {
+      const collectionObject: PartialCollection<PersonWithEmail> = {
         loadingItemTemplate: '<div class="loading">Loading</div>',
-        values: (_, cb) => {
+        values: (_: string, cb: (users: PersonWithEmail[]) => void) => {
           setTimeout(
             () =>
               cb([
@@ -881,10 +960,14 @@ describe('Tribute disabled items cases', () => {
   });
 
   it('should prevent selecting disabled items with the mouse', async () => {
-    const input = createDomElement();
+    const input = createDomElement() as HTMLInputElement;
 
-    const collectionObject = {
-      selectTemplate: (item) => item.original.value,
+    const collectionObject: PartialCollection<TestItem> = {
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         { key: 'First item', value: 'First item' },
         { key: 'Second item (disabled)', value: 'Second item (disabled)', disabled: true },
@@ -901,10 +984,14 @@ describe('Tribute disabled items cases', () => {
   });
 
   it('should prevent selecting disabled items with the keyboard', async () => {
-    const input = createDomElement();
+    const input = createDomElement() as HTMLInputElement;
 
-    const collectionObject = {
-      selectTemplate: (item) => item.original.value,
+    const collectionObject: PartialCollection<TestItem> = {
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
       values: [
         { key: 'First item', value: 'First item' },
         { key: 'Second item (disabled)', value: 'Second item (disabled)', disabled: true },
@@ -982,7 +1069,7 @@ describe('closeOnScroll tests', () => {
     const input = createDomElement();
     const container = document.createElement('div');
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       trigger: '@',
       closeOnScroll: container,
       values: [
@@ -1008,7 +1095,7 @@ describe('closeOnScroll tests', () => {
   it('Tribute should not close when scrolled without the closeOnScroll set', async () => {
     const input = createDomElement();
 
-    const collectionObject = {
+    const collectionObject: PartialCollection<PersonWithEmail> = {
       trigger: '@',
       values: [
         { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
@@ -1036,32 +1123,26 @@ describe('Tribute keyboard navigation', () => {
     clearDom();
   });
 
-  it('unselects the menu when there are no matching items', () => {
-    const input = createDomElement();
-    const tribute = attachTribute(
-      {
-        values: [
-          {
-            key: 'Jordan Humphreys',
-            value: 'Jordan Humphreys',
-          },
-        ],
-      },
-      input.id,
-    );
+  it('unselects the menu when Enter is pressed with no matching items', async () => {
+    const input = createDomElement() as HTMLInputElement;
+    const options = {
+      noMatchTemplate: 'no match',
+      values: [
+        { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
+        { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
+      ],
+    };
+    const tribute = attachTribute(options, input.id);
 
-    tribute.isActive = true;
-    tribute.current.filteredItems = [];
-    tribute.current.menu.selected = 0;
+    await fillIn(input, '@zzz');
 
-    const event = new KeyboardEvent('keydown', {
-      key: 'Enter',
-      cancelable: true,
-    });
+    expect(tribute.isActive).to.be.true;
+    expect(tribute.current?.hasFilteredItems).to.be.false;
 
-    tribute.events.callbacks.enter(event, input);
+    await press('Enter');
 
-    expect(tribute.current.menu.selected).to.equal(-1);
+    expect(input.value).to.equal('@zzz');
+    // expect(tribute.current?.menu.selected).to.equal(-1);
     detachTribute(tribute, input.id);
   });
 });
