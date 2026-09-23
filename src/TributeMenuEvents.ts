@@ -18,7 +18,7 @@ class TributeMenuEvents<T extends {}> {
         }
       },
       10,
-      false
+      false,
     );
     const hideMenu = debounce(
       () => {
@@ -30,7 +30,7 @@ class TributeMenuEvents<T extends {}> {
       false,
     );
 
-    const removers: (() => void)[] = []
+    const removers: (() => void)[] = [];
     const doc = this.tribute.current?.range.getDocument();
     if (doc) {
       removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(event), false));

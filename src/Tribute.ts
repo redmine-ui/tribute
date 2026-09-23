@@ -1,3 +1,4 @@
+import { appendValues } from './collection';
 import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
@@ -5,14 +6,11 @@ import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
 import TributeRange from './TributeRange';
 import TributeSearch from './TributeSearch';
-import { appendValues } from './collection';
 import type {
   Collection,
   ITribute,
   ITributeContext,
   ITributeEvents,
-  ITributeMenu,
-  ITributeRange,
   ITributeSearch,
   TributeArgument,
   TributeCollection,

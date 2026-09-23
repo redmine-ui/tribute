@@ -1,15 +1,15 @@
+import { getItemClassName, renderMenuItem, resolveNoMatchContent } from './collection';
 import { addHandler } from './helpers';
-import { resolveNoMatchContent, getItemClassName, renderMenuItem } from './collection';
-import type { Collection, Coordinate, ITribute, ITributeContext, ITributeMenu, TributeItem } from './type';
+import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
 
-  /* 
+  /*
    * Index of the currently highlighted <li>.
    * -1 means "no selectable (non-disabled) item exists".
    * Mirrors the "not found" value of Array.prototype.findIndex
-  */
+   */
   selected: number;
   readonly tribute: ITribute<T>;
 

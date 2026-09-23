@@ -1,6 +1,7 @@
 // Thanks to https://github.com/jeff-collins/ment.io
 import { isTextAreaOrInput } from './helpers.js';
 import type { Coordinate, ITribute, ITributeRange, TributeItem, TriggerInfo } from './type';
+
 type Rect = {
   top: number;
   left: number;
@@ -34,7 +35,7 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
       : new NonAutocompleteTriggerInfoParser(this, tribute);
     this.rangeHandler = isTextAreaOrInput(element)
       ? new TextAreaOrInputRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
-      : new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
+      : new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
   }
 
   getTriggerInfo(menuAlreadyActive: boolean, hasTrailingSpace: boolean, requireLeadingSpace: boolean, allowSpaces: boolean): TriggerInfo | undefined {

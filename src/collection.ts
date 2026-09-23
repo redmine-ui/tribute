@@ -1,10 +1,10 @@
-import type { ITribute, Collection, TributeItem, ITributeSearch } from './type';
+import type { Collection, ITribute, ITributeSearch, TributeItem } from './type';
 
 export function query<T extends {}>(
-  {searchOpts, lookup, values, menuItemLimit}: Collection<T>,
+  { searchOpts, lookup, values, menuItemLimit }: Collection<T>,
   search: ITributeSearch<T>,
   mentionText: string,
-  callback: (items: TributeItem<T>[]) => void
+  callback: (items: TributeItem<T>[]) => void,
 ): void {
   const resolve = (values: T[]) => {
     const items = search.filter(mentionText, values, {
@@ -28,14 +28,12 @@ export function query<T extends {}>(
   }
 }
 
-export function isAsync<T extends {}>({values}: Collection<T>): boolean {
+export function isAsync<T extends {}>({ values }: Collection<T>): boolean {
   return typeof values === 'function';
 }
 
-export function isMaximumItemsAdded<T extends {}>({maxDisplayItems, trigger, isBlocked}: Collection<T>, element: HTMLElement): boolean {
-  const result =
-    (maxDisplayItems && element.querySelectorAll(`[data-tribute-trigger="${trigger}"]`).length >= maxDisplayItems) ||
-    isBlocked;
+export function isMaximumItemsAdded<T extends {}>({ maxDisplayItems, trigger, isBlocked }: Collection<T>, element: HTMLElement): boolean {
+  const result = (maxDisplayItems && element.querySelectorAll(`[data-tribute-trigger="${trigger}"]`).length >= maxDisplayItems) || isBlocked;
   return !!result;
 }
 
@@ -46,7 +44,7 @@ export function appendValues<T extends {}>(collection: Collection<T>, newValues:
   collection.values = replace || collection.values === null ? newValues : collection.values.concat(newValues);
 }
 
-export function resolveNoMatchContent<T extends {}>({noMatchTemplate}: Collection<T>): string | null {
+export function resolveNoMatchContent<T extends {}>({ noMatchTemplate }: Collection<T>): string | null {
   if (typeof noMatchTemplate === 'function') {
     const result = noMatchTemplate();
     return result || null;
@@ -54,10 +52,10 @@ export function resolveNoMatchContent<T extends {}>({noMatchTemplate}: Collectio
   return noMatchTemplate || null;
 }
 
-export function getItemClassName<T extends {}>({itemClass, selectClass}: Collection<T>, isSelected: boolean): string {
+export function getItemClassName<T extends {}>({ itemClass, selectClass }: Collection<T>, isSelected: boolean): string {
   return isSelected ? `${itemClass} ${selectClass}`.trim() : itemClass;
 }
 
-export function renderMenuItem<T extends {}>({menuItemTemplate}: Collection<T>, item: TributeItem<T>, tribute: ITribute<T>): string | HTMLElement {
+export function renderMenuItem<T extends {}>({ menuItemTemplate }: Collection<T>, item: TributeItem<T>, tribute: ITribute<T>): string | HTMLElement {
   return menuItemTemplate !== null ? menuItemTemplate(item, tribute) : '';
 }

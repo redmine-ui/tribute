@@ -42,7 +42,10 @@ function makeSearchSpy<T extends {}>() {
 
 describe('Collection#query', () => {
   it('resolves synchronous array values through search.filter and forwards the result', () => {
-    const values: Person[] = [{ key: 'a', value: 'A' }, { key: 'b', value: 'B' }];
+    const values: Person[] = [
+      { key: 'a', value: 'A' },
+      { key: 'b', value: 'B' },
+    ];
     const collection = makeCollection({ values });
     const { search, calls } = makeSearchSpy<Person>();
 
@@ -130,11 +133,11 @@ describe('Collection#query', () => {
       values: [item],
       lookup: (el, mentionText) => `${el.value}:${mentionText}`,
     });
-      const { search, calls } = makeSearchSpy<Person>();
+    const { search, calls } = makeSearchSpy<Person>();
 
-      query(collection, search, 'query-text', () => {});
+    query(collection, search, 'query-text', () => {});
 
-      expect(calls[0].opts?.extract?.(item)).to.equal('Alpha:query-text');
+    expect(calls[0].opts?.extract?.(item)).to.equal('Alpha:query-text');
   });
 
   it('throws from extract when lookup is neither a string nor a function', () => {
