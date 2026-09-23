@@ -30,12 +30,12 @@ export interface ITributeContext<T extends {}> {
   range: ITributeRange<T>;
   menu: ITributeMenu<T>;
   selectItemAtIndex(index: string, originalEvent: Event): void;
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined, bindMenu: (menu: HTMLElement) => void): void;
   showMenuForCollection(collection?: Collection<T>): void;
   hasFilteredItems: boolean;
   collection?: Collection<T>;
   mentionText: string;
   isMentionLengthUnderMinimum: boolean | undefined;
-  process(scrollTo?: boolean): void;
   trigger?: string;
   sessionStarted(trigger?: string): void;
   queryChanged(info?: TriggerInfo): void;

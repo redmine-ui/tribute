@@ -5,7 +5,7 @@ import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
 import TributeRange from './TributeRange';
 import TributeSearch from './TributeSearch';
-import { isMaximumItemsAdded, appendValues } from './collection';
+import { appendValues } from './collection';
 import type {
   Collection,
   ITribute,
@@ -186,25 +186,10 @@ class Tribute<T extends {}> implements ITribute<T> {
   showMenuFor(element: HTMLElement, scrollTo?: boolean): void {
     const context = this.contextFor(element);
 
-    if (context.collection === undefined) return;
-
-    // Check for maximum number of items added to the input for the specific Collection
-    if (isMaximumItemsAdded(context.collection, element)) {
-      //console.log("Tribute: Maximum number of items added!");
-      return;
-    }
-
     this.currentMentionTextSnapshot = context.mentionText;
-
-    // create the menu if it doesn't exist.
-    if (!context.menu.element) {
-      const menu = context.menu.create(context.range.getDocument(), context.collection.containerClass);
+    context.showMenuFor(element, scrollTo, (menu) => {
       this.menuEvents.bind(menu);
-    }
-
-    context.activate();
-    context.menu.activate();
-    context.process(scrollTo);
+    });
   }
 
   hideMenu(): void {

@@ -135,7 +135,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     return !!this.filteredItems && this.filteredItems.length > 0;
   }
 
-  process(scrollTo: boolean) {
+  private process(scrollTo: boolean) {
     if (this.menu.element === null || !this.collection) return;
 
     const ul = this.menu.element.querySelector('ul');
@@ -156,6 +156,26 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
         this.range.positionMenuAtCaret(scrollTo);
       }
     });
+  }
+
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined, bindMenu: (menu: HTMLElement) => void) {
+    if (this.collection === undefined) return;
+
+    // Check for maximum number of items added to the input for the specific Collection
+    if (isMaximumItemsAdded(this.collection, element)) {
+      //console.log("Tribute: Maximum number of items added!");
+      return;
+    }
+
+    // create the menu if it doesn't exist.
+    if (!this.menu.element) {
+      const menu = this.menu.create(this.range.getDocument(), this.collection.containerClass);
+      bindMenu(menu);
+    }
+
+    this.activate();
+    this.menu.activate();
+    this.process(!!scrollTo);
   }
 
   showMenuForCollection(collection?: Collection<T>): void {
