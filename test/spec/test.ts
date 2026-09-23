@@ -1052,7 +1052,7 @@ describe('Tribute keyboard navigation', () => {
 
     tribute.isActive = true;
     tribute.current.filteredItems = [];
-    tribute.menu.selected = 0;
+    tribute.current.menu.selected = 0;
 
     const event = new KeyboardEvent('keydown', {
       key: 'Enter',
@@ -1061,7 +1061,7 @@ describe('Tribute keyboard navigation', () => {
 
     tribute.events.callbacks.enter(event, input);
 
-    expect(tribute.menu.selected).to.equal(-1);
+    expect(tribute.current.menu.selected).to.equal(-1);
     detachTribute(tribute, input.id);
   });
 });

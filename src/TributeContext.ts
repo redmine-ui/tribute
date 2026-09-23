@@ -1,44 +1,38 @@
-import { isTextAreaOrInput } from './helpers';
 import { isAsync, isMaximumItemsAdded, query } from './collection';
-import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo, ITributeSearch } from './type';
+import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, TributeItem, TriggerInfo } from './type';
+
+type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range: ITributeRange<T>; menu: ITributeMenu<T> };
 
 class TributeContext<T extends {}> implements ITributeContext<T> {
-  #element?: HTMLElement;
+  readonly tribute: ITribute<T>;
+  readonly element: HTMLElement;
+  readonly range: ITributeRange<T>;
+  readonly menu: ITributeMenu<T>;
+
   #isActive = false;
   filteredItems?: TributeItem<T>[];
   collection?: Collection<T>;
   mentionText: string;
   externalTrigger: boolean;
-  tribute: ITribute<T>;
   selectedPath?: (number | undefined)[];
   selectedOffset?: number;
   trigger?: string;
 
-  constructor(tribute: ITribute<T>) {
+  constructor({ tribute, element, range, menu }: ContextArguments<T>) {
     this.tribute = tribute;
+    this.element = element;
+    this.range = range;
+    this.menu = menu;
+
     this.mentionText = '';
     this.externalTrigger = false;
-  }
-
-  set element(element: HTMLElement | undefined) {
-    if (element) {
-      this.tribute.range.element = element;
-    }
-
-    this.#element = element;
-  }
-
-  get element() {
-    return this.#element;
   }
 
   private setActive(value: boolean) {
     if (this.#isActive !== value) {
       this.#isActive = value;
-      if (this.element) {
-        const noMatchEvent = new CustomEvent(`tribute-active-${value}`);
-        this.element.dispatchEvent(noMatchEvent);
-      }
+      const activeEvent = new CustomEvent(`tribute-active-${value}`);
+      this.element.dispatchEvent(activeEvent);
     }
   }
 
@@ -54,30 +48,25 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     this.setActive(false);
   }
 
-  sessionStarted(element: HTMLElement, trigger?: string) {
+  sessionStarted(trigger?: string) {
     if (typeof trigger === 'undefined') return;
 
     this.trigger = trigger;
-    this.element = element;
 
     this.collection = this.tribute.collection.find((item) => {
       return item.trigger === trigger;
     });
   }
 
-  queryChanged(element: HTMLElement, info?: TriggerInfo) {
-    this.element = element;
-
+  queryChanged(info?: TriggerInfo) {
     if (info) {
-      this.selectedPath   = info.mentionSelectedPath;
-      this.mentionText    = info.mentionText || '';
+      this.selectedPath = info.mentionSelectedPath;
+      this.mentionText = info.mentionText || '';
       this.selectedOffset = info.mentionSelectedOffset;
     }
   }
 
   refreshMenu(hotkeyHandledOnKeydown: boolean, showMenuOnBackspace: boolean) {
-    if (!this.element) return;
-
     if (this.isMentionLengthUnderMinimum) {
       this.tribute.hideMenu();
       return;
@@ -93,14 +82,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       const count = this.filteredItems.length;
 
       if (direction === 1) {
-        this.tribute.menu.up(count);
+        this.menu.up(count);
       } else {
-        this.tribute.menu.down(count);
+        this.menu.down(count);
       }
 
-      return true
+      return true;
     }
-    return false
+    return false;
   }
 
   selectionConfirmed(e: Event, index?: string | null): boolean {
@@ -114,11 +103,11 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     const filteredItems = this.filteredItems;
     if (this.isActive && filteredItems?.length !== undefined) {
       if (filteredItems.length === 0) {
-        this.tribute.menu.unselect();
+        this.menu.unselect();
       }
 
       setTimeout(() => {
-        this.selectItemAtIndex(this.tribute.menu.selected.toString(), e);
+        this.selectItemAtIndex(this.menu.selected.toString(), e);
         this.tribute.hideMenu();
       }, 0);
       return true;
@@ -129,7 +118,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   sessionCanceled(): boolean {
     if (this.isActive) {
       this.tribute.hideMenu();
-      return true
+      return true;
     }
     return false;
   }
@@ -139,47 +128,46 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       this.externalTrigger = false;
       return true;
     }
-    return !!this.element && false;
+    return false;
   }
 
   process(scrollTo: boolean) {
-    if (this.tribute.menu.element === null || !this.collection) return;
+    if (this.menu.element === null || !this.collection) return;
 
-    const ul = this.tribute.menu.element.querySelector('ul');
+    const ul = this.menu.element.querySelector('ul');
     if (ul === null) throw new Error('menu do not have "ul" element');
 
     if (isAsync(this.collection) && this.collection.loadingItemTemplate) {
       ul.innerHTML = this.collection.loadingItemTemplate;
-      this.tribute.range.positionMenuAtCaret(scrollTo);
+      this.range.positionMenuAtCaret(scrollTo);
     }
 
     query(this.collection, this.tribute.search, this.mentionText, (items) => {
-      if (!this.isActive) return;
+      if (!this.isActive || !this.collection) return;
 
       this.filteredItems = items;
 
-      const scroll = this.tribute.menu.render(items, this.collection!);
+      const scroll = this.menu.render(items, this.collection);
       if (scroll === true && scrollTo === true) {
-        this.tribute.range.positionMenuAtCaret(scrollTo);
+        this.range.positionMenuAtCaret(scrollTo);
       }
     });
   }
 
-  showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void {
-    if (typeof collection === 'undefined' || isMaximumItemsAdded(collection, element)) {
+  showMenuForCollection(collection?: Collection<T>): void {
+    if (typeof collection === 'undefined' || isMaximumItemsAdded(collection, this.element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
 
-    if (element !== document.activeElement) {
-      this.tribute.range.focusAtEnd();
+    if (this.element !== document.activeElement) {
+      this.range.focusAtEnd();
     }
 
     this.collection = collection;
     this.externalTrigger = true;
-    this.element = element;
 
-    this.tribute.range.insertText(this.collection.trigger);
+    this.range.insertText(this.collection.trigger);
   }
 
   selectItemAtIndex(index: string, originalEvent: Event) {
@@ -198,7 +186,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
 
     if (content !== null) {
-      this.tribute.range.replaceTriggerText(content, true, true, originalEvent, item);
+      this.range.replaceTriggerText(content, true, true, originalEvent, item);
     }
   }
 

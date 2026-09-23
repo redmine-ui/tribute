@@ -1,6 +1,6 @@
 import { addHandler } from './helpers';
 import { resolveNoMatchContent, getItemClassName, renderMenuItem } from './collection';
-import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from './type';
+import type { Collection, Coordinate, ITribute, ITributeContext, ITributeMenu, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
@@ -11,7 +11,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
    * Mirrors the "not found" value of Array.prototype.findIndex
   */
   selected: number;
-  tribute: ITribute<T>;
+  readonly tribute: ITribute<T>;
 
   private ul?: HTMLElement;
   private remover?: () => void;
@@ -110,7 +110,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   setActiveLi(index?: number) {
     if (this.element === null) return;
-    if (!this.tribute.current.collection) return;
+    if (!this.tribute.current?.collection) return;
     if (index !== undefined && this.items[index]?.getAttribute('data-disabled') === 'true') return;
 
     const selectClass = this.tribute.current.collection.selectClass;
@@ -231,7 +231,9 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
     ul.innerHTML = '';
-    const doc = this.tribute.range.getDocument();
+    const doc = this.tribute.current?.range.getDocument();
+    if (!doc) return false;
+
     const fragment = doc.createDocumentFragment();
 
     this.selected = items.findIndex((item) => item.original.disabled !== true);

@@ -80,8 +80,10 @@ class TributeEvents<T extends {}> {
     const element = event.currentTarget;
     if (!(element instanceof HTMLElement)) return;
 
-    const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
-    this.tribute.current.queryChanged(element, info);
+    const context = this.tribute.contextFor(element);
+    this.tribute.current = context;
+    const info = context.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+    context.queryChanged(info);
 
     if (!event.key || event.key === 'Escape') return;
 
@@ -92,20 +94,20 @@ class TributeEvents<T extends {}> {
       return;
     }
 
-    if (!this.tribute.current.isActive) {
+    if (!context.isActive) {
       const charCode = this.getTriggerCharCode();
-      const trigger = this.tribute.range.getTrigger(charCode);
-      this.tribute.current.sessionStarted(element, trigger);
+      const trigger = this.tribute.current?.range.getTrigger(charCode);
+      context.sessionStarted(trigger);
     }
 
-    this.tribute.current.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key));
+    context.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key));
   }
 
   shouldDeactivate(event: Event) {
     if (!this.tribute.isActive) return false;
     if (!(event instanceof KeyboardEvent)) return false;
 
-    if (this.tribute.current.mentionText.length === 0) {
+    if (this.tribute.current?.mentionText.length === 0) {
       let eventKeyPressed = false;
       const key = getCode(event.key);
       if (isHotkey(key)) {
@@ -119,8 +121,7 @@ class TributeEvents<T extends {}> {
   }
 
   getTriggerCharCode() {
-    const tribute = this.tribute;
-    const info = tribute.range.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces);
+    const info = this.tribute.current?.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
 
     if (info?.mentionTriggerChar) {
       return info.mentionTriggerChar.charCodeAt(0);
@@ -134,13 +135,13 @@ class TributeEvents<T extends {}> {
       this._callbacks = {
         enter: (e: Event, _el: HTMLElement) => {
           // choose selection
-          if (this.tribute.current.selectionConfirmed(e)) {
+          if (this.tribute.current?.selectionConfirmed(e)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
         escape: (e: Event, _el: HTMLElement) => {
-          if (this.tribute.current.sessionCanceled()) {
+          if (this.tribute.current?.sessionCanceled()) {
             e.preventDefault();
             e.stopPropagation();
           }
@@ -163,21 +164,22 @@ class TributeEvents<T extends {}> {
         },
         arrowup: (e: Event, _el: HTMLElement) => {
           // navigate up ul
-          if (this.tribute.current.selectionMoved(1)) {
+          if (this.tribute.current?.selectionMoved(1)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
         arrowdown: (e: Event, _el: HTMLElement) => {
           // navigate down ul
-          if (this.tribute.current.selectionMoved(-1)) {
+          if (this.tribute.current?.selectionMoved(-1)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
         backspace: (_e: Event, el: HTMLElement) => {
           if (this.tribute.isActive) {
-            if (this.tribute.current.mentionText.length < 1) {
+            const mentionText = this.tribute.current?.mentionText;
+            if (mentionText && mentionText.length < 1) {
               this.tribute.hideMenu();
             } else {
               this.tribute.showMenuFor(el);
@@ -191,7 +193,7 @@ class TributeEvents<T extends {}> {
 
   showMenuOnBackspace(key: string) {
     const isBackspace = key === 'Backspace';
-    return isTextAreaOrInput(this.tribute.current.element) ? isBackspace : this.tribute.isActive && isBackspace;
+    return isTextAreaOrInput(this.tribute.current?.element) ? isBackspace : this.tribute.isActive && isBackspace;
   }
 }
 

@@ -23,33 +23,19 @@ type Trigger = {
 
 class TributeRange<T extends {}> implements ITributeRange<T> {
   tribute: ITribute<T>;
+  readonly element: HTMLElement;
   private readonly triggerInfoParser: TriggerInfoParser<T>;
   private rangeHandler: BaseRangeHandler<T>;
-  private readonly nullRangeHandler: NullRangeHandler<T>;
-  private readonly textAreaOrInputRangeHandler: TextAreaOrInputRangeHandler<T>;
-  private readonly contentEditableRangeHandler: ContentEditableRangeHandler<T>;
-  #element?: HTMLElement;
 
-  constructor(tribute: ITribute<T>) {
+  constructor(tribute: ITribute<T>, element: HTMLElement) {
     this.tribute = tribute;
+    this.element = element;
     this.triggerInfoParser = tribute.autocompleteMode
       ? new AutocompleteTriggerInfoParser(this, tribute.autocompleteSeparator)
       : new NonAutocompleteTriggerInfoParser(this, tribute);
-    this.nullRangeHandler = new NullRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.textAreaOrInputRangeHandler = new TextAreaOrInputRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.contentEditableRangeHandler = new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode);
-    this.rangeHandler = this.nullRangeHandler;
-  }
-
-  get element() {
-    return this.#element;
-  }
-
-  set element(element: HTMLElement | undefined) {
-    this.#element = element;
-    if (element) {
-      this.rangeHandler = isTextAreaOrInput(element) ? this.textAreaOrInputRangeHandler : this.contentEditableRangeHandler;
-    }
+    this.rangeHandler = isTextAreaOrInput(element)
+      ? new TextAreaOrInputRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
+      : new ContentEditableRangeHandler(this, this.tribute.replaceTextSuffix, this.tribute.autocompleteMode)
   }
 
   getTriggerInfo(menuAlreadyActive: boolean, hasTrailingSpace: boolean, requireLeadingSpace: boolean, allowSpaces: boolean): TriggerInfo | undefined {
@@ -72,8 +58,10 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
 
   getDocument() {
     let iframe: HTMLIFrameElement | null | undefined;
-    if (this.tribute.current.collection) {
-      iframe = this.tribute.current.collection.iframe;
+    const context = this.tribute.contextFor(this.element);
+
+    if (context.collection) {
+      iframe = context.collection.iframe;
     }
 
     if (typeof iframe === 'undefined' || iframe === null || iframe.contentWindow === null) {
@@ -91,7 +79,8 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
     const coordinates = this.rangeHandler.getCoordinate(this.element, info.mentionPosition);
 
     if (coordinates) {
-      this.tribute.menu.positionAtCaret(info, coordinates);
+      const context = this.tribute.contextFor(this.element);
+      context.menu.positionAtCaret(info, coordinates);
     }
 
     if (scrollTo) {
@@ -105,7 +94,7 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
 
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>) {
     const info = this.triggerInfoParser.getTriggerInfo(true, hasTrailingSpace, requireLeadingSpace, this.tribute.allowSpaces);
-    const context = this.tribute.current;
+    const context = this.tribute.contextFor(this.element);
 
     if (typeof info === 'undefined' || typeof this.element === 'undefined') return;
     const replaceEvent = new CustomEvent('tribute-replaced', {
@@ -185,7 +174,8 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
     const reasonableBuffer = 20;
     let clientRect: DOMRect | undefined;
     const maxScrollDisplacement = 100;
-    let e = this.tribute.menu.element;
+    const context = this.tribute.contextFor(this.element);
+    let e = context.menu.element;
 
     if (e === null) return;
 
@@ -428,7 +418,8 @@ abstract class BaseRangeHandler<T extends {}> {
       top: rect.top + rect.height,
     };
 
-    const menuDimensions = this.range.tribute.menu.getDimensions();
+    const context = this.range.tribute.contextFor(this.range.element);
+    const menuDimensions = context.menu.getDimensions();
 
     const availableSpaceOnTop = rect.top;
     const availableSpaceOnBottom = window.innerHeight - (rect.top + rect.height);
@@ -469,24 +460,6 @@ abstract class BaseRangeHandler<T extends {}> {
     }
 
     return coordinates;
-  }
-}
-
-class NullRangeHandler<T extends {}> extends BaseRangeHandler<T> {
-  replaceTriggerText(_info: TriggerInfo, _text: string | HTMLElement, _element: HTMLElement): void {}
-  getSelectionInfo(_element: HTMLElement): SelectionInfo | undefined {
-    return;
-  }
-  getTextPrecedingCurrentSelection(_element: HTMLElement): string | undefined {
-    return;
-  }
-  getCoordinate(_element: HTMLElement, _position: number, _flipped?: unknown): Coordinate | undefined {
-    return;
-  }
-  insertText(element: HTMLElement, text: string): void {
-  }
-
-  focusAtEnd(element: HTMLElement): void {
   }
 }
 

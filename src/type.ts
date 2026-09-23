@@ -5,11 +5,10 @@ export interface ITribute<T extends {}> {
   autocompleteSeparator: RegExp | null;
   allowSpaces: boolean;
   closeOnScroll: boolean | HTMLElement;
-  current: ITributeContext<T>;
+  current?: ITributeContext<T>;
+  contextFor(element: HTMLElement): ITributeContext<T>;
   collection: Collection<T>[];
-  menu: ITributeMenu<T>;
   hideMenu(): void;
-  range: ITributeRange<T>;
   search: ITributeSearch<T>;
   hasTrailingSpace: boolean;
   isActive: boolean;
@@ -23,20 +22,23 @@ export interface ITribute<T extends {}> {
 }
 
 export interface ITributeContext<T extends {}> {
+  tribute: ITribute<T>;
   activate(): void;
   deactivate(): void;
   isActive: boolean;
+  element: HTMLElement;
+  range: ITributeRange<T>;
+  menu: ITributeMenu<T>;
   selectItemAtIndex(index: string, originalEvent: Event): void;
-  showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void;
-  element?: HTMLElement;
+  showMenuForCollection(collection?: Collection<T>): void;
   filteredItems?: TributeItem<T>[];
   collection?: Collection<T>;
   mentionText: string;
   isMentionLengthUnderMinimum: boolean | undefined;
   process(scrollTo?: boolean): void;
   trigger?: string;
-  sessionStarted(element: HTMLElement, trigger?: string): void;
-  queryChanged(element: HTMLElement, info?: TriggerInfo): void;
+  sessionStarted(trigger?: string): void;
+  queryChanged(info?: TriggerInfo): void;
   refreshMenu(commandEvent: boolean, showMenuOnBackspace: boolean): void;
   selectionMoved(direction: 1 | -1): boolean;
   selectionConfirmed(e: Event, index?: string | null): boolean;

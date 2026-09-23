@@ -13,8 +13,8 @@ class TributeMenuEvents<T extends {}> {
   bind(menu: EventTarget) {
     const menuContainerScrollEvent = debounce(
       () => {
-        if (this.tribute.isActive && this.tribute.current.element) {
-          this.tribute.showMenuFor(this.tribute.current.element, false);
+        if (this.tribute.isActive && this.tribute.current?.element) {
+          this.tribute.showMenuFor(this.tribute.current?.element, false);
         }
       },
       10,
@@ -31,7 +31,10 @@ class TributeMenuEvents<T extends {}> {
     );
 
     const removers: (() => void)[] = []
-    removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
+    const doc = this.tribute.current?.range.getDocument();
+    if (doc) {
+      removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(event), false));
+    }
     removers.push(addHandler(window, 'resize', hideMenu));
 
     if (this.tribute.closeOnScroll === true) {
@@ -63,22 +66,22 @@ class TributeMenuEvents<T extends {}> {
     const tribute = this.tribute;
     if (!(element instanceof HTMLElement)) return;
 
-    if (tribute.menu.element?.contains(element)) {
+    if (tribute.current?.menu.element?.contains(element)) {
       event.preventDefault();
       event.stopPropagation();
 
       const li = element.closest('li');
       if (!(li instanceof HTMLElement) || li.getAttribute('data-disabled') === 'true') return;
 
-      if (tribute.current.filteredItems?.length === 0) {
+      if (tribute.current?.filteredItems?.length === 0) {
         li.setAttribute('data-index', '-1');
       }
 
       const index = li.getAttribute('data-index');
-      tribute.current.selectionConfirmed(event, index);
+      tribute.current?.selectionConfirmed(event, index);
 
       // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (!tribute.current.consumeExternalTrigger()) {
+    } else if (!tribute.current?.consumeExternalTrigger()) {
       setTimeout(() => tribute.hideMenu());
     }
   }

@@ -61,16 +61,14 @@ class Tribute<T extends {}> implements ITribute<T> {
   closeOnScroll: boolean | HTMLElement;
   currentMentionTextSnapshot?: string;
   hasTrailingSpace: boolean;
-  menu: ITributeMenu<T>;
   menuContainer?: Element | null;
   positionMenu: boolean;
   replaceTextSuffix: string | null;
   spaceSelectsMatch: boolean;
   events: ITributeEvents;
   menuEvents: ITributeEvents;
-  range: ITributeRange<T>;
   search: ITributeSearch<T>;
-  current: ITributeContext<T>;
+  private contextMap = new Map<HTMLElement, ITributeContext<T>>();
 
   constructor(args: Partial<TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>>) {
     const compactArgs = compactObject(args);
@@ -82,7 +80,6 @@ class Tribute<T extends {}> implements ITribute<T> {
 
     this.autocompleteMode = config.autocompleteMode;
     this.autocompleteSeparator = config.autocompleteSeparator;
-    this.current = new TributeContext(this);
     this.menuContainer = config.menuContainer;
     this.allowSpaces = config.allowSpaces;
     this.replaceTextSuffix = config.replaceTextSuffix;
@@ -90,7 +87,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     this.hasTrailingSpace = false;
     this.spaceSelectsMatch = config.spaceSelectsMatch;
     this.closeOnScroll = config.closeOnScroll;
-    this.menu = new TributeMenu(this);
 
     if (this.autocompleteMode) {
       config.trigger = '';
@@ -98,22 +94,30 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.collection = this.buildCollection(config);
-    this.range = new TributeRange(this);
     this.events = new TributeEvents(this);
     this.menuEvents = new TributeMenuEvents(this);
     this.search = new TributeSearch(this);
   }
 
+  current?: ITributeContext<T>;
+
   get isActive(): boolean {
-    return this.current.isActive;
+    return this.current ? this.current.isActive : false;
   }
 
   set isActive(value: boolean) {
     if (value) {
-      this.current.activate();
+      this.current?.activate();
     } else {
-      this.current.deactivate();
+      this.current?.deactivate();
     }
+  }
+
+  contextFor(element: HTMLElement): ITributeContext<T> {
+    const context = this.contextMap.get(element);
+    if (!context) throw new Error('Tribute is not attached to this element');
+
+    return context;
   }
 
   triggers() {
@@ -147,6 +151,16 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.ensureEditable(el);
+    const context = new TributeContext({
+      tribute: this,
+      element: el,
+      range: new TributeRange(this, el),
+      menu: new TributeMenu(this),
+    });
+    this.contextMap.set(el, context);
+    if (!this.current) {
+      this.current = context;
+    }
     this.events.bind(el);
     el.setAttribute('data-tribute', 'true');
   }
@@ -165,39 +179,38 @@ class Tribute<T extends {}> implements ITribute<T> {
     // Check for maximum number of items added to the input for the specific Collection
     const index = collectionIndex || 0;
     const collection = this.collection[index];
-    this.current.showMenuForCollection(element, collection);
+    this.current?.showMenuForCollection(collection);
     this.showMenuFor(element);
   }
 
-  showMenuFor(element: HTMLElement & { tributeMenu?: HTMLElement }, scrollTo?: boolean): void {
-    if (typeof this.current.collection === 'undefined') return;
+  showMenuFor(element: HTMLElement, scrollTo?: boolean): void {
+    const context = this.contextFor(element);
+
+    if (context.collection === undefined) return;
 
     // Check for maximum number of items added to the input for the specific Collection
-    if (isMaximumItemsAdded(this.current.collection, element)) {
+    if (isMaximumItemsAdded(context.collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
 
-    this.currentMentionTextSnapshot = this.current.mentionText;
+    this.currentMentionTextSnapshot = context.mentionText;
 
     // create the menu if it doesn't exist.
-    if (!this.menu.element) {
-      const menu = this.menu.create(this.range.getDocument(), this.current.collection.containerClass);
-      element.tributeMenu = menu;
+    if (!context.menu.element) {
+      const menu = context.menu.create(context.range.getDocument(), context.collection.containerClass);
       this.menuEvents.bind(menu);
     }
 
-    this.current.activate();
-    this.menu.activate();
-
-    this.current.process(scrollTo);
+    context.activate();
+    context.menu.activate();
+    context.process(scrollTo);
   }
 
   hideMenu(): void {
-    if (this.menu.isActive) {
-      this.current.deactivate();
-      this.menu.deactivate();
-      this.current = new TributeContext(this);
+    if (this.current?.menu.isActive) {
+      this.current?.deactivate();
+      this.current?.menu.deactivate();
     }
   }
 
@@ -213,8 +226,8 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 
   appendCurrent(newValues: T[], replace: boolean): void {
-    if (this.isActive && typeof this.current.collection !== 'undefined') {
-      appendValues(this.current.collection, newValues, replace);
+    if (this.isActive && typeof this.current?.collection !== 'undefined') {
+      appendValues(this.current?.collection, newValues, replace);
     } else {
       throw new Error('No active state. Please use append instead and pass an index.');
     }
@@ -240,18 +253,19 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  _detach(el: HTMLElement & { tributeMenu?: HTMLElement }): void {
-    this.events.unbind(el);
-    if (el.tributeMenu) {
-      this.menuEvents.unbind(el.tributeMenu);
+  _detach(el: HTMLElement): void {
+    const context = this.contextFor(el);
+    if (context) {
+      this.contextMap.delete(el);
+      this.events.unbind(el);
+      if (context.menu.element !== null) {
+        this.menuEvents.unbind(context.menu.element);
+      }
     }
 
     setTimeout(() => {
       el.removeAttribute('data-tribute');
-      this.current.deactivate();
-      if (el.tributeMenu) {
-        el.tributeMenu.remove();
-      }
+      context.deactivate();
     });
   }
 
