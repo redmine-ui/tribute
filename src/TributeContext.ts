@@ -107,7 +107,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       }
 
       setTimeout(() => {
-        this.selectItemAtIndex(this.menu.selected.toString(), e);
+        this.selectItemAt(this.menu.selected, e);
         this.tribute.hideMenu();
       }, 0);
       return true;
@@ -184,18 +184,19 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       return;
     }
 
-    if (this.element !== document.activeElement) {
-      this.range.focusAtEnd();
-    }
-
+    this.range.focusAtEnd();
     this.collection = collection;
     this.externalTrigger = true;
 
     this.range.insertText(this.collection.trigger);
   }
 
-  selectItemAtIndex(index: string, originalEvent: Event) {
+  private selectItemAtIndex(index: string, originalEvent: Event): void {
     const _index = Number.parseInt(index, 10);
+    this.selectItemAt(_index, originalEvent);
+  }
+
+  private selectItemAt(_index: number, originalEvent: Event) {
     if (Number.isNaN(_index) || !this.filteredItems || !this.collection || !this.element) return;
 
     if (this.collection.selectTemplate === null) return;

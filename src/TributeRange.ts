@@ -1,7 +1,6 @@
 // Thanks to https://github.com/jeff-collins/ment.io
 import { isTextAreaOrInput } from './helpers.js';
 import type { Coordinate, ITribute, ITributeRange, TributeItem, TriggerInfo } from './type';
-
 type Rect = {
   top: number;
   left: number;
@@ -52,7 +51,7 @@ class TributeRange<T extends {}> implements ITributeRange<T> {
   }
 
   focusAtEnd(): void {
-    if (!this.element) return;
+    if (!this.element || this.element === document.activeElement) return;
     this.rangeHandler.focusAtEnd(this.element);
   }
 

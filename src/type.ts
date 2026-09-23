@@ -29,7 +29,6 @@ export interface ITributeContext<T extends {}> {
   element: HTMLElement;
   range: ITributeRange<T>;
   menu: ITributeMenu<T>;
-  selectItemAtIndex(index: string, originalEvent: Event): void;
   showMenuFor(element: HTMLElement, scrollTo: boolean | undefined, bindMenu: (menu: HTMLElement) => void): void;
   showMenuForCollection(collection?: Collection<T>): void;
   hasFilteredItems: boolean;
