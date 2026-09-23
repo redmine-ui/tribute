@@ -73,7 +73,7 @@ class TributeMenuEvents<T extends {}> {
       const li = element.closest('li');
       if (!(li instanceof HTMLElement) || li.getAttribute('data-disabled') === 'true') return;
 
-      if (tribute.current?.filteredItems?.length === 0) {
+      if (!tribute.current?.hasFilteredItems) {
         li.setAttribute('data-index', '-1');
       }
 

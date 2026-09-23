@@ -31,7 +31,7 @@ export interface ITributeContext<T extends {}> {
   menu: ITributeMenu<T>;
   selectItemAtIndex(index: string, originalEvent: Event): void;
   showMenuForCollection(collection?: Collection<T>): void;
-  filteredItems?: TributeItem<T>[];
+  hasFilteredItems: boolean;
   collection?: Collection<T>;
   mentionText: string;
   isMentionLengthUnderMinimum: boolean | undefined;

@@ -10,7 +10,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   readonly menu: ITributeMenu<T>;
 
   #isActive = false;
-  filteredItems?: TributeItem<T>[];
+  private filteredItems?: TributeItem<T>[];
   collection?: Collection<T>;
   mentionText: string;
   externalTrigger: boolean;
@@ -129,6 +129,10 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       return true;
     }
     return false;
+  }
+
+  get hasFilteredItems(): boolean {
+    return !!this.filteredItems && this.filteredItems.length > 0;
   }
 
   process(scrollTo: boolean) {
