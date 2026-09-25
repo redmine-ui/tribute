@@ -127,38 +127,6 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     return this.rangeHandler.getTextPrecedingCurrentSelection(this, this.element);
   }
 
-  isMenuOffScreen(coordinates: Coordinate, menuDimensions: { width: number; height: number }) {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const doc = document.documentElement;
-    const windowLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-    const windowTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
-
-    const menuTop =
-      typeof coordinates.top === 'number'
-        ? coordinates.top
-        : typeof coordinates.bottom === 'number'
-          ? windowTop + windowHeight - coordinates.bottom - menuDimensions.height
-          : undefined;
-    const menuRight =
-      typeof coordinates.right === 'number' ? coordinates.right : typeof coordinates.left === 'number' ? coordinates.left + menuDimensions.width : undefined;
-    const menuBottom =
-      typeof coordinates.bottom === 'number' ? coordinates.bottom : typeof coordinates.top === 'number' ? coordinates.top + menuDimensions.height : undefined;
-    const menuLeft =
-      typeof coordinates.left === 'number'
-        ? coordinates.left
-        : typeof coordinates.right === 'number'
-          ? windowLeft + windowWidth - coordinates.right - menuDimensions.width
-          : undefined;
-
-    return {
-      top: typeof menuTop === 'number' ? menuTop < Math.floor(windowTop) : undefined,
-      right: typeof menuRight === 'number' ? menuRight > Math.ceil(windowLeft + windowWidth) : undefined,
-      bottom: typeof menuBottom === 'number' ? menuBottom > Math.ceil(windowTop + windowHeight) : undefined,
-      left: typeof menuLeft === 'number' ? menuLeft < Math.floor(windowLeft) : undefined,
-    };
-  }
-
   scrollIntoView(_elem?: unknown) {
     const reasonableBuffer = 20;
     let clientRect: DOMRect | undefined;
