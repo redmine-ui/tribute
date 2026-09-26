@@ -447,36 +447,44 @@ Sometimes you may need to have the Tribute menu attach to a scrollable parent el
 
 ### Loading remote data
 
-If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a function.
+If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a async function.
 
 ```js
 {
-  //..other config options
+  // ..other config options
   // function retrieving an array of objects
-  values: (text, cb) => {
-    remoteSearch(text, users => cb(users));
-  },
+  values: async (text) => {
+            const URL = "YOUR DATA ENDPOINT";
+            cosnt response = await fetch(`${URL}?q=${text}`);
+            if (!response.ok) {
+              throw new Error(`HTTP Error: ${response.status}`);
+            }
+            return await response.json();
+          },
   lookup: 'name',
   fillAttr: 'name'
 }
 ```
 
-You would then define a function, in this case `remoteSearch`, that returns your data from the backend.
+Older functions using callbacks are also supported.
 
 ```js
-function remoteSearch(text, cb) {
-  const URL = "YOUR DATA ENDPOINT";
-  fetch(URL + "?q=" + text)
-    .then(res => {
-      if (res.ok) {
-        return res.json();
-      }
-      cb([]);
-    })
-    .then(data => {
-      cb(data);
-    })
-}
+{
+  // ..other config options
+  // function retrieving an array of objects
+  values: (text, cb) => {
+            const URL = "YOUR DATA ENDPOINT";
+            fetch(`${URL}?q=${text}`)
+              .then(response => {
+                if (response.ok) {
+                  return response.json();
+                }
+                cb([]);
+              })
+              .then(data => {
+                cb(data);
+              })
+          },
 ```
 
 ### Hide menu when no match is returned

@@ -274,11 +274,15 @@
               return "#" + item.original.name;
             },
             // function retrieving an array of objects
-            values: function(_, cb) {
-              setTimeout(() => cb([
-                { name: "Bob Bill", email: "bobbill@example.com" },
-                { name: "Steve Stevenston", email: "steve@example.com" }
-              ]), 1000)
+            values: async (_) => {
+              let promise = new Promise((resolve, reject) => {
+                setTimeout(() => resolve([
+                  { name: "Bob Bill", email: "bobbill@example.com" },
+                  { name: "Steve Stevenston", email: "steve@example.com" }
+                ]), 1000);
+              });
+              let result = await promise;
+              return result;
             },
             lookup: "name",
             fillAttr: "name"

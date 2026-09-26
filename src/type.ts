@@ -146,7 +146,7 @@ export type TributeCollection<T extends {}> = {
   fillAttr: string;
 
   // array of objects to match
-  values: Array<T> | ((text: string, cb: (result: Array<T>) => void) => void) | null;
+  values: Array<T> | ((text: string, cb: (result: Array<T>) => void) => void) | ((text: string) => Promise<Array<T>>) | Promise<Array<T>> | null;
 
   // When your values function is async, an optional loading template to show
   loadingItemTemplate: string | null;

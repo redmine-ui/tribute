@@ -21,10 +21,26 @@ export function query<T extends {}>(
     callback(menuItemLimit ? items.slice(0, menuItemLimit) : items);
   };
 
-  if (typeof values === 'function') {
-    values(mentionText, resolve);
-  } else if (values !== null) {
+  if (Array.isArray(values)) {
     resolve(values);
+    return;
+  }
+
+  if (isPromise(values)) {
+    values.then((items) => resolve(items)).catch(() => callback([]));
+    return;
+  }
+
+  if (typeof values === 'function') {
+    // Do not reverse the order of if and else. A function taking two arguments
+    // is considered to also accept a function taking one argument.
+    if (isPromiseValues(values)) {
+      const result = values(mentionText);
+      result.then((items) => resolve(items)).catch(() => callback([]));
+    } else {
+      values(mentionText, resolve);
+    }
+    return;
   }
 }
 
@@ -38,8 +54,8 @@ export function isMaximumItemsAdded<T extends {}>({ maxDisplayItems, trigger, is
 }
 
 export function appendValues<T extends {}>(collection: Collection<T>, newValues: T[], replace: boolean): void {
-  if (typeof collection.values === 'function') {
-    throw new Error('Unable to append to values, as it is a function.');
+  if (!Array.isArray(collection.values)) {
+    throw new Error('Unable to append to values, as it is a function or a promise.');
   }
   collection.values = replace || collection.values === null ? newValues : collection.values.concat(newValues);
 }
@@ -58,4 +74,15 @@ export function getItemClassName<T extends {}>({ itemClass, selectClass }: Colle
 
 export function renderMenuItem<T extends {}>({ menuItemTemplate }: Collection<T>, item: TributeItem<T>, tribute: ITribute<T>): string | HTMLElement {
   return menuItemTemplate !== null ? menuItemTemplate(item, tribute) : '';
+}
+
+function isPromise(val: unknown): val is Promise<unknown> {
+  return val !== null && (typeof val === 'object' || typeof val === 'function') && typeof (val as Record<string, unknown>).then === 'function';
+}
+
+type CallbackValues<T extends {}> = (text: string, cb: (result: Array<T>) => void) => void;
+type PromiseValues<T extends {}> = (text: string) => Promise<Array<T>>;
+
+function isPromiseValues<T extends {}>(fn: CallbackValues<T> | PromiseValues<T>): fn is PromiseValues<T> {
+  return fn.length < 2;
 }

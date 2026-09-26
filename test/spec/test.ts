@@ -329,6 +329,83 @@ describe('Tribute autocomplete mode cases', () => {
 
       detachTribute(tribute, input.id);
     });
+
+    it(`when values key is a async function. For : ${elementType}`, async () => {
+      const input = createDomElement(elementType) as HTMLInputElement;
+
+      const collectionObject: PartialCollection<TestItem> = {
+        autocompleteMode: true,
+        selectClass: 'sample-highlight',
+
+        noMatchTemplate: (instance) => {
+          if (instance) {
+            instance.hideMenu();
+          }
+          return '';
+        },
+
+        selectTemplate: (item, instance) => {
+          if (typeof item === 'undefined') throw new Error();
+          if (instance.current?.element && Tribute.isContentEditable(instance.current?.element)) {
+            return `&nbsp;<a contenteditable=false>${item.original.value}</a>`;
+          }
+
+          return item.original.value;
+        },
+
+        values: asyncSearchFn,
+      };
+
+      async function asyncSearchFn(text: string) {
+        if (text === 'a') {
+          return await [
+            { key: 'Alabama', value: 'Alabama' },
+            { key: 'Alaska', value: 'Alaska' },
+            { key: 'Arizona', value: 'Arizona' },
+            { key: 'Arkansas', value: 'Arkansas' },
+          ];
+        } else if (text === 'c') {
+          return await [
+            { key: 'California', value: 'California' },
+            { key: 'Colorado', value: 'Colorado' },
+          ];
+        } else {
+          return await [];
+        }
+      }
+
+      const tribute = attachTribute(collectionObject, input.id);
+
+      await fillIn(input, ' a');
+      let popupList = document.querySelectorAll('.tribute-container > ul > li');
+      expect(popupList.length).to.equal(4);
+      simulateMouseClick(popupList[0]);
+
+      if (elementType === 'text') {
+        expect(input.value).to.equal(' Alabama ');
+      } else if (elementType === 'contenteditable') {
+        // The first letter is nbsp
+        expect(input.innerText).to.equal('  Alabama ');
+      }
+
+      await fillIn(input, ' c');
+      popupList = document.querySelectorAll('.tribute-container > ul > li');
+      expect(popupList.length).to.equal(2);
+      simulateMouseClick(popupList[1]);
+
+      if (elementType === 'text') {
+        expect(input.value).to.equal(' Alabama  Colorado ');
+      } else if (elementType === 'contenteditable') {
+        // The first letter is nbsp
+        expect(input.innerText).to.equal('  Alabama   Colorado ');
+      }
+
+      await fillIn(input, ' none');
+      const popupListWrapper = document.querySelector('.tribute-container') as HTMLElement;
+      expect(popupListWrapper?.style.display).to.equal('none');
+
+      detachTribute(tribute, input.id);
+    });
   });
 
   ['contenteditable'].forEach((elementType) => {
