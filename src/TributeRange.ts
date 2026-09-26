@@ -8,7 +8,7 @@ import {
   type SelectionInfo,
   textAreaOrInputRangeHandler,
 } from './range-handler';
-import type { Coordinate, ITribute, ITributeRange, TributeItem, TriggerInfo } from './type';
+import type { ITribute, ITributeRange, TributeItem, TriggerInfo } from './type';
 
 class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeContext<T> {
   tribute: ITribute<T>;
