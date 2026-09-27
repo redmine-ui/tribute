@@ -1,3 +1,4 @@
+import type { HtmlHelper } from './html';
 export type Collection<T extends {}> = TributeCollection<T> & TributeTemplate<T>;
 
 export interface ITribute<T extends {}> {
@@ -19,6 +20,7 @@ export interface ITribute<T extends {}> {
   showMenuForCollection(element: HTMLElement, collectionIndex?: number): void;
   spaceSelectsMatch: boolean;
   triggers(): (string | undefined)[];
+  htmlHelper: HtmlHelper;
 }
 
 export interface ITributeContext<T extends {}> {
@@ -43,6 +45,7 @@ export interface ITributeContext<T extends {}> {
   selectionConfirmed(e: Event, index?: string | null): boolean;
   sessionCanceled(): boolean;
   consumeExternalTrigger(): boolean;
+  htmlHelper: HtmlHelper;
 }
 
 export type Coordinate = {

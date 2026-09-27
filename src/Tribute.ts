@@ -1,5 +1,6 @@
 import { appendValues } from './collection';
 import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
+import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
 import TributeMenu from './TributeMenu';
@@ -250,6 +251,10 @@ class Tribute<T extends {}> implements ITribute<T> {
       el.removeAttribute('data-tribute');
       context.deactivate();
     });
+  }
+
+  get htmlHelper() {
+    return this.current?.htmlHelper ?? htmlHelperFor(document);
   }
 
   private buildCollection(config: TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>) {

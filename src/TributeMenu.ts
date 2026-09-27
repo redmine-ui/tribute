@@ -23,10 +23,9 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   }
 
   create(doc: Document, containerClass: string): HTMLElement {
-    const wrapper = doc.createElement('div');
-    this.ul = doc.createElement('ul');
-    wrapper.className = containerClass;
-    wrapper.appendChild(this.ul);
+    const { h } = this.tribute.htmlHelper;
+    this.ul = h('ul');
+    const wrapper = h('div', { class: containerClass }, this.ul);
 
     this.element = this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
     return this.element;
@@ -251,7 +250,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     });
 
     items.forEach((item, index) => {
-      const li = this._createMenuItem(item, collection, index, doc);
+      const li = this._createMenuItem(item, collection, index);
       fragment.appendChild(li);
     });
     ul.appendChild(fragment);
@@ -259,18 +258,18 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     return true;
   }
 
-  _createMenuItem(item: TributeItem<T>, collection: Collection<T>, index: number, doc: Document) {
-    const li = doc.createElement('li');
-    li.setAttribute('data-index', index.toString());
-    if (item.original.disabled) {
-      li.setAttribute('data-disabled', 'true');
-    }
-    li.className = getItemClassName(collection, this.selected === index);
+  _createMenuItem(item: TributeItem<T>, collection: Collection<T>, index: number) {
+    const { h } = this.tribute.htmlHelper;
+    const li = h('li', {
+      class: getItemClassName(collection, this.selected === index),
+      'data-index': index.toString(),
+      'data-disabled': item.original.disabled ? 'true' : undefined,
+    });
 
     // remove all content in the li and append the content of menuItemTemplate
     const menuItemDomOrString = renderMenuItem(collection, item, this.tribute);
     if (menuItemDomOrString instanceof Element) {
-      li.innerHTML = '';
+      li.replaceChildren();
       li.appendChild(menuItemDomOrString);
     } else {
       li.innerHTML = menuItemDomOrString;

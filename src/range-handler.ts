@@ -1,4 +1,5 @@
 import { isTextAreaOrInput } from './helpers';
+import { htmlHelperFor } from './html';
 import type { Coordinate, ITribute, TriggerInfo } from './type';
 
 export type Rect = {
@@ -223,20 +224,21 @@ function getContentEditableSelectedPath<T extends {}>(range: ITributeRangeContex
 
 function pasteHtml<T extends {}>(range: ITributeRangeContext<T>, htmlOrElem: string | HTMLElement, startPos: number, endPos: number): void {
   const sel = range.getWindowSelection();
-  const r = range.getDocument().createRange();
+  const doc = range.getDocument();
+  const r = doc.createRange();
   if (sel === null || sel.anchorNode === null) return;
 
   r.setStart(sel.anchorNode, startPos);
   r.setEnd(sel.anchorNode, endPos);
   r.deleteContents();
 
-  const el = range.getDocument().createElement('div');
+  const el = doc.createElement('div');
   if (htmlOrElem instanceof HTMLElement) {
     el.appendChild(htmlOrElem);
   } else {
     el.innerHTML = htmlOrElem;
   }
-  const frag = range.getDocument().createDocumentFragment();
+  const frag = doc.createDocumentFragment();
   let node: Node;
   let lastNode: Node | undefined;
   while (el.firstChild) {
@@ -371,9 +373,24 @@ export const textAreaOrInputRangeHandler = {
       'wordSpacing',
     ];
 
-    const div = range.getDocument().createElement('div');
-    div.id = 'input-textarea-caret-position-mirror-div';
-    range.getDocument().body.appendChild(div);
+    const doc = range.getDocument();
+    const { h } = htmlHelperFor(doc);
+
+    const input = element as HTMLInputElement | HTMLTextAreaElement;
+    let text0 = input.value.substring(0, position);
+    if (element.nodeName === 'INPUT') {
+      text0 = text0.replace(/\s/g, ' ');
+    }
+    const text2 = input.value.substring(position);
+
+    const span = h('span', '\u200B');
+    const div =
+      // biome-ignore format: for hyperscript helper
+      h('div', { id: 'input-textarea-caret-position-mirror-div' },
+        h('span', text0),
+        span,
+        h('span', text2)
+      );
 
     const computed = getComputedStyle(element);
 
@@ -390,23 +407,8 @@ export const textAreaOrInputRangeHandler = {
       div.style.setProperty(prop, value);
     }
 
-    const span0 = document.createElement('span');
-    span0.textContent = (element as HTMLInputElement | HTMLTextAreaElement).value.substring(0, position);
-    div.appendChild(span0);
-
-    if (element.nodeName === 'INPUT' && div.textContent !== null) {
-      div.textContent = div.textContent.replace(/\s/g, ' ');
-    }
-
-    const span = range.getDocument().createElement('span');
-    span.textContent = '\u200B';
-    div.appendChild(span);
-
-    const span2 = range.getDocument().createElement('span');
-    span2.textContent = (element as HTMLInputElement | HTMLTextAreaElement).value.substring(position);
-    div.appendChild(span2);
-
     const rect = element.getBoundingClientRect();
+    doc.body.appendChild(div);
 
     div.style.position = 'fixed';
     div.style.left = `${rect.left}px`;
@@ -416,7 +418,7 @@ export const textAreaOrInputRangeHandler = {
     div.scrollTop = element.scrollTop;
 
     const spanRect = span.getBoundingClientRect();
-    range.getDocument().body.removeChild(div);
+    doc.body.removeChild(div);
     return getFixedCoordinatesRelativeToRect(range, spanRect);
   },
 
