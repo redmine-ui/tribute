@@ -512,28 +512,28 @@ export const contentEditableRangeHandler = {
     pasteHtml(range, _text, info.mentionPosition, endPos);
   },
 
-  insertText<T extends {}>(_range: ITributeRangeContext<T>, _element: HTMLElement, text: string): void {
-    const sel = window.getSelection();
-    const range = sel?.getRangeAt(0);
-    if (!sel || !range) return;
+  insertText<T extends {}>(range: ITributeRangeContext<T>, _element: HTMLElement, text: string): void {
+    const sel = range.getWindowSelection();
+    const range0 = sel?.getRangeAt(0);
+    if (!sel || !range0) return;
 
-    range.deleteContents();
-    const textNode = document.createTextNode(text);
-    range.insertNode(textNode);
-    range.selectNodeContents(textNode);
-    range.collapse(false);
+    range0.deleteContents();
+    const textNode = range.getDocument().createTextNode(text);
+    range0.insertNode(textNode);
+    range0.selectNodeContents(textNode);
+    range0.collapse(false);
     sel.removeAllRanges();
-    sel.addRange(range);
+    sel.addRange(range0);
   },
 
-  focusAtEnd<T extends {}>(_range: ITributeRangeContext<T>, element: HTMLElement): void {
+  focusAtEnd<T extends {}>(range: ITributeRangeContext<T>, element: HTMLElement): void {
     element.focus();
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    range.collapse(false);
-    const sel = window.getSelection();
+    const newrange = range.getDocument().createRange();
+    newrange.selectNodeContents(element);
+    newrange.collapse(false);
+    const sel = range.getWindowSelection();
     sel?.removeAllRanges();
-    sel?.addRange(range);
+    sel?.addRange(newrange);
   },
 
   getSelectionInfo<T extends {}>(range: ITributeRangeContext<T>, _element: HTMLElement): SelectionInfo | undefined {
