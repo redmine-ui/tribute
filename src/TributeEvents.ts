@@ -177,13 +177,15 @@ class TributeEvents<T extends {}> {
           }
         },
         backspace: (_e: Event, el: HTMLElement) => {
-          if (this.tribute.isActive) {
-            const mentionText = this.tribute.current?.mentionText;
-            if (mentionText && mentionText.length < 1) {
-              this.tribute.hideMenu();
-            } else {
-              this.tribute.showMenuFor(el);
-            }
+          if (!this.tribute.isActive || this.tribute.current === undefined) return;
+
+          // Re-show the menu while deleting characters. Keep this key-driven: doing it
+          // in queryChanged() would also reopen the menu whenever the caret merely moves
+          // into an already-inserted mention.
+          if (this.tribute.current.mentionText.length < 1) {
+            this.tribute.hideMenu();
+          } else {
+            this.tribute.showMenuFor(el);
           }
         },
       };
