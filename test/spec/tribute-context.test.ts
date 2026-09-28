@@ -43,6 +43,10 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
     up: (...args) => record('menu.up', args),
     down: (...args) => record('menu.down', args),
     unselect: (...args) => record('menu.unselect', args),
+    showLoading: (...args) => {
+      record('menu.showLoading', args);
+      return false;
+    },
   };
 
   const range: ITributeRange<T> = {
@@ -91,7 +95,7 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
 
   tribute.contextFor = contextFor;
 
-  return { tribute, menu, range, search, calls };
+  return { tribute, menu, range, search, calls, record };
 }
 
 function makeCollection(overrides: Partial<Collection<Person>> = {}): Collection<Person> {
@@ -447,18 +451,24 @@ describe('TributeContext', () => {
         },
       });
       const mock = createMockTribute<Person>({ collection: [collection] });
+
       const ul = document.createElement('ul');
       const menuEl = document.createElement('div');
       menuEl.appendChild(ul);
-      mock.menu.element = menuEl;
-
+      mock.menu = {
+        ...mock.menu,
+        element: menuEl,
+        showLoading: (...args) => {
+          mock.record('menu.showLoading', args);
+          return true;
+        },
+      };
       const element = document.createElement('div');
       const context = new TributeContext<Person>({ ...mock, element });
       context.sessionStarted('@');
-
       context.showMenuFor(element, true, () => {});
 
-      expect(ul.innerHTML).to.equal('<li>Loading…</li>');
+      expect(mock.calls['menu.showLoading']).to.deep.equal([['<li>Loading…</li>']]);
       expect(mock.calls['range.positionMenuAtCaret']).to.deep.equal([[true]]);
     });
 

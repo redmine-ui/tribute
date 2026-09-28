@@ -53,3 +53,12 @@ export function compactObject<T extends Record<string, unknown>>(args: T): Compa
 
   return compactArgs;
 }
+
+export function renderInto(ul: HTMLElement, content: string | HTMLElement): void {
+  if (content instanceof Element) {
+    ul.replaceChildren();
+    ul.appendChild(content);
+  } else {
+    ul.innerHTML = content;
+  }
+}

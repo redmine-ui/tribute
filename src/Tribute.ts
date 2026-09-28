@@ -12,6 +12,7 @@ import type {
   ITributeContext,
   ITributeEvents,
   ITributeSearch,
+  StringOrElementTemplate,
   TributeArgument,
   TributeCollection,
   TributeElement,
@@ -256,16 +257,17 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 
   private buildCollection(config: TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>) {
-    const { values, collection, menuItemTemplate, noMatchTemplate, selectTemplate, ...collectionConfig } = config;
+    const { values, collection, menuItemTemplate, noMatchTemplate, selectTemplate, loadingItemTemplate, ...collectionConfig } = config;
 
     if (values) {
       return [
         {
           ...collectionConfig,
           values: values,
-          selectTemplate: selectTemplate ? selectTemplate.bind(this) : (item?: TributeItem<T>) => defaultSelectTemplate(this.current, item),
-          menuItemTemplate: (menuItemTemplate || defaultMenuItemTemplate).bind(this),
-          noMatchTemplate: this.createNoMatchTemplate(noMatchTemplate, noMatchTemplate),
+          selectTemplate: resolveTemplate(this, selectTemplate, defaultSelectTemplate),
+          menuItemTemplate: resolveTemplate(this, menuItemTemplate, defaultMenuItemTemplate),
+          noMatchTemplate: resolveStringOrElementTemplate(this, noMatchTemplate, defaultNoMatchTemplate),
+          loadingItemTemplate: resolveStringOrElementTemplate(this, loadingItemTemplate, undefined),
         },
       ];
     }
@@ -275,25 +277,14 @@ class Tribute<T extends {}> implements ITribute<T> {
       return collection.map((item) => ({
         ...collectionConfig,
         ...item,
-        selectTemplate: item.selectTemplate ? item.selectTemplate.bind(this) : (item?: TributeItem<T>) => defaultSelectTemplate(this.current, item),
-        menuItemTemplate: (item.menuItemTemplate || defaultMenuItemTemplate).bind(this),
-        noMatchTemplate: this.createNoMatchTemplate(item.noMatchTemplate, noMatchTemplate),
+        selectTemplate: resolveTemplate(this, item.selectTemplate, defaultSelectTemplate),
+        menuItemTemplate: resolveTemplate(this, item.menuItemTemplate, defaultMenuItemTemplate),
+        noMatchTemplate: resolveStringOrElementTemplate(this, item.noMatchTemplate, noMatchTemplate ?? defaultNoMatchTemplate),
+        loadingItemTemplate: resolveStringOrElementTemplate(this, item.loadingItemTemplate, undefined),
       }));
     } else {
       throw new Error('[Tribute] No collection specified.');
     }
-  }
-
-  private createNoMatchTemplate(template: TributeTemplate<T>['noMatchTemplate'] | undefined, defaultNoMatchTemplate: TributeTemplate<T>['noMatchTemplate']) {
-    if (typeof template === 'string') {
-      return template.trim() === '' ? null : template;
-    }
-
-    if (typeof template === 'function') {
-      return template.bind(this);
-    }
-
-    return defaultNoMatchTemplate ?? (() => '<li>No Match Found!</li>').bind(this);
   }
 
   static isContentEditable(element: HTMLElement) {
@@ -301,7 +292,26 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 }
 
-function defaultSelectTemplate<T extends {}>(current: ITributeContext<T> | undefined, item?: TributeItem<T>): string {
+function resolveTemplate<F extends (...args: never[]) => unknown>(tribute: unknown, custom: F | null | undefined, fallback: F): F {
+  return (custom ?? fallback).bind(tribute) as F;
+}
+
+function resolveStringOrElementTemplate<T extends {}>(
+  tribute: Tribute<T>,
+  template: StringOrElementTemplate<T> | undefined,
+  fallback: StringOrElementTemplate<T> | undefined,
+): StringOrElementTemplate<T> {
+  if (typeof template === 'string') {
+    return template.trim() === '' ? null : template;
+  }
+  if (typeof template === 'function') {
+    return template.bind(tribute);
+  }
+  return fallback ?? null;
+}
+
+function defaultSelectTemplate<T extends {}>(item: TributeItem<T> | undefined, tribute: ITribute<T>): string | HTMLElement {
+  const current = tribute?.current;
   if (!current?.collection) {
     throw new Error('current Collection is undefined');
   }
@@ -311,13 +321,19 @@ function defaultSelectTemplate<T extends {}>(current: ITributeContext<T> | undef
   const trigger = current.collection.trigger ?? '';
 
   if (current.element && isNotTextAreaOrInput(current.element)) {
-    return `<span class="tribute-mention">${trigger}${result}</span>`;
+    const { h } = tribute.htmlHelper;
+    return h('span', `${trigger}${result}`, { class: 'tribute-mention' });
   }
   return `${trigger}${result}`;
 }
 
 function defaultMenuItemTemplate<T extends {}>(matchItem: TributeItem<T>) {
   return matchItem.string;
+}
+
+function defaultNoMatchTemplate<T extends {}>(tribute?: ITribute<T>): string | HTMLElement {
+  const { h } = tribute?.htmlHelper || htmlHelperFor(document);
+  return h('li', 'No Match Found!');
 }
 
 export default Tribute;

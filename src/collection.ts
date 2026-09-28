@@ -1,4 +1,4 @@
-import type { Collection, ITribute, ITributeSearch, TributeItem } from './type';
+import type { Collection, ITribute, ITributeSearch, StringOrElementTemplate, TributeItem } from './type';
 
 export function query<T extends {}>(
   { searchOpts, lookup, values, menuItemLimit }: Collection<T>,
@@ -60,12 +60,12 @@ export function appendValues<T extends {}>(collection: Collection<T>, newValues:
   collection.values = replace || collection.values === null ? newValues : collection.values.concat(newValues);
 }
 
-export function resolveNoMatchContent<T extends {}>({ noMatchTemplate }: Collection<T>): string | null {
-  if (typeof noMatchTemplate === 'function') {
-    const result = noMatchTemplate();
+export function resolveContent<T extends {}>(tribute: ITribute<T>, template: StringOrElementTemplate<T>): string | HTMLElement | null {
+  if (typeof template === 'function') {
+    const result = template(tribute);
     return result || null;
   }
-  return noMatchTemplate || null;
+  return template || null;
 }
 
 export function getItemClassName<T extends {}>({ itemClass, selectClass }: Collection<T>, isSelected: boolean): string {

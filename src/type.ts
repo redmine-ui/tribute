@@ -83,6 +83,7 @@ export interface ITributeMenu<T extends {}> {
   up(count: number): void;
   down(count: number): void;
   unselect(): void;
+  showLoading(template: StringOrElementTemplate<T>): boolean;
 }
 
 export interface ITributeEvents {
@@ -150,9 +151,6 @@ export type TributeCollection<T extends {}> = {
   // array of objects to match
   values: Array<T> | ((text: string, cb: (result: Array<T>) => void) => void) | ((text: string) => Promise<Array<T>>) | Promise<Array<T>> | null;
 
-  // When your values function is async, an optional loading template to show
-  loadingItemTemplate: string | null;
-
   // specify whether a space is required before the trigger character
   requireLeadingSpace?: boolean;
 
@@ -188,6 +186,8 @@ export type TributeCollection<T extends {}> = {
   isBlocked?: boolean;
 };
 
+export type StringOrElementTemplate<T extends {}> = ((instance?: ITribute<T>) => string | HTMLElement) | string | null;
+
 export type TributeTemplate<T extends {}> = {
   // function called on select that returns the content to insert
   selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>) => string | HTMLElement) | null;
@@ -198,7 +198,10 @@ export type TributeTemplate<T extends {}> = {
   // template for when no match is found (optional).
   // Unset: a default "No Match Found!" item is shown.
   // '' (or a function returning ''): the menu is hidden.
-  noMatchTemplate: ((instance?: ITribute<T>) => string) | string | null;
+  noMatchTemplate: StringOrElementTemplate<T>;
+
+  // When your values function is async, an optional loading template to show
+  loadingItemTemplate: StringOrElementTemplate<T>;
 };
 
 export type CollectionInput<T extends {}> = Partial<Omit<Collection<T>, 'values'>> & Pick<TributeCollection<T>, 'values'>;

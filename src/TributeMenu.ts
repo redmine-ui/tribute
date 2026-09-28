@@ -1,6 +1,6 @@
-import { getItemClassName, renderMenuItem, resolveNoMatchContent } from './collection';
-import { addHandler } from './helpers';
-import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from './type';
+import { getItemClassName, renderMenuItem, resolveContent } from './collection';
+import { addHandler, renderInto } from './helpers';
+import type { Collection, Coordinate, ITribute, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
@@ -105,6 +105,17 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       }
     } while (this.itemDisabled);
     this.setActiveLi();
+  }
+
+  showLoading(template: StringOrElementTemplate<T>): boolean {
+    if (!this.ul) throw new Error('menu do not have "ul" element');
+
+    const content = resolveContent(this.tribute, template);
+    if (content !== null) {
+      renderInto(this.ul, content);
+      return true;
+    }
+    return false;
   }
 
   setActiveLi(index?: number) {
@@ -219,17 +230,17 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     });
     this.element.dispatchEvent(noMatchEvent);
 
-    const content = resolveNoMatchContent(collection);
+    const content = resolveContent(this.tribute, collection.noMatchTemplate);
     if (content === null) {
       this.tribute.hideMenu();
       return false;
     }
-    ul.innerHTML = content;
+    renderInto(ul, content);
     return true;
   }
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
-    ul.innerHTML = '';
+    ul.replaceChildren();
     const doc = this.tribute.current?.range.getDocument();
     if (!doc) return false;
 

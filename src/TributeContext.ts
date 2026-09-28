@@ -176,12 +176,11 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   private process(scrollTo: boolean) {
     if (this.menu.element === null || this.state.kind === 'idle') return;
 
-    const ul = this.menu.element.querySelector('ul');
-    if (ul === null) throw new Error('menu do not have "ul" element');
-
-    if (isAsync(this.state.collection) && this.state.collection.loadingItemTemplate) {
-      ul.innerHTML = this.state.collection.loadingItemTemplate;
-      this.range.positionMenuAtCaret(scrollTo);
+    if (isAsync(this.state.collection)) {
+      const loadingshown = this.menu.showLoading(this.state.collection.loadingItemTemplate);
+      if (loadingshown) {
+        this.range.positionMenuAtCaret(scrollTo);
+      }
     }
 
     query(this.state.collection, this.tribute.search, this.state.mentionText, (items) => {
