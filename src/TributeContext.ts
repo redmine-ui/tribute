@@ -1,9 +1,10 @@
 import { isAsync, isMaximumItemsAdded, query } from './collection';
 import { htmlHelperFor } from './html';
+import TributeMenu from './TributeMenu';
 import TributeRange from './TributeRange';
 import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, TributeItem, TriggerInfo } from './type';
 
-type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range?: ITributeRange<T>; menu: ITributeMenu<T> };
+type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range?: ITributeRange<T>; menu?: ITributeMenu<T> };
 
 type SessionBase<T extends {}> = {
   trigger: string;
@@ -29,7 +30,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     this.tribute = tribute;
     this.element = element;
     this.range = range ?? new TributeRange<T>(this, element);
-    this.menu = menu;
+    this.menu = menu ?? new TributeMenu(this);
     this.state = { kind: 'idle', mentionText: '' };
     this.htmlHelper = htmlHelperFor(this.range.getDocument());
   }
@@ -98,7 +99,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     if (this.state.kind === 'idle') return;
 
     if (this.isMentionLengthUnderMinimum) {
-      this.tribute.hideMenu();
+      this.hideMenu();
       return;
     }
 
@@ -131,7 +132,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       if (index !== null) {
         this.selectItemAtIndex(index, e);
       }
-      this.tribute.hideMenu();
+      this.hideMenu();
       return true;
     }
     const filteredItems = this.state.filteredItems;
@@ -142,7 +143,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
       setTimeout(() => {
         this.selectItemAt(this.menu.selected, e);
-        this.tribute.hideMenu();
+        this.hideMenu();
       }, 0);
       return true;
     }
@@ -151,7 +152,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
   sessionCanceled(): boolean {
     if (this.isActive) {
-      this.tribute.hideMenu();
+      this.hideMenu();
       return true;
     }
     return false;
@@ -165,6 +166,13 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       return true;
     }
     return false;
+  }
+
+  hideMenu() {
+    if (this.menu.isActive) {
+      this.deactivate();
+      this.menu.deactivate();
+    }
   }
 
   get hasFilteredItems(): boolean {

@@ -46,6 +46,7 @@ export interface ITributeContext<T extends {}> {
   sessionCanceled(): boolean;
   consumeExternalTrigger(): boolean;
   htmlHelper: HtmlHelper;
+  hideMenu(): void;
 }
 
 export type Coordinate = {

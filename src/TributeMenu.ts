@@ -1,6 +1,6 @@
 import { getItemClassName, renderMenuItem, resolveContent } from './collection';
 import { addHandler, renderInto } from './helpers';
-import type { Collection, Coordinate, ITribute, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
+import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
@@ -11,23 +11,23 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
    * Mirrors the "not found" value of Array.prototype.findIndex
    */
   selected: number;
-  readonly tribute: ITribute<T>;
+  readonly context: ITributeContext<T>;
 
   private ul?: HTMLElement;
   private remover?: () => void;
 
-  constructor(tribute: ITribute<T>) {
-    this.tribute = tribute;
+  constructor(context: ITributeContext<T>) {
+    this.context = context;
     this.element = null;
     this.selected = 0;
   }
 
   create(doc: Document, containerClass: string): HTMLElement {
-    const { h } = this.tribute.htmlHelper;
+    const { h } = this.context.htmlHelper;
     this.ul = h('ul');
     const wrapper = h('div', { class: containerClass }, this.ul);
 
-    this.element = this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
+    this.element = this.context.tribute.menuContainer ? this.context.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
     return this.element;
   }
 
@@ -110,7 +110,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   showLoading(template: StringOrElementTemplate<T>): boolean {
     if (!this.ul) throw new Error('menu do not have "ul" element');
 
-    const content = resolveContent(this.tribute, template);
+    const content = resolveContent(this.context.tribute, template);
     if (content !== null) {
       renderInto(this.ul, content);
       return true;
@@ -120,10 +120,10 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   setActiveLi(index?: number) {
     if (this.element === null) return;
-    if (!this.tribute.current?.collection) return;
+    if (!this.context.collection) return;
     if (index !== undefined && this.items[index]?.getAttribute('data-disabled') === 'true') return;
 
-    const selectClass = this.tribute.current.collection.selectClass;
+    const selectClass = this.context.collection.selectClass;
     const lis = this.items;
     const _length = lis.length >>> 0;
 
@@ -161,7 +161,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       return;
     }
 
-    if (!this.tribute.positionMenu) {
+    if (!this.context.tribute.positionMenu) {
       this.element.style.cssText = 'display: block;';
       return;
     }
@@ -230,9 +230,9 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     });
     this.element.dispatchEvent(noMatchEvent);
 
-    const content = resolveContent(this.tribute, collection.noMatchTemplate);
+    const content = resolveContent(this.context.tribute, collection.noMatchTemplate);
     if (content === null) {
-      this.tribute.hideMenu();
+      this.context.hideMenu();
       return false;
     }
     renderInto(ul, content);
@@ -241,7 +241,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
     ul.replaceChildren();
-    const doc = this.tribute.current?.range.getDocument();
+    const doc = this.context.range.getDocument();
     if (!doc) return false;
 
     const fragment = doc.createDocumentFragment();
@@ -270,17 +270,15 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   }
 
   _createMenuItem(item: TributeItem<T>, collection: Collection<T>, index: number) {
-    const { h } = this.tribute.htmlHelper;
+    const { h } = this.context.htmlHelper;
     const li = h('li', {
       class: getItemClassName(collection, this.selected === index),
       'data-index': index.toString(),
       'data-disabled': item.original.disabled ? 'true' : undefined,
     });
 
-    const htmlHelper = this.tribute.current?.htmlHelper;
-    if (htmlHelper === undefined) throw new Error();
     // remove all content in the li and append the content of menuItemTemplate
-    const menuItemDomOrString = renderMenuItem(collection, item, this.tribute, htmlHelper);
+    const menuItemDomOrString = renderMenuItem(collection, item, this.context.tribute, this.context.htmlHelper);
     if (menuItemDomOrString instanceof HTMLElement || menuItemDomOrString instanceof DocumentFragment) {
       li.replaceChildren();
       li.appendChild(menuItemDomOrString);

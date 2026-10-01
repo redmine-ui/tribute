@@ -312,7 +312,7 @@ describe('TributeContext', () => {
       expect(calls['menu.unselect']).to.not.be.undefined;
 
       await new Promise((r) => setTimeout(r, 10));
-      expect(calls.hideMenu).to.not.be.undefined;
+      expect(context.menu.isActive).to.be.false;
     });
   });
 
@@ -333,7 +333,7 @@ describe('TributeContext', () => {
       context.activate();
 
       expect(context.sessionCanceled()).to.be.true;
-      expect(mock.calls.hideMenu).to.not.be.undefined;
+      expect(context.menu.isActive).to.be.false;
     });
   });
 

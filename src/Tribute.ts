@@ -3,7 +3,6 @@ import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './
 import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
-import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
 import TributeSearch from './TributeSearch';
 import type {
@@ -153,7 +152,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     const context = new TributeContext({
       tribute: this,
       element: el,
-      menu: new TributeMenu(this),
     });
     this.contextMap.set(el, context);
     if (!this.current) {
@@ -191,10 +189,7 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 
   hideMenu(): void {
-    if (this.current?.menu.isActive) {
-      this.current?.deactivate();
-      this.current?.menu.deactivate();
-    }
+    this.current?.hideMenu();
   }
 
   append(collectionIndex: string | number, newValues: T[], replace?: boolean): void {
