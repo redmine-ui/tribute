@@ -11,24 +11,16 @@ class TributeMenuEvents<T extends {}> {
   }
 
   bind(menu: EventTarget) {
-    const menuContainerScrollEvent = debounce(
-      () => {
-        if (this.tribute.isActive && this.tribute.current?.element) {
-          this.tribute.showMenuFor(this.tribute.current?.element, false);
-        }
-      },
-      10,
-      false,
-    );
-    const hideMenu = debounce(
-      () => {
-        if (this.tribute.isActive) {
-          this.tribute.hideMenu();
-        }
-      },
-      10,
-      false,
-    );
+    const menuContainerScrollEvent = debounce(() => {
+      if (this.tribute.isActive && this.tribute.current?.element) {
+        this.tribute.showMenuFor(this.tribute.current?.element, false);
+      }
+    }, 10);
+    const hideMenu = debounce(() => {
+      if (this.tribute.isActive) {
+        this.tribute.hideMenu();
+      }
+    }, 10);
 
     const removers: (() => void)[] = [];
     const doc = this.tribute.current?.range.getDocument();

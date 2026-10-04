@@ -1,3 +1,4 @@
+import { debouncePromise } from './helpers';
 import type { HtmlHelper } from './html';
 import type { Collection, ITribute, ITributeSearch, StringOrElementTemplate, TributeItem, TributeSearchOpts } from './type';
 
@@ -103,4 +104,22 @@ type PromiseValues<T extends {}> = (text: string) => Promise<Array<T>>;
 
 function isPromiseValues<T extends {}>(fn: CallbackValues<T> | PromiseValues<T>): fn is PromiseValues<T> {
   return fn.length < 2;
+}
+
+function toPromise<T extends {}>(fn: CallbackValues<T> | PromiseValues<T>): PromiseValues<T> {
+  if (isPromiseValues(fn)) return fn;
+  return (text: string) => new Promise<Array<T>>((resolve) => fn(text, resolve));
+}
+
+function toCallback<T extends {}>(fn: PromiseValues<T>): CallbackValues<T> {
+  return (text: string, cb: (result: Array<T>) => void) => {
+    fn(text)
+      .then(cb)
+      .catch(() => cb([]));
+  };
+}
+
+export function debounceValues<T extends {}>(values: CallbackValues<T> | PromiseValues<T>, wait: number): CallbackValues<T> | PromiseValues<T> {
+  const debounced = debouncePromise(toPromise(values), wait);
+  return isPromiseValues(values) ? debounced : toCallback(debounced);
 }

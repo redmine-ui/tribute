@@ -21,17 +21,39 @@ export function isKeyOfObject<T extends object>(key: string | number | symbol, o
   return key in obj;
 }
 
-export function debounce<F extends (...args: unknown[]) => void>(func: F, wait: number, immediate = false) {
-  let timeout: ReturnType<typeof setTimeout> | null;
-  return function (this: ThisParameterType<F>, ...args: Parameters<F>) {
+export function debounce<Args extends unknown[]>(func: (...args: Args) => void, wait: number, immediate = false): (...args: Args) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Args): void => {
     const later = () => {
       timeout = null;
-      if (!immediate) func.apply(this, args);
+      if (!immediate) func(...args);
     };
     const callNow = immediate && !timeout;
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(later, wait);
-    if (callNow) func.apply(this, args);
+    if (callNow) func(...args);
+  };
+}
+
+export function debouncePromise<Args extends unknown[], R>(fn: (...args: Args) => Promise<R>, wait: number): (...args: Args) => Promise<R> {
+  let settle: { resolve: (value: Promise<R>) => void; reject: (reason: unknown) => void } | undefined;
+
+  const debounced = debounce((...args: Args) => {
+    const current = settle;
+    settle = undefined;
+    if (!current) return;
+    try {
+      current.resolve(fn(...args));
+    } catch (err) {
+      current.reject(err);
+    }
+  }, wait);
+
+  return (...args: Args): Promise<R> => {
+    return new Promise<R>((resolve, reject) => {
+      settle = { resolve, reject };
+      debounced(...args);
+    });
   };
 }
 

@@ -123,6 +123,13 @@ export type TributeSearchOpts<T extends {}> = {
   extract?: (element: T & { [key: string]: string }) => string | null | undefined;
 };
 
+export type TributeValues<T extends {}> =
+  | Array<T>
+  | ((text: string, cb: (result: Array<T>) => void) => void)
+  | ((text: string) => Promise<Array<T>>)
+  | Promise<Array<T>>
+  | null;
+
 export type TributeCollection<T extends {}> = {
   // symbol that starts the lookup
   trigger: string;
@@ -152,7 +159,7 @@ export type TributeCollection<T extends {}> = {
   fillAttr: string;
 
   // array of objects to match
-  values: Array<T> | ((text: string, cb: (result: Array<T>) => void) => void) | ((text: string) => Promise<Array<T>>) | Promise<Array<T>> | null;
+  values: TributeValues<T>;
 
   // specify whether a space is required before the trigger character
   requireLeadingSpace?: boolean;
@@ -187,6 +194,9 @@ export type TributeCollection<T extends {}> = {
 
   // Block specific collection, so it can be triggered or not
   isBlocked?: boolean;
+
+  // Debounce time for async values function
+  debounce?: number;
 };
 
 export type StringOrElementTemplate<T extends {}> = ((instance?: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement) | string | null;

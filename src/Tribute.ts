@@ -1,4 +1,4 @@
-import { appendValues } from './collection';
+import { appendValues, debounceValues } from './collection';
 import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
 import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
@@ -17,6 +17,7 @@ import type {
   TributeElement,
   TributeItem,
   TributeTemplate,
+  TributeValues,
 } from './type';
 
 const defaultConfig = {
@@ -50,6 +51,8 @@ const defaultConfig = {
   isBlocked: false,
 } as const;
 
+type TributeCollectionConfig<T extends {}> = TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>;
+
 class Tribute<T extends {}> implements ITribute<T> {
   allowSpaces: boolean;
   autocompleteMode: boolean;
@@ -68,7 +71,7 @@ class Tribute<T extends {}> implements ITribute<T> {
   search: ITributeSearch<T>;
   private contextMap = new Map<HTMLElement, ITributeContext<T>>();
 
-  constructor(args: Partial<TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>>) {
+  constructor(args: Partial<TributeCollectionConfig<T>>) {
     const compactArgs = compactObject(args);
 
     const config = {
@@ -251,14 +254,14 @@ class Tribute<T extends {}> implements ITribute<T> {
     return this.current?.htmlHelper ?? htmlHelperFor(document);
   }
 
-  private buildCollection(config: TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>) {
-    const { values, collection, menuItemTemplate, noMatchTemplate, selectTemplate, loadingItemTemplate, ...collectionConfig } = config;
+  private buildCollection(config: TributeCollectionConfig<T>) {
+    const { values, debounce, collection, menuItemTemplate, noMatchTemplate, selectTemplate, loadingItemTemplate, ...collectionConfig } = config;
 
     if (values) {
       return [
         {
           ...collectionConfig,
-          values: values,
+          values: resolveValues(values, debounce),
           selectTemplate: resolveTemplate(this, selectTemplate, defaultSelectTemplate),
           menuItemTemplate: resolveTemplate(this, menuItemTemplate, defaultMenuItemTemplate),
           noMatchTemplate: resolveStringOrElementTemplate(this, noMatchTemplate, defaultNoMatchTemplate),
@@ -272,6 +275,7 @@ class Tribute<T extends {}> implements ITribute<T> {
       return collection.map((item) => ({
         ...collectionConfig,
         ...item,
+        values: resolveValues(item.values, item.debounce),
         selectTemplate: resolveTemplate(this, item.selectTemplate, defaultSelectTemplate),
         menuItemTemplate: resolveTemplate(this, item.menuItemTemplate, defaultMenuItemTemplate),
         noMatchTemplate: resolveStringOrElementTemplate(this, item.noMatchTemplate, noMatchTemplate ?? defaultNoMatchTemplate),
@@ -285,6 +289,11 @@ class Tribute<T extends {}> implements ITribute<T> {
   static isContentEditable(element: HTMLElement) {
     return isNotTextAreaOrInput(element);
   }
+}
+
+function resolveValues<T extends {}>(values: TributeValues<T>, debounce: number | undefined): TributeValues<T> {
+  if (!debounce || typeof values !== 'function') return values;
+  return debounceValues(values, debounce);
 }
 
 function resolveTemplate<F extends (...args: never[]) => unknown>(tribute: unknown, custom: F | null | undefined, fallback: F): F {

@@ -205,7 +205,10 @@ Collection object shown with defaults:
   maxDisplayItems: null,
 
   // Block specific collection, so it can be triggered or not
-  isBlocked: false
+  isBlocked: false,
+
+  // Debounce time for async values function
+  debounce: undefined,
 }
 ```
 
@@ -459,8 +462,10 @@ If your data set is large or would like to pre filter your data you can load dyn
             }
             return await response.json();
           },
+  // Set debounce time (in milliseconds) to delay function execution and optimize performance
+  debounce: 200,
   lookup: 'name',
-  fillAttr: 'name'
+  fillAttr: 'name',
 }
 ```
 
