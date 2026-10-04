@@ -76,7 +76,7 @@ export interface ITributeMenu<T extends {}> {
   activate(): void;
   deactivate(): void;
   isActive: boolean;
-  create(doc: Document, containerClass: string): HTMLElement;
+  create(containerClass: string): HTMLElement;
   getDimensions(): { height: number | null; width: number | null };
   selected: number;
   setActiveLi(index: number): void;

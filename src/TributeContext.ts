@@ -218,7 +218,9 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
     // create the menu if it doesn't exist.
     if (!this.menu.element) {
-      const menu = this.menu.create(this.range.getDocument(), this.state.collection.containerClass);
+      const menu = this.menu.create(this.state.collection.containerClass);
+      const doc = this.range.getDocument();
+      this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(menu) : doc.body.appendChild(menu);
       bindMenu(menu);
     }
 

@@ -22,12 +22,10 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     this.selected = 0;
   }
 
-  create(doc: Document, containerClass: string): HTMLElement {
+  create(containerClass: string): HTMLElement {
     const { h } = this.context.htmlHelper;
     this.ul = h('ul');
-    const wrapper = h('div', { class: containerClass }, this.ul);
-
-    this.element = this.context.tribute.menuContainer ? this.context.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
+    this.element = h('div', { class: containerClass }, this.ul);
     return this.element;
   }
 
@@ -241,10 +239,6 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
     ul.replaceChildren();
-    const doc = this.context.range.getDocument();
-    if (!doc) return false;
-
-    const fragment = doc.createDocumentFragment();
 
     this.selected = items.findIndex((item) => item.original.disabled !== true);
     if (this.remover) {
@@ -260,11 +254,10 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       }
     });
 
-    items.forEach((item, index) => {
-      const li = this._createMenuItem(item, collection, index);
-      fragment.appendChild(li);
+    const childern = items.map((item, index) => {
+      return this._createMenuItem(item, collection, index);
     });
-    ul.appendChild(fragment);
+    ul.append(...childern);
 
     return true;
   }

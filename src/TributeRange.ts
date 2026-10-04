@@ -71,7 +71,7 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     }
 
     if (scrollTo) {
-      this.scrollIntoView();
+      this.scrollIntoView(this.context.menu.element);
     }
   }
 
@@ -125,11 +125,11 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     return this.rangeHandler.getTextPrecedingCurrentSelection(this, this.element);
   }
 
-  scrollIntoView(_elem?: unknown) {
+  scrollIntoView(elem: HTMLElement | null) {
+    let e = elem;
     const reasonableBuffer = 20;
     let clientRect: DOMRect | undefined;
     const maxScrollDisplacement = 100;
-    let e = this.context.menu.element;
 
     if (e === null) return;
 
