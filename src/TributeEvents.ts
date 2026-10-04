@@ -1,5 +1,5 @@
 import { addHandler, isTextAreaOrInput } from './helpers';
-import type { ITribute } from './type';
+import type { ITribute, ITributeContext } from './type';
 
 const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arrowdown'] as const;
 type hotkeyType = (typeof hotkeys)[number];
@@ -57,8 +57,12 @@ class TributeEvents<T extends {}> {
     if (!(event instanceof KeyboardEvent)) return;
 
     const element = event.currentTarget;
-    if (this.shouldDeactivate(event)) {
-      this.tribute.hideMenu();
+    if (!(element instanceof HTMLElement)) return;
+
+    const context = this.tribute.contextFor(element);
+
+    if (this.shouldDeactivate(context, event)) {
+      context.hideMenu();
     }
     this.hotkeyHandledOnKeydown = false;
 
@@ -95,19 +99,18 @@ class TributeEvents<T extends {}> {
     }
 
     if (!context.isActive) {
-      const charCode = this.getTriggerCharCode();
-      const trigger = this.tribute.current?.range.getTrigger(charCode);
+      const charCode = this.getTriggerCharCode(context);
+      const trigger = context.range.getTrigger(charCode);
       context.sessionStarted(trigger);
     }
 
-    context.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key));
+    context.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key, context));
   }
 
-  shouldDeactivate(event: Event) {
-    if (!this.tribute.isActive) return false;
-    if (!(event instanceof KeyboardEvent)) return false;
+  shouldDeactivate(context: ITributeContext<T>, event: Event): boolean {
+    if (!context.isActive || !(event instanceof KeyboardEvent)) return false;
 
-    if (this.tribute.current?.mentionText.length === 0) {
+    if (context.mentionText.length === 0) {
       let eventKeyPressed = false;
       const key = getCode(event.key);
       if (isHotkey(key)) {
@@ -120,8 +123,8 @@ class TributeEvents<T extends {}> {
     return false;
   }
 
-  getTriggerCharCode() {
-    const info = this.tribute.current?.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+  getTriggerCharCode(context: ITributeContext<T>) {
+    const info = context.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
 
     if (info?.mentionTriggerChar) {
       return info.mentionTriggerChar.charCodeAt(0);
@@ -133,15 +136,15 @@ class TributeEvents<T extends {}> {
   get callbacks(): { [key in hotkeyType]: (e: Event, el: HTMLElement) => void } {
     if (!this._callbacks) {
       this._callbacks = {
-        enter: (e: Event, _el: HTMLElement) => {
+        enter: (e: Event, el: HTMLElement) => {
           // choose selection
-          if (this.tribute.current?.selectionConfirmed(e)) {
+          if (this.tribute.contextFor(el).selectionConfirmed(e)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
-        escape: (e: Event, _el: HTMLElement) => {
-          if (this.tribute.current?.sessionCanceled()) {
+        escape: (e: Event, el: HTMLElement) => {
+          if (this.tribute.contextFor(el).sessionCanceled()) {
             e.preventDefault();
             e.stopPropagation();
           }
@@ -151,39 +154,42 @@ class TributeEvents<T extends {}> {
           this.callbacks.enter(e, el);
         },
         space: (e: Event, el: HTMLElement) => {
-          if (this.tribute.isActive) {
+          const context = this.tribute.contextFor(el);
+
+          if (context.isActive) {
             if (this.tribute.spaceSelectsMatch) {
               this.callbacks.enter(e, el);
             } else if (!this.tribute.allowSpaces) {
               e.stopPropagation();
               setTimeout(() => {
-                this.tribute.hideMenu();
+                context.hideMenu();
               }, 0);
             }
           }
         },
-        arrowup: (e: Event, _el: HTMLElement) => {
+        arrowup: (e: Event, el: HTMLElement) => {
           // navigate up ul
-          if (this.tribute.current?.selectionMoved(1)) {
+          if (this.tribute.contextFor(el).selectionMoved(1)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
-        arrowdown: (e: Event, _el: HTMLElement) => {
+        arrowdown: (e: Event, el: HTMLElement) => {
           // navigate down ul
-          if (this.tribute.current?.selectionMoved(-1)) {
+          if (this.tribute.contextFor(el).selectionMoved(-1)) {
             e.preventDefault();
             e.stopPropagation();
           }
         },
         backspace: (_e: Event, el: HTMLElement) => {
-          if (!this.tribute.isActive || this.tribute.current === undefined) return;
+          const context = this.tribute.contextFor(el);
+          if (!context.isActive) return;
 
           // Re-show the menu while deleting characters. Keep this key-driven: doing it
           // in queryChanged() would also reopen the menu whenever the caret merely moves
           // into an already-inserted mention.
-          if (this.tribute.current.mentionText.length < 1) {
-            this.tribute.hideMenu();
+          if (context.mentionText.length < 1) {
+            context.hideMenu();
           } else {
             this.tribute.showMenuFor(el);
           }
@@ -193,9 +199,9 @@ class TributeEvents<T extends {}> {
     return this._callbacks;
   }
 
-  showMenuOnBackspace(key: string) {
+  showMenuOnBackspace(key: string, context: ITributeContext<T>) {
     const isBackspace = key === 'Backspace';
-    return isTextAreaOrInput(this.tribute.current?.element) ? isBackspace : this.tribute.isActive && isBackspace;
+    return isTextAreaOrInput(context.element) ? isBackspace : this.tribute.isActive && isBackspace;
   }
 }
 
