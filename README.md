@@ -33,7 +33,7 @@ Or by adding Tribute to your `package.json` file.
 Import into your ES6 code.
 
 ```js
-import Tribute from "@redmine-ui/tributejs.mjs";
+import Tribute from "@redmine-ui/tributejs";
 ```
 
 ### Download or Clone
@@ -177,9 +177,11 @@ Collection object shown with defaults:
 
   // Customize the elements used to wrap matched strings within the results list
   // defaults to <span></span> if undefined
+  // pre and post are applied to the html string added to innerHtml. wrap is used to generate the HTMLElement.
   searchOpts: {
     pre: '<span>',
     post: '</span>',
+    wrap: (text) => h('span', text),
     skip: false, // true will skip local search, useful if doing server-side search
     caseSensitive: false
   },
@@ -221,15 +223,13 @@ The `lookup` column can also be passed a function to construct a string to query
 
 Both the `selectTemplate` and the `menuItemTemplate` have access to the `item` object. This is a meta object containing the matched object from your values collection, wrapped in a search result.
 
-```js
-{
-  index: 0;
-  original: {
-  } // your original object from values array
-  score: 5;
-  string: "<span>J</span><span>o</span>rdan Hum<span>p</span>hreys";
-}
-```
+| Property | Description
+| --- | --- |
+| `index` | indices of the array |
+| `original` | your original object from values array |
+| `score` | the display priority for the menu |
+| `string` | The text displayed in the menu will be automatically sanitized. |
+| `html` | HTMLElement or DocumentFragment to display in the menu |
 
 ### Access the tribute instance
 
@@ -251,9 +251,6 @@ Both the selectTemplate and the menuItemTemplate can access the tribute instance
     '@' + item.original.value;
   }
 }
-```
-
-```js
 ```
 
 ### Trigger tribute programmatically
@@ -395,6 +392,11 @@ If you want to embed a link in your `selectTemplate` then you need to make sure 
 anchor is wrapped in an element with `contenteditable="false"`. This makes the anchor
 clickable _and_ fixes issues with matches being modifiable.
 
+You can generate DOM elements within templates using the `h` and `f` helpers. For more
+details, please refer to the [explanation of the helpers](#building-templates-with-htmlhelper).
+
+While you can still generate HTML using strings as before, we recommend using helpers moving forward.
+
 ```js
 const tribute = new Tribute({
   values: [
@@ -409,28 +411,24 @@ const tribute = new Tribute({
       email: "getstarted+riley@zurb.com"
     }
   ],
-  selectTemplate: (item) => {
-    return (
-      '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
-      item.original.email +
-      '">' +
-      item.original.value +
-      "</a></span>"
-    );
-  }
+  selectTemplate: (item, tribute, { h }) =>
+    h('span',
+      h('a',
+        item.original.value,
+        { href: 'http://zurb.com', target: '_blank', title: item.original.email }),
+      { contenteditable: 'false' });
 });
 ```
 
 ### How do I add an image to the items in the list?
 
-You can override the default `menuItemTemplate` with your own output on initialization. This allows you to replace the `innerHTML` of the `li` of each item in the list. You can use `item.string` to return the markup for the fuzzy match.
+You can override the default `menuItemTemplate` with your own output on initialization. This allows you to replace the content of the `li` of each item in the list. You can use `item.string` to return the markup for the fuzzy match.
 
 ```js
 {
   //..other config options
-  menuItemTemplate: (item) => {
-    return '<img src="'+item.original.avatar_url + '">' + item.string;
-  }
+  menuItemTemplate: (item, tribute, { h, f }) =>
+    f( h( 'img', { src: item.original.avatar_url }), item.html);
 }
 ```
 
@@ -534,6 +532,90 @@ const tribute = new Tribute({
 ### Grouping values and disabling options
 
 You may provide `disabled` values which can't be selected.  You can use `disabled` items as headers to mimic the functionality of &lt;optgroup> elements in a &lt;select>.  To provide `disabled` items simply return an object that includes a `disabled` property set to `true`.  The menu items for those values will not be selectable with the mouse or keyboard.  If you wish to differentiate them visually, check for the `disabled` attribute in the menuItemTemplate.
+
+## Building Templates with htmlHelper
+
+Tribute includes a lightweight hyperscript-like utility called `htmlHelper` (`{ h, f }`) that allows you to construct DOM nodes declaratively and safely without string concatenation or external templating libraries.
+
+The helper is passed as the third argument to `menuItemTemplate`:
+
+```js
+menuItemTemplate: (item, tribute, { h, f }) => {
+  // Return an HTMLElement, DocumentFragment, or string
+}
+```
+
+### h(tagName, ...args)
+
+Creates and returns an HTMLElement of the specified tag. Arguments can include an attributes object, child strings, DOM nodes, or arrays of children in any order.
+
+* tagName: Any standard HTML tag name (e.g., 'div', 'span', 'img', 'a').
+* Attributes Object:
+  * class: A string (e.g., 'item active') or an array of class names (e.g., ['item', 'active']).
+  * style: An object containing CSS properties (e.g., { backgroundColor: '#f0f0f0', padding: '5px' }).
+  * data: An object mapped to dataset (e.g., { id: 42 } becomes data-id="42").
+  * Boolean attributes: Passing true sets the attribute (e.g., { disabled: true }), while false, null, or undefined are omitted.
+  * HTML attributes: Standard attributes such as src, href, title, contenteditable, etc.
+* Children: Strings (safely converted to text nodes), DOM nodes, or nested arrays of children.
+
+#### Examples
+
+
+```js
+// Simple element with text
+h('span', 'Hello World');
+
+// Element with attributes and style
+h('a', { href: 'https://example.com', target: '_blank', class: ['link', 'primary'] }, 'Visit Site');
+
+// Nested structure
+h('div', { class: 'user-card' },
+  h('img', { src: user.avatar, alt: user.name }),
+  h('span', { class: 'user-name' }, user.name)
+);
+```
+
+### f(...children)
+
+Creates and returns a DocumentFragment. This is ideal when you want to return multiple sibling nodes without introducing an unnecessary wrapper <div> or <span>.
+
+#### Example
+
+```js
+f(
+  h('img', { src: item.original.avatar_url, class: 'avatar' }),
+  h('span', { class: 'name' }, item.original.name)
+);
+```
+
+### Combining with item.html
+
+In menuItemTemplate, Tribute provides item.html, which contains the fuzzy-matched text formatted with highlight tags. Because item.html is a DOM node (DocumentFragment), it can be directly embedded into h() or f():
+
+```js
+const tribute = new Tribute({
+  values: [
+    { key: "Jordan Humphreys", email: "jordan@example.com", avatar: "jordan.png" },
+    { key: "Sir Walter Riley", email: "riley@example.com", avatar: "riley.png" }
+  ],
+  menuItemTemplate: (item, tribute, { h, f }) => {
+    return f(
+      h('img', { src: item.original.avatar, style: { width: '24px', marginRight: '8px' } }),
+      h('div', { class: 'details' },
+        h('span', { class: 'title' }, item.html),
+        h('small', { style: { color: '#888', marginLeft: '6px' } }, item.original.email)
+      )
+    );
+  }
+});
+```
+
+### Key Advantages
+
+* XSS Safe: Strings are created as text nodes (appendContent), automatically escaping special characters.
+* Declarative & Clean: Easy to read and structure like JSX without requiring a build step or JSX compiler.
+* Lazy Evaluation: item.html and item.string are getters evaluated only when accessed, ensuring optimal performance.
+
 
 ## Styling
 

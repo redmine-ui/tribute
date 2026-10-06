@@ -102,21 +102,23 @@ export interface ITributeRange<T extends {}> {
 }
 
 export interface ITributeSearch<T extends {}> {
-  filter(pattern: string, arr: T[], opts?: TributeSearchOpts<T>): TributeItem<T>[];
+  filter(pattern: string, arr: T[], opts: TributeSearchOpts<T>, htmlHelper: HtmlHelper): TributeItem<T>[];
 }
 
 export type TributeItem<T extends {}> = {
   index: number;
   original: T;
   score: number;
-  string: string;
+  readonly string: string;
+  readonly html: HTMLElement | DocumentFragment;
 };
 
 export type TributeSearchOpts<T extends {}> = {
-  pre?: string;
-  post?: string;
-  skip?: boolean;
-  caseSensitive?: boolean;
+  pre: string;
+  post: string;
+  skip: boolean;
+  wrap?: (text?: string) => Node;
+  caseSensitive: boolean;
   extract?: (element: T & { [key: string]: string }) => string | null | undefined;
 };
 
@@ -171,7 +173,7 @@ export type TributeCollection<T extends {}> = {
   autocompleteMode?: boolean;
 
   // Customize the elements used to wrap matched strings within the results list
-  searchOpts: TributeSearchOpts<T>;
+  searchOpts: Partial<TributeSearchOpts<T>>;
 
   // Limits the number of items in the menu
   menuItemLimit?: number | null;
@@ -186,14 +188,14 @@ export type TributeCollection<T extends {}> = {
   isBlocked?: boolean;
 };
 
-export type StringOrElementTemplate<T extends {}> = ((instance?: ITribute<T>) => string | HTMLElement) | string | null;
+export type StringOrElementTemplate<T extends {}> = ((instance?: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement) | string | null;
 
 export type TributeTemplate<T extends {}> = {
   // function called on select that returns the content to insert
-  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>) => string | HTMLElement) | null;
+  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement) | null;
 
   // template for displaying item in menu
-  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>) => string | HTMLElement) | null;
+  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement | DocumentFragment) | null;
 
   // template for when no match is found (optional).
   // Unset: a default "No Match Found!" item is shown.

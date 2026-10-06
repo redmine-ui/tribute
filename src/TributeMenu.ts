@@ -277,9 +277,11 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       'data-disabled': item.original.disabled ? 'true' : undefined,
     });
 
+    const htmlHelper = this.tribute.current?.htmlHelper;
+    if (htmlHelper === undefined) throw new Error();
     // remove all content in the li and append the content of menuItemTemplate
-    const menuItemDomOrString = renderMenuItem(collection, item, this.tribute);
-    if (menuItemDomOrString instanceof Element) {
+    const menuItemDomOrString = renderMenuItem(collection, item, this.tribute, htmlHelper);
+    if (menuItemDomOrString instanceof HTMLElement || menuItemDomOrString instanceof DocumentFragment) {
       li.replaceChildren();
       li.appendChild(menuItemDomOrString);
     } else {

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
 import { query } from '../../src/collection';
+import { htmlHelperFor } from '../../src/html';
 import type { Collection, ITributeSearch, TributeItem } from '../../src/type';
 
 type Person = { key: string; value: string };
@@ -32,13 +33,15 @@ function makeCollection(overrides: Partial<Collection<Person>> = {}): Collection
 function makeSearchSpy<T extends {}>() {
   const calls: { pattern: string; arr: T[]; opts?: Parameters<ITributeSearch<T>['filter']>[2] }[] = [];
   const search: ITributeSearch<T> = {
-    filter(pattern, arr, opts) {
+    filter(pattern, arr, opts, htmlHelper) {
       calls.push({ pattern, arr, opts });
-      return arr.map((original, index) => ({ index, original, score: 0, string: String(index) }));
+      return arr.map((original, index) => ({ index, original, score: 0, string: String(index), html: htmlHelper.h('span', index.toString()) }));
     },
   };
   return { search, calls };
 }
+
+const htmlHelper = htmlHelperFor(document);
 
 describe('Collection#query', () => {
   it('resolves synchronous array values through search.filter and forwards the result', () => {
@@ -50,7 +53,7 @@ describe('Collection#query', () => {
     const { search, calls } = makeSearchSpy<Person>();
 
     let result: TributeItem<Person>[] | undefined;
-    query(collection, search, 'a', (items) => {
+    query(collection, search, 'a', htmlHelper, (items) => {
       result = items;
     });
 
@@ -66,7 +69,7 @@ describe('Collection#query', () => {
     const { search } = makeSearchSpy<Person>();
 
     let called = false;
-    query(collection, search, 'a', () => {
+    query(collection, search, 'a', htmlHelper, () => {
       called = true;
     });
 
@@ -83,7 +86,7 @@ describe('Collection#query', () => {
     const { search } = makeSearchSpy<Person>();
 
     return new Promise<void>((resolve) => {
-      query(collection, search, 'c', (items) => {
+      query(collection, search, 'c', htmlHelper, (items) => {
         expect(items).to.have.lengthOf(1);
         resolve();
       });
@@ -94,7 +97,7 @@ describe('Collection#query', () => {
     const collection = makeCollection({ values: [{ key: 'a', value: 'A' }], searchOpts: {} });
     const { search, calls } = makeSearchSpy<Person>();
 
-    query(collection, search, 'a', () => {});
+    query(collection, search, 'a', htmlHelper, () => {});
 
     expect(calls[0]?.opts?.pre).to.equal('<span>');
     expect(calls[0]?.opts?.post).to.equal('</span>');
@@ -109,7 +112,7 @@ describe('Collection#query', () => {
     });
     const { search, calls } = makeSearchSpy<Person>();
 
-    query(collection, search, 'a', () => {});
+    query(collection, search, 'a', htmlHelper, () => {});
 
     expect(calls[0]?.opts?.pre).to.equal('<b>');
     expect(calls[0]?.opts?.post).to.equal('</b>');
@@ -122,7 +125,7 @@ describe('Collection#query', () => {
     const collection = makeCollection({ values: [item], lookup: 'value' });
     const { search, calls } = makeSearchSpy<Person>();
 
-    query(collection, search, 'a', () => {});
+    query(collection, search, 'a', htmlHelper, () => {});
 
     expect(calls[0]?.opts?.extract?.(item)).to.equal('Alpha');
   });
@@ -135,7 +138,7 @@ describe('Collection#query', () => {
     });
     const { search, calls } = makeSearchSpy<Person>();
 
-    query(collection, search, 'query-text', () => {});
+    query(collection, search, 'query-text', htmlHelper, () => {});
 
     expect(calls[0]?.opts?.extract?.(item)).to.equal('Alpha:query-text');
   });
@@ -145,7 +148,7 @@ describe('Collection#query', () => {
     const collection = makeCollection({ values: [item], lookup: undefined });
     const { search, calls } = makeSearchSpy<Person>();
 
-    query(collection, search, 'a', () => {});
+    query(collection, search, 'a', htmlHelper, () => {});
 
     expect(() => calls[0]?.opts?.extract?.(item)).to.throw('Invalid lookup attribute');
   });
@@ -160,7 +163,7 @@ describe('Collection#query', () => {
     const { search } = makeSearchSpy<Person>();
 
     let result: TributeItem<Person>[] = [];
-    query(collection, search, 'a', (items) => {
+    query(collection, search, 'a', htmlHelper, (items) => {
       result = items;
     });
 
@@ -177,7 +180,7 @@ describe('Collection#query', () => {
     const { search } = makeSearchSpy<Person>();
 
     let result: TributeItem<Person>[] = [];
-    query(collection, search, 'a', (items) => {
+    query(collection, search, 'a', htmlHelper, (items) => {
       result = items;
     });
 

@@ -481,12 +481,12 @@
 
           return "@" + item.original.value;
         },
-        menuItemTemplate: function(item) {
+        menuItemTemplate: function(item, tribute, { h }) {
           if (item.original.disabled) {
-            return '<div style="background-color:blue;color:white;margin:-5px;padding:5px;cursor:auto">' + item.string + '</div>';
+            return h('div', item.html, { style: 'background-color:blue;color:white;margin:-5px;padding:5px;cursor:auto' });
           }
-          return '<div style="cursor:pointer;padding-left:10px">' + item.string + '</div>';
-        }
+          return h('div', item.html, { style: 'cursor:pointer;padding-left:10px' });
+        },
       });
 
       tributeGroupEx.attach(

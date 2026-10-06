@@ -60,7 +60,8 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
   };
 
   const search: ITributeSearch<T> = {
-    filter: (_pattern, arr) => arr.map((original, index) => ({ index, original, score: 0, string: String(index) })),
+    filter: (_pattern, arr, _opts, htmlHelper) =>
+      arr.map((original, index) => ({ index, original, score: 0, string: String(index), html: htmlHelper.h('span', index.toString()) })),
   };
 
   const tribute = {

@@ -1,47 +1,60 @@
-import type { Collection, ITribute, ITributeSearch, StringOrElementTemplate, TributeItem } from './type';
+import type { HtmlHelper } from './html';
+import type { Collection, ITribute, ITributeSearch, StringOrElementTemplate, TributeItem, TributeSearchOpts } from './type';
+
+export function defaultSeachOpts<T extends {}>({ extract, wrap }: { extract?: TributeSearchOpts<T>['extract']; wrap?: TributeSearchOpts<T>['wrap'] } = {}) {
+  return { pre: '<span>', post: '</span>', wrap: wrap, skip: false, caseSensitive: false, extract: extract };
+}
 
 export function query<T extends {}>(
-  { searchOpts, lookup, values, menuItemLimit }: Collection<T>,
+  collection: Collection<T>,
   search: ITributeSearch<T>,
   mentionText: string,
+  htmlHelper: HtmlHelper,
   callback: (items: TributeItem<T>[]) => void,
 ): void {
-  const resolve = (values: T[]) => {
-    const items = search.filter(mentionText, values, {
-      pre: searchOpts.pre || '<span>',
-      post: searchOpts.post || '</span>',
-      skip: searchOpts.skip || false,
-      caseSensitive: searchOpts.caseSensitive || false,
-      extract: (el) => {
-        if (typeof lookup === 'string') return el[lookup];
-        if (typeof lookup === 'function') return lookup(el, mentionText);
-        throw new Error('Invalid lookup attribute, lookup must be string or function.');
-      },
-    });
-    callback(menuItemLimit ? items.slice(0, menuItemLimit) : items);
-  };
-
-  if (Array.isArray(values)) {
-    resolve(values);
-    return;
+  function createOptions({ searchOpts, lookup }: Collection<T>): TributeSearchOpts<T> {
+    const wrap = (text?: string) => htmlHelper.h('span', text ?? '');
+    const extract: TributeSearchOpts<T>['extract'] = (el) => {
+      if (typeof lookup === 'string') return el[lookup];
+      if (typeof lookup === 'function') return lookup(el, mentionText);
+      throw new Error('Invalid lookup attribute, lookup must be string or function.');
+    };
+    return {
+      ...defaultSeachOpts({ wrap, extract }),
+      ...searchOpts,
+    };
   }
 
-  if (isPromise(values)) {
-    values.then((items) => resolve(items)).catch(() => callback([]));
-    return;
-  }
-
-  if (typeof values === 'function') {
-    // Do not reverse the order of if and else. A function taking two arguments
-    // is considered to also accept a function taking one argument.
-    if (isPromiseValues(values)) {
-      const result = values(mentionText);
-      result.then((items) => resolve(items)).catch(() => callback([]));
-    } else {
-      values(mentionText, resolve);
+  function resolveValues(values: Collection<T>['values'], onResolve: (values: T[]) => void) {
+    if (Array.isArray(values)) {
+      onResolve(values);
+      return;
     }
-    return;
+
+    if (isPromise(values)) {
+      values.then(onResolve).catch(() => callback([]));
+      return;
+    }
+
+    if (typeof values === 'function') {
+      // Do not reverse the order of if and else. A function taking two arguments
+      // is considered to also accept a function taking one argument.
+      if (isPromiseValues(values)) {
+        values(mentionText)
+          .then(onResolve)
+          .catch(() => callback([]));
+      } else {
+        values(mentionText, onResolve);
+      }
+    }
   }
+
+  resolveValues(collection.values, (values) => {
+    const items = search.filter(mentionText, values, createOptions(collection), htmlHelper);
+
+    const { menuItemLimit } = collection;
+    callback(menuItemLimit ? items.slice(0, menuItemLimit) : items);
+  });
 }
 
 export function isAsync<T extends {}>({ values }: Collection<T>): boolean {
@@ -72,8 +85,13 @@ export function getItemClassName<T extends {}>({ itemClass, selectClass }: Colle
   return isSelected ? `${itemClass} ${selectClass}`.trim() : itemClass;
 }
 
-export function renderMenuItem<T extends {}>({ menuItemTemplate }: Collection<T>, item: TributeItem<T>, tribute: ITribute<T>): string | HTMLElement {
-  return menuItemTemplate !== null ? menuItemTemplate(item, tribute) : '';
+export function renderMenuItem<T extends {}>(
+  { menuItemTemplate }: Collection<T>,
+  item: TributeItem<T>,
+  tribute: ITribute<T>,
+  htmlHelper: HtmlHelper,
+): string | HTMLElement | DocumentFragment {
+  return menuItemTemplate !== null ? menuItemTemplate(item, tribute, htmlHelper) : '';
 }
 
 function isPromise(val: unknown): val is Promise<unknown> {

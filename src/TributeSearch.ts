@@ -1,4 +1,7 @@
 // Thanks to https://github.com/mattyork/fuzzy
+
+import { defaultSeachOpts } from './collection';
+import type { HtmlHelper } from './html';
 import type { ITribute, ITributeSearch, TributeItem, TributeSearchOpts } from './type';
 
 class TributeSearch<T extends {}> implements ITributeSearch<T> {
@@ -19,25 +22,17 @@ class TributeSearch<T extends {}> implements ITributeSearch<T> {
   }
 
   match(pattern: string, string: string, opts?: TributeSearchOpts<T>) {
-    const _opts = opts || {};
-    const pre = _opts.pre || '';
-    const post = _opts.post || '';
+    const _opts = opts || defaultSeachOpts();
+    const segmentsOf = (indices: number[]) => ({ segments: toSegments(string, indices) });
+    if (_opts.skip) return { ...segmentsOf([]), score: 0 };
+
     const compareString = (_opts.caseSensitive && string) || string.toLowerCase();
-
-    if (_opts.skip) {
-      return { rendered: string, score: 0 };
-    }
-
     const _pattern = (_opts.caseSensitive && pattern) || pattern.toLowerCase();
 
     const patternCache = this.traverse(compareString, _pattern, 0, 0, []);
-    if (!patternCache) {
-      return null;
-    }
-    return {
-      rendered: this.render(string, patternCache.cache, pre, post),
-      score: patternCache.score,
-    };
+
+    if (!patternCache) return null;
+    return { ...segmentsOf(patternCache.cache), score: patternCache.score };
   }
 
   traverse(string: string, pattern: string, stringIndex: number, patternIndex: number, patternCache: number[]): { score: number; cache: number[] } | undefined {
@@ -104,18 +99,8 @@ class TributeSearch<T extends {}> implements ITributeSearch<T> {
     return score;
   }
 
-  render(string: string, indices: number[], pre: string, post: string) {
-    let rendered = string.substring(0, indices[0]);
-
-    indices.forEach((index, i) => {
-      rendered += pre + string[index] + post + string.substring(index + 1, indices[i + 1] ? indices[i + 1] : string.length);
-    });
-
-    return rendered;
-  }
-
-  filter(pattern: string, arr: T[], opts?: TributeSearchOpts<T>) {
-    const _opts = opts || {};
+  filter(pattern: string, arr: T[], opts: TributeSearchOpts<T>, htmlHelper: HtmlHelper) {
+    const _opts = opts;
     return arr
       .reduce((prev: TributeItem<T>[], element: T, idx: number, _arr) => {
         let str: string | T | null | undefined = element;
@@ -131,12 +116,17 @@ class TributeSearch<T extends {}> implements ITributeSearch<T> {
 
         const rendered = typeof str === 'string' ? this.match(pattern, str, _opts) : null;
 
-        if (rendered != null) {
+        if (rendered !== null) {
           prev[prev.length] = {
-            string: rendered.rendered,
-            score: rendered.score,
             index: idx,
             original: element,
+            score: rendered.score,
+            get string() {
+              return renderString(rendered.segments, _opts.pre, _opts.post);
+            },
+            get html() {
+              return renderFragment(rendered.segments, htmlHelper, _opts.wrap);
+            },
           };
         }
 
@@ -149,6 +139,48 @@ class TributeSearch<T extends {}> implements ITributeSearch<T> {
         return a.index - b.index;
       });
   }
+}
+
+type Segment = { text: string; matched: boolean };
+
+function toSegments(text: string, indices: number[]): Segment[] {
+  const segments: Segment[] = [];
+  let cursor = 0;
+  for (const index of indices) {
+    if (index > cursor) {
+      segments.push({ text: text.substring(cursor, index), matched: false });
+    }
+    if (text[index] !== undefined) {
+      segments.push({ text: text[index], matched: true });
+    }
+    cursor = index + 1;
+  }
+  if (cursor < text.length) segments.push({ text: text.substring(cursor), matched: false });
+  return segments;
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(
+    /[&<>"']/g,
+    (ch) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[ch] ?? ch,
+  );
+}
+
+function renderString(segments: Segment[], pre: string, post: string): string {
+  return segments.map(({ text, matched }) => (matched ? pre + escapeHtml(text) + post : escapeHtml(text))).join('');
+}
+
+function renderFragment(segments: Segment[], html: HtmlHelper, wrap?: (text?: string) => Node): DocumentFragment {
+  if (wrap === undefined) throw new Error();
+
+  return html.f(...segments.map(({ text, matched }) => (matched ? wrap(text) : text)));
 }
 
 export default TributeSearch;

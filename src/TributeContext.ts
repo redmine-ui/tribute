@@ -183,7 +183,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       }
     }
 
-    query(this.state.collection, this.tribute.search, this.state.mentionText, (items) => {
+    query(this.state.collection, this.tribute.search, this.state.mentionText, this.htmlHelper, (items) => {
       if (!this.isActive || this.state.kind === 'idle') return;
 
       this.state = {
@@ -247,7 +247,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     if (this.state.collection.selectTemplate === null) return;
 
     const item = this.state.filteredItems[_index];
-    const content = this.state.collection.selectTemplate(item, this.tribute);
+    const content = this.state.collection.selectTemplate(item, this.tribute, this.htmlHelper);
 
     if (_index === -1 || !item) {
       const selectedNoMatchEvent = new CustomEvent('tribute-selected-no-match', { detail: content });
