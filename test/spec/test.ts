@@ -578,6 +578,112 @@ describe('Tribute NoMatchTemplate cases', () => {
     detachTribute(tribute, input.id);
   });
 
+  const noMatchValues: PersonWithEmail[] = [
+    { key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' },
+    { key: 'Sir Walter Riley', value: 'Sir Walter Riley', email: 'getstarted+riley@zurb.com' },
+  ];
+
+  it('should display the default "No Match Found!" item when noMatchTemplate is not set', async () => {
+    const input = createDomElement();
+
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
+      values: noMatchValues,
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
+    expect(containerDiv.style.display).to.equal('block');
+    expect(containerDiv.innerText).to.equal('No Match Found!');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should close the menu, not just hide it, when noMatchTemplate is an empty string', async () => {
+    const input = createDomElement();
+
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      noMatchTemplate: '',
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
+      values: noMatchValues,
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@random-text');
+
+    const containerDiv = document.querySelector('.tribute-container') as HTMLElement;
+    expect(containerDiv.style.display).to.equal('none');
+    expect(tribute.isActive).to.be.false;
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('should not swallow Enter when noMatchTemplate is an empty string', async () => {
+    const input = createDomElement();
+
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      noMatchTemplate: '',
+      selectTemplate: (item) => {
+        if (!item) throw new Error();
+
+        return item.original.value;
+      },
+      values: noMatchValues,
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+
+    // Registered after attachTribute, so this listener runs after Tribute's own keydown handler.
+    let enterDefaultPrevented: boolean | undefined;
+    input.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter') enterDefaultPrevented = e.defaultPrevented;
+    });
+
+    await fillIn(input, '@random-text');
+    await press('Enter');
+
+    expect(enterDefaultPrevented).to.equal(false);
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('keeps the menu active and swallows Enter when noMatchTemplate returns an invisible element', async () => {
+    // This is the workaround the README used to recommend; `noMatchTemplate: ''` is preferred.
+    const input = createDomElement();
+
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      noMatchTemplate: () => '<span style="visibility: hidden;"></span>',
+      // Called with `undefined` when Enter is pressed while nothing matches.
+      selectTemplate: (item) => (item ? item.original.value : ''),
+      values: noMatchValues,
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+
+    let enterDefaultPrevented: boolean | undefined;
+    input.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter') enterDefaultPrevented = e.defaultPrevented;
+    });
+
+    await fillIn(input, '@random-text');
+    expect(tribute.isActive).to.be.true;
+
+    await press('Enter');
+    expect(enterDefaultPrevented).to.equal(true);
+
+    detachTribute(tribute, input.id);
+  });
+
   it('should display no menu when function returns empty string with collection', async () => {
     const input = createDomElement();
 

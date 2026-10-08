@@ -193,8 +193,9 @@ export type TributeTemplate<T extends {}> = {
   // template for displaying item in menu
   menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>) => string | HTMLElement) | null;
 
-  // template for when no match is found (optional),
-  // If no template is provided, menu is hidden.
+  // template for when no match is found (optional).
+  // Unset: a default "No Match Found!" item is shown.
+  // '' (or a function returning ''): the menu is hidden.
   noMatchTemplate: ((instance?: ITribute<T>) => string) | string | null;
 };
 

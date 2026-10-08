@@ -133,8 +133,9 @@ Collection object shown with defaults:
   // template for displaying item in menu (return dom string or dom node)
   menuItemTemplate: (item) => item.string,
 
-  // template for when no match is found (optional),
-  // If no template is provided, menu is hidden.
+  // template for when no match is found (optional).
+  // Unset: a default "No Match Found!" item is shown.
+  // '' (or a function returning ''): the menu is hidden.
   noMatchTemplate: null,
 
   // specify an alternative parent container for the menu
@@ -480,11 +481,15 @@ function remoteSearch(text, cb) {
 
 ### Hide menu when no match is returned
 
-If you want the menu to not show when no match is found, you can set your `noMatchTemplate` config to the following:
+If you want the menu to not show when no match is found, set `noMatchTemplate`
+to an empty string:
 
 ```js
-noMatchTemplate: () => '<span style="visibility: hidden;"></span>'
+noMatchTemplate: ''
 ```
+
+(A function that returns an empty string, `() => ''`, works as well. When
+`noMatchTemplate` is not set at all, Tribute shows a default `No Match Found!` item instead.)
 
 ### Detaching Tribute instances
 
