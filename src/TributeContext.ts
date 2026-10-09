@@ -1,8 +1,9 @@
 import { isAsync, isMaximumItemsAdded, query } from './collection';
 import { htmlHelperFor } from './html';
+import TributeRange from './TributeRange';
 import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, TributeItem, TriggerInfo } from './type';
 
-type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range: ITributeRange<T>; menu: ITributeMenu<T> };
+type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range?: ITributeRange<T>; menu: ITributeMenu<T> };
 
 type SessionBase<T extends {}> = {
   trigger: string;
@@ -27,10 +28,10 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   constructor({ tribute, element, range, menu }: ContextArguments<T>) {
     this.tribute = tribute;
     this.element = element;
-    this.range = range;
+    this.range = range ?? new TributeRange<T>(this, element);
     this.menu = menu;
     this.state = { kind: 'idle', mentionText: '' };
-    this.htmlHelper = htmlHelperFor(range.getDocument());
+    this.htmlHelper = htmlHelperFor(this.range.getDocument());
   }
 
   get mentionText() {

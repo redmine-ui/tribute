@@ -91,7 +91,6 @@ export interface ITributeEvents {
 }
 
 export interface ITributeRange<T extends {}> {
-  element?: HTMLElement;
   getDocument(): Document;
   positionMenuAtCaret(scrollTo?: boolean): void;
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>): void;

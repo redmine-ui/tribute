@@ -1,6 +1,6 @@
 import { isTextAreaOrInput } from './helpers';
 import { htmlHelperFor } from './html';
-import type { Coordinate, ITribute, TriggerInfo } from './type';
+import type { Coordinate, ITributeContext, TriggerInfo } from './type';
 
 export type Rect = {
   top: number;
@@ -22,7 +22,7 @@ type Trigger = {
 };
 
 export interface ITributeRangeContext<T extends {}> {
-  tribute: ITribute<T>;
+  context: ITributeContext<T>;
   element: HTMLElement;
   getDocument(): Document;
   getWindowSelection(): Selection | null;
@@ -57,7 +57,7 @@ export const nonAutocompleteTriggerInfoParser = {
   getTrigger<T extends {}>(range: ITributeRangeContext<T>, charCode?: number): string | undefined {
     if (Number.isNaN(charCode) || !charCode) return;
 
-    const trigger = range.tribute.triggers().find((trigger) => {
+    const trigger = range.context.tribute.triggers().find((trigger) => {
       return trigger?.charCodeAt(0) === charCode;
     });
 
@@ -93,8 +93,7 @@ function getFixedCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeCon
     top: rect.top + rect.height,
   };
 
-  const context = range.tribute.contextFor(range.element);
-  const menuDimensions = context.menu.getDimensions();
+  const menuDimensions = range.context.menu.getDimensions();
 
   const availableSpaceOnTop = rect.top;
   const availableSpaceOnBottom = window.innerHeight - (rect.top + rect.height);
@@ -137,7 +136,7 @@ function getFixedCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeCon
 
 function getLastWordInText<T extends {}>(range: ITributeRangeContext<T>, text: string): string | undefined {
   let wordsArray: string[] | undefined;
-  const separator = range.tribute.autocompleteSeparator;
+  const separator = range.context.tribute.autocompleteSeparator;
   if (separator !== null) {
     wordsArray = text.split(separator);
   } else {
@@ -275,7 +274,7 @@ function nonAutocompleteGetTrigger<T extends {}>(range: ITributeRangeContext<T>,
   let triggerChar: string | undefined;
   let _requireLeadingSpace: boolean | undefined = requireLeadingSpace;
 
-  for (const config of range.tribute.collection) {
+  for (const config of range.context.tribute.collection) {
     const c = config.trigger;
     const idx = config.requireLeadingSpace ? lastIndexWithLeadingSpace(effectiveRange, c) : effectiveRange.lastIndexOf(c);
 
@@ -320,7 +319,7 @@ function nonAutocompleteGetTriggerInfoDetails<T extends {}>(
 
   const regex = allowSpaces ? /[^\S ]/g : /[\xA0\s]/g;
 
-  range.tribute.hasTrailingSpace = regex.test(currentTriggerSnippet);
+  range.context.tribute.hasTrailingSpace = regex.test(currentTriggerSnippet);
 
   if (!leadingSpace && (menuAlreadyActive || !regex.test(currentTriggerSnippet))) {
     return {
@@ -426,12 +425,13 @@ export const textAreaOrInputRangeHandler = {
     if (!isTextAreaOrInput(element)) return;
 
     const myField = element as HTMLInputElement | HTMLTextAreaElement;
-    const replaceTextSuffix = range.tribute.replaceTextSuffix;
+    const tribute = range.context.tribute;
+    const replaceTextSuffix = tribute.replaceTextSuffix;
     const textSuffix = typeof replaceTextSuffix === 'string' ? replaceTextSuffix : ' ';
     const _text = text + textSuffix;
     const startPos = info.mentionPosition;
     let endPos = info.mentionPosition + (info.mentionText?.length || 0) + (textSuffix === '' ? 1 : textSuffix.length);
-    if (!range.tribute.autocompleteMode) {
+    if (!tribute.autocompleteMode) {
       endPos += (info.mentionTriggerChar?.length || 0) - 1;
     }
     myField.selectionStart = startPos + _text.length;
@@ -499,16 +499,17 @@ export const contentEditableRangeHandler = {
   },
 
   replaceTriggerText<T extends {}>(range: ITributeRangeContext<T>, info: TriggerInfo, text: string | HTMLElement, _element: HTMLElement): void {
+    const tribute = range.context.tribute;
     let _text = text;
     if (_text instanceof HTMLElement) {
       // skip adding suffix yet
     } else {
-      const replaceTextSuffix = range.tribute.replaceTextSuffix;
+      const replaceTextSuffix = tribute.replaceTextSuffix;
       const textSuffix = typeof replaceTextSuffix === 'string' ? replaceTextSuffix : '\xA0';
       _text += textSuffix;
     }
     let endPos = info.mentionPosition + (info.mentionText?.length || 0);
-    if (!range.tribute.autocompleteMode) {
+    if (!tribute.autocompleteMode) {
       endPos += info.mentionTriggerChar?.length || 0;
     }
     pasteHtml(range, _text, info.mentionPosition, endPos);

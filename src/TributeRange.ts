@@ -8,19 +8,19 @@ import {
   type SelectionInfo,
   textAreaOrInputRangeHandler,
 } from './range-handler';
-import type { ITribute, ITributeRange, TributeItem, TriggerInfo } from './type';
+import type { ITributeContext, ITributeRange, TributeItem, TriggerInfo } from './type';
 
 class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeContext<T> {
-  tribute: ITribute<T>;
+  readonly context: ITributeContext<T>;
   readonly element: HTMLElement;
 
-  constructor(tribute: ITribute<T>, element: HTMLElement) {
-    this.tribute = tribute;
+  constructor(context: ITributeContext<T>, element: HTMLElement) {
+    this.context = context;
     this.element = element;
   }
 
   private get triggerInfoParser() {
-    return this.tribute.autocompleteMode ? autocompleteTriggerInfoParser : nonAutocompleteTriggerInfoParser;
+    return this.context.tribute.autocompleteMode ? autocompleteTriggerInfoParser : nonAutocompleteTriggerInfoParser;
   }
 
   private get rangeHandler() {
@@ -47,10 +47,9 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
 
   getDocument() {
     let iframe: HTMLIFrameElement | null | undefined;
-    const context = this.tribute.contextFor(this.element);
 
-    if (context.collection) {
-      iframe = context.collection.iframe;
+    if (this.context.collection) {
+      iframe = this.context.collection.iframe;
     }
 
     if (typeof iframe === 'undefined' || iframe === null || iframe.contentWindow === null) {
@@ -61,15 +60,14 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
   }
 
   positionMenuAtCaret(scrollTo: boolean) {
-    const info = this.triggerInfoParser.getTriggerInfo(this, false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+    const info = this.triggerInfoParser.getTriggerInfo(this, false, this.context.tribute.hasTrailingSpace, true, this.context.tribute.allowSpaces);
 
     if (typeof info === 'undefined' || typeof this.element === 'undefined') return;
 
     const coordinates = this.rangeHandler.getCoordinate(this, this.element, info.mentionPosition);
 
     if (coordinates) {
-      const context = this.tribute.contextFor(this.element);
-      context.menu.positionAtCaret(info, coordinates);
+      this.context.menu.positionAtCaret(info, coordinates);
     }
 
     if (scrollTo) {
@@ -78,18 +76,17 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
   }
 
   get menuContainerIsBody() {
-    return this.tribute.menuContainer === document.body || !this.tribute.menuContainer;
+    return this.context.tribute.menuContainer === document.body || !this.context.tribute.menuContainer;
   }
 
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>) {
-    const info = this.triggerInfoParser.getTriggerInfo(this, true, hasTrailingSpace, requireLeadingSpace, this.tribute.allowSpaces);
-    const context = this.tribute.contextFor(this.element);
+    const info = this.triggerInfoParser.getTriggerInfo(this, true, hasTrailingSpace, requireLeadingSpace, this.context.tribute.allowSpaces);
 
     if (typeof info === 'undefined' || typeof this.element === 'undefined') return;
     const replaceEvent = new CustomEvent('tribute-replaced', {
       detail: {
         item: item,
-        instance: context,
+        instance: this.context,
         context: info,
         event: originalEvent,
       },
@@ -107,15 +104,16 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
   }
 
   getWindowSelection() {
-    if (this.tribute.collection[0]?.iframe) {
-      const iframe = this.tribute.collection[0].iframe.contentWindow;
+    const tribute = this.context.tribute;
+    if (tribute.collection[0]?.iframe) {
+      const iframe = tribute.collection[0].iframe.contentWindow;
       if (iframe) {
         return iframe.getSelection();
       }
     }
 
-    if (this.tribute.collection[0]?.shadowRoot) {
-      return this.tribute.collection[0].shadowRoot.getSelection();
+    if (tribute.collection[0]?.shadowRoot) {
+      return tribute.collection[0].shadowRoot.getSelection();
     }
 
     return window.getSelection();
@@ -131,8 +129,7 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     const reasonableBuffer = 20;
     let clientRect: DOMRect | undefined;
     const maxScrollDisplacement = 100;
-    const context = this.tribute.contextFor(this.element);
-    let e = context.menu.element;
+    let e = this.context.menu.element;
 
     if (e === null) return;
 

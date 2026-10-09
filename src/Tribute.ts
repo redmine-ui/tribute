@@ -5,7 +5,6 @@ import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
 import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
-import TributeRange from './TributeRange';
 import TributeSearch from './TributeSearch';
 import type {
   Collection,
@@ -153,7 +152,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     const context = new TributeContext({
       tribute: this,
       element: el,
-      range: new TributeRange(this, el),
       menu: new TributeMenu(this),
     });
     this.contextMap.set(el, context);
