@@ -50,6 +50,11 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   private setActive(value: boolean) {
     if (this.#isActive !== value) {
       this.#isActive = value;
+      if (value) {
+        this.tribute.bindMenuEvents(this);
+      } else {
+        this.tribute.unbindMenuEvents(this);
+      }
       const activeEvent = new CustomEvent(`tribute-active-${value}`);
       this.element.dispatchEvent(activeEvent);
     }
@@ -207,7 +212,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     });
   }
 
-  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined, bindMenu: (menu: HTMLElement) => void) {
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined) {
     if (this.state.kind === 'idle') return;
 
     // Check for maximum number of items added to the input for the specific Collection
@@ -221,7 +226,6 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       const menu = this.menu.create(this.state.collection.containerClass);
       const doc = this.range.getDocument();
       this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(menu) : doc.body.appendChild(menu);
-      bindMenu(menu);
     }
 
     this.activate();

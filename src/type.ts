@@ -5,6 +5,7 @@ export interface ITribute<T extends {}> {
   autocompleteMode: boolean;
   autocompleteSeparator: RegExp | null;
   allowSpaces: boolean;
+  bindMenuEvents(context: ITributeContext<T>): void;
   closeOnScroll: boolean | HTMLElement;
   current?: ITributeContext<T>;
   contextFor(element: HTMLElement): ITributeContext<T>;
@@ -20,6 +21,7 @@ export interface ITribute<T extends {}> {
   showMenuForCollection(element: HTMLElement, collectionIndex?: number): void;
   spaceSelectsMatch: boolean;
   triggers(): (string | undefined)[];
+  unbindMenuEvents(context: ITributeContext<T>): void;
   htmlHelper: HtmlHelper;
 }
 
@@ -31,7 +33,7 @@ export interface ITributeContext<T extends {}> {
   element: HTMLElement;
   range: ITributeRange<T>;
   menu: ITributeMenu<T>;
-  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined, bindMenu: (menu: HTMLElement) => void): void;
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined): void;
   showMenuForCollection(collection?: Collection<T>): void;
   hasFilteredItems: boolean;
   collection?: Collection<T>;
@@ -90,6 +92,11 @@ export interface ITributeMenu<T extends {}> {
 export interface ITributeEvents {
   bind(element: HTMLElement): void;
   unbind(element: HTMLElement): void;
+}
+
+export interface ITributeMenuEvents<T extends {}> {
+  bind(context: ITributeContext<T>): void;
+  unbind(context: ITributeContext<T>): void;
 }
 
 export interface ITributeRange<T extends {}> {

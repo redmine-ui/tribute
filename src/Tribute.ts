@@ -10,6 +10,7 @@ import type {
   ITribute,
   ITributeContext,
   ITributeEvents,
+  ITributeMenuEvents,
   ITributeSearch,
   StringOrElementTemplate,
   TributeArgument,
@@ -67,7 +68,7 @@ class Tribute<T extends {}> implements ITribute<T> {
   replaceTextSuffix: string | null;
   spaceSelectsMatch: boolean;
   events: ITributeEvents;
-  menuEvents: ITributeEvents;
+  menuEvents: ITributeMenuEvents<T>;
   search: ITributeSearch<T>;
   private contextMap = new Map<HTMLElement, ITributeContext<T>>();
 
@@ -186,9 +187,7 @@ class Tribute<T extends {}> implements ITribute<T> {
     const context = this.contextFor(element);
 
     this.currentMentionTextSnapshot = context.mentionText;
-    context.showMenuFor(element, scrollTo, (menu) => {
-      this.menuEvents.bind(menu);
-    });
+    context.showMenuFor(element, scrollTo);
   }
 
   hideMenu(): void {
@@ -239,15 +238,20 @@ class Tribute<T extends {}> implements ITribute<T> {
     if (context) {
       this.contextMap.delete(el);
       this.events.unbind(el);
-      if (context.menu.element !== null) {
-        this.menuEvents.unbind(context.menu.element);
-      }
     }
 
     setTimeout(() => {
       el.removeAttribute('data-tribute');
       context.deactivate();
     });
+  }
+
+  bindMenuEvents(context: ITributeContext<T>) {
+    this.menuEvents.bind(context);
+  }
+
+  unbindMenuEvents(context: ITributeContext<T>) {
+    this.menuEvents.unbind(context);
   }
 
   get htmlHelper() {

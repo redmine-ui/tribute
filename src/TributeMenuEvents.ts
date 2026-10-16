@@ -1,8 +1,8 @@
 import { addHandler, debounce } from './helpers';
-import type { ITribute } from './type';
+import type { ITribute, ITributeContext } from './type';
 
 class TributeMenuEvents<T extends {}> {
-  removersMap: WeakMap<EventTarget, (() => void)[]>;
+  removersMap: WeakMap<ITributeContext<T>, (() => void)[]>;
   tribute: ITribute<T>;
 
   constructor(tribute: ITribute<T>) {
@@ -10,22 +10,24 @@ class TributeMenuEvents<T extends {}> {
     this.removersMap = new WeakMap();
   }
 
-  bind(menu: EventTarget) {
+  bind(context: ITributeContext<T>) {
+    if (this.removersMap.has(context)) return;
+
     const menuContainerScrollEvent = debounce(() => {
-      if (this.tribute.isActive && this.tribute.current?.element) {
-        this.tribute.showMenuFor(this.tribute.current?.element, false);
+      if (context.isActive && context.element) {
+        this.tribute.showMenuFor(context.element, false);
       }
     }, 10);
     const hideMenu = debounce(() => {
-      if (this.tribute.isActive) {
-        this.tribute.hideMenu();
+      if (context.isActive) {
+        context.hideMenu();
       }
     }, 10);
 
     const removers: (() => void)[] = [];
-    const doc = this.tribute.current?.range.getDocument();
+    const doc = context.range.getDocument();
     if (doc) {
-      removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(event), false));
+      removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(context, event), false));
     }
     removers.push(addHandler(window, 'resize', hideMenu));
 
@@ -40,41 +42,40 @@ class TributeMenuEvents<T extends {}> {
         removers.push(addHandler(window, 'scroll', menuContainerScrollEvent));
       }
     }
-    this.removersMap.set(menu, removers);
+    this.removersMap.set(context, removers);
   }
 
-  unbind(menu: EventTarget) {
-    const removers = this.removersMap.get(menu);
+  unbind(context: ITributeContext<T>) {
+    const removers = this.removersMap.get(context);
     if (removers) {
       for (const remover of removers) {
         remover();
       }
-      this.removersMap.delete(menu);
+      this.removersMap.delete(context);
     }
   }
 
-  click(event: Event) {
+  click(context: ITributeContext<T>, event: Event) {
     const element = event.target;
-    const tribute = this.tribute;
     if (!(element instanceof HTMLElement)) return;
 
-    if (tribute.current?.menu.element?.contains(element)) {
+    if (context.menu.element?.contains(element)) {
       event.preventDefault();
       event.stopPropagation();
 
       const li = element.closest('li');
       if (!(li instanceof HTMLElement) || li.getAttribute('data-disabled') === 'true') return;
 
-      if (!tribute.current?.hasFilteredItems) {
+      if (!context.hasFilteredItems) {
         li.setAttribute('data-index', '-1');
       }
 
       const index = li.getAttribute('data-index');
-      tribute.current?.selectionConfirmed(event, index);
+      context.selectionConfirmed(event, index);
 
       // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (!tribute.current?.consumeExternalTrigger()) {
-      setTimeout(() => tribute.hideMenu());
+    } else if (!context.consumeExternalTrigger()) {
+      setTimeout(() => context.hideMenu());
     }
   }
 }

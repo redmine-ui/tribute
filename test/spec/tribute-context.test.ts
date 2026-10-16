@@ -68,6 +68,7 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
     autocompleteMode: false,
     autocompleteSeparator: null,
     allowSpaces: false,
+    bindMenuEvents: (...args: unknown[]) => record('bindMenuEvents', args),
     closeOnScroll: false,
     current: undefined,
     collection: [],
@@ -81,6 +82,7 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
     showMenuForCollection: (...args: unknown[]) => record('showMenuForCollection', args),
     spaceSelectsMatch: false,
     triggers: () => [],
+    unbindMenuEvents: (...args: unknown[]) => record('bindMenuEvents', args),
     ...overrides,
   } as ITribute<T>;
 
@@ -130,7 +132,7 @@ function startSession(values: Person[]) {
   const menuEl = document.createElement('div');
   menuEl.appendChild(document.createElement('ul'));
   s.context.menu.element = menuEl;
-  s.context.showMenuFor(s.el, false, () => {});
+  s.context.showMenuFor(s.el, false);
   return s;
 }
 
@@ -343,12 +345,9 @@ describe('TributeContext', () => {
       const element = document.createElement('div');
       const context = new TributeContext<Person>({ ...mock, element });
 
-      let ensureMenuCalled = false;
-      context.showMenuFor(element, false, () => {
-        ensureMenuCalled = true;
-      });
+      context.showMenuFor(element, false);
 
-      expect(ensureMenuCalled).to.be.false;
+      expect(mock.calls.bindMenuEvents).to.be.undefined;
       expect(context.isActive).to.be.false;
       expect(mock.calls['menu.activate']).to.be.undefined;
     });
@@ -360,12 +359,9 @@ describe('TributeContext', () => {
       const context = new TributeContext<Person>({ ...mock, element });
       context.sessionStarted('@');
 
-      let bindMenuCalled = false;
-      context.showMenuFor(element, false, () => {
-        bindMenuCalled = true;
-      });
+      context.showMenuFor(element, false);
 
-      expect(bindMenuCalled).to.be.false;
+      expect(mock.calls.bindMenuEvents).to.be.undefined;
       expect(context.isActive).to.be.false;
       expect(mock.calls['menu.activate']).to.be.undefined;
     });
@@ -379,9 +375,7 @@ describe('TributeContext', () => {
 
       let _passedMenu: HTMLElement | undefined;
 
-      context.showMenuFor(element, false, (menu) => {
-        _passedMenu = menu;
-      });
+      context.showMenuFor(element, false);
 
       // expect(passedRange).to.equal(range);
       // expect(passedClass).to.equal('custom-container');
@@ -397,7 +391,7 @@ describe('TributeContext', () => {
       const context = new TributeContext<Person>({ ...mock, element });
       context.sessionStarted('@');
 
-      context.showMenuFor(element, false, () => {});
+      context.showMenuFor(element, false);
 
       expect(mock.calls['menu.render']).to.be.undefined;
     });
@@ -419,7 +413,7 @@ describe('TributeContext', () => {
       context.menu.element = menuEl;
 
       context.sessionStarted('@');
-      context.showMenuFor(element, false, () => {});
+      context.showMenuFor(element, false);
 
       expect(context.hasFilteredItems).to.be.true;
       expect(mock.calls['menu.render']).to.not.be.undefined;
@@ -439,7 +433,7 @@ describe('TributeContext', () => {
       context.menu.render = () => true;
 
       context.sessionStarted('@');
-      context.showMenuFor(element, true, () => {});
+      context.showMenuFor(element, true);
 
       expect(mock.calls['range.positionMenuAtCaret']).to.deep.equal([[true]]);
     });
@@ -467,7 +461,7 @@ describe('TributeContext', () => {
       const element = document.createElement('div');
       const context = new TributeContext<Person>({ ...mock, element });
       context.sessionStarted('@');
-      context.showMenuFor(element, true, () => {});
+      context.showMenuFor(element, true);
 
       expect(mock.calls['menu.showLoading']).to.deep.equal([['<li>Loading…</li>']]);
       expect(mock.calls['range.positionMenuAtCaret']).to.deep.equal([[true]]);
@@ -489,7 +483,7 @@ describe('TributeContext', () => {
       const context = new TributeContext<Person>({ ...mock, element });
       context.sessionStarted('@');
 
-      context.showMenuFor(element, true, () => {});
+      context.showMenuFor(element, true);
       context.deactivate(); // session ends before the async values() resolves
 
       return new Promise<void>((resolve) => {
