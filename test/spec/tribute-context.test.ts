@@ -50,6 +50,7 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
   };
 
   const range: ITributeRange<T> = {
+    getWindow: () => window,
     getDocument: () => document,
     positionMenuAtCaret: (...args) => record('range.positionMenuAtCaret', args),
     replaceTriggerText: (...args) => record('range.replaceTriggerText', args),

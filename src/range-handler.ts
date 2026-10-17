@@ -25,6 +25,7 @@ export interface ITributeRangeContext<T extends {}> {
   context: ITributeContext<T>;
   element: HTMLElement;
   getDocument(): Document;
+  getWindow(): Window;
   getWindowSelection(): Selection | null;
   getSelectionInfo(): SelectionInfo | undefined;
   getTextPrecedingCurrentSelection(): string | undefined;
@@ -92,17 +93,18 @@ function getFixedCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeCon
     left: rect.left,
     top: rect.top + rect.height,
   };
+  const win = range.getWindow();
 
   const menuDimensions = range.context.menu.getDimensions();
 
   const availableSpaceOnTop = rect.top;
-  const availableSpaceOnBottom = window.innerHeight - (rect.top + rect.height);
+  const availableSpaceOnBottom = win.innerHeight - (rect.top + rect.height);
 
   const height = menuDimensions.height;
   if (height !== null && availableSpaceOnBottom < height) {
     if (availableSpaceOnTop >= height || availableSpaceOnTop > availableSpaceOnBottom) {
       coordinates.top = 'auto';
-      coordinates.bottom = window.innerHeight - rect.top;
+      coordinates.bottom = win.innerHeight - rect.top;
       if (availableSpaceOnBottom < height) {
         coordinates.maxHeight = availableSpaceOnTop;
       }
@@ -114,13 +116,13 @@ function getFixedCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeCon
   }
 
   const availableSpaceOnLeft = rect.left;
-  const availableSpaceOnRight = window.innerWidth - rect.left;
+  const availableSpaceOnRight = win.innerWidth - rect.left;
 
   const width = menuDimensions.width;
   if (width !== null && availableSpaceOnRight < width) {
     if (availableSpaceOnLeft >= width || availableSpaceOnLeft > availableSpaceOnRight) {
       coordinates.left = 'auto';
-      coordinates.right = window.innerWidth - rect.left;
+      coordinates.right = win.innerWidth - rect.left;
       if (availableSpaceOnRight < width) {
         coordinates.maxWidth = availableSpaceOnLeft;
       }

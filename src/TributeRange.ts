@@ -59,6 +59,10 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     return iframe.contentWindow.document;
   }
 
+  getWindow(): Window {
+    return this.getDocument().defaultView ?? window;
+  }
+
   positionMenuAtCaret(scrollTo: boolean) {
     const info = this.triggerInfoParser.getTriggerInfo(this, false, this.context.tribute.hasTrailingSpace, true, this.context.tribute.allowSpaces);
 
@@ -105,18 +109,12 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
 
   getWindowSelection() {
     const tribute = this.context.tribute;
-    if (tribute.collection[0]?.iframe) {
-      const iframe = tribute.collection[0].iframe.contentWindow;
-      if (iframe) {
-        return iframe.getSelection();
-      }
-    }
 
     if (tribute.collection[0]?.shadowRoot) {
       return tribute.collection[0].shadowRoot.getSelection();
     }
 
-    return window.getSelection();
+    return this.getWindow().getSelection();
   }
 
   getTextPrecedingCurrentSelection() {
@@ -127,6 +125,7 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
 
   scrollIntoView(elem: HTMLElement | null) {
     let e = elem;
+    const win = this.getWindow();
     const reasonableBuffer = 20;
     let clientRect: DOMRect | undefined;
     const maxScrollDisplacement = 100;
@@ -150,21 +149,21 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     const elemBottom = elemTop + clientRect.height;
 
     if (elemTop < 0) {
-      window.scrollTo(0, window.pageYOffset + clientRect.top - reasonableBuffer);
-    } else if (elemBottom > window.innerHeight) {
-      let maxY = window.pageYOffset + clientRect.top - reasonableBuffer;
+      win.scrollTo(0, win.pageYOffset + clientRect.top - reasonableBuffer);
+    } else if (elemBottom > win.innerHeight) {
+      let maxY = win.pageYOffset + clientRect.top - reasonableBuffer;
 
-      if (maxY - window.pageYOffset > maxScrollDisplacement) {
-        maxY = window.pageYOffset + maxScrollDisplacement;
+      if (maxY - win.pageYOffset > maxScrollDisplacement) {
+        maxY = win.pageYOffset + maxScrollDisplacement;
       }
 
-      let targetY = window.pageYOffset - (window.innerHeight - elemBottom);
+      let targetY = win.pageYOffset - (win.innerHeight - elemBottom);
 
       if (targetY > maxY) {
         targetY = maxY;
       }
 
-      window.scrollTo(0, targetY);
+      win.scrollTo(0, targetY);
     }
   }
 }

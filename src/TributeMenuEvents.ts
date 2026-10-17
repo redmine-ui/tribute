@@ -26,20 +26,20 @@ class TributeMenuEvents<T extends {}> {
 
     const removers: (() => void)[] = [];
     const doc = context.range.getDocument();
-    if (doc) {
-      removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(context, event), false));
-    }
-    removers.push(addHandler(window, 'resize', hideMenu));
+    const win = context.range.getWindow();
+
+    removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(context, event), false));
+    removers.push(addHandler(win, 'resize', hideMenu));
 
     if (this.tribute.closeOnScroll === true) {
-      removers.push(addHandler(window, 'scroll', hideMenu));
+      removers.push(addHandler(win, 'scroll', hideMenu));
     } else if (this.tribute.closeOnScroll !== false) {
       removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
     } else {
       if (this.tribute.menuContainer) {
         removers.push(addHandler(this.tribute.menuContainer, 'scroll', menuContainerScrollEvent, false));
       } else {
-        removers.push(addHandler(window, 'scroll', menuContainerScrollEvent));
+        removers.push(addHandler(win, 'scroll', menuContainerScrollEvent));
       }
     }
     this.removersMap.set(context, removers);
