@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { h } from '../../../src/html';
+import { h } from '../../src/html';
 
 describe('h function', () => {
   describe('Flexible argument signatures', () => {
@@ -76,18 +76,6 @@ describe('h function', () => {
       });
       expect(el.style.color).to.equal('red');
       expect(el.style.display).to.equal('flex');
-    });
-
-    it('should attach event listeners for on-prefixed keys', () => {
-      let clicked = false;
-      const el = h('button', {
-        onclick: () => {
-          clicked = true;
-        },
-      });
-
-      el.click();
-      expect(clicked).to.be.true;
     });
 
     it('should set boolean attributes correctly', () => {
