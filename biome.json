@@ -14,6 +14,7 @@
     "indentStyle": "space",
     "lineWidth": 160
   },
+  "plugins": [".patterns/iframe-instanceof.grit"],
   "linter": {
     "enabled": true,
     "rules": {

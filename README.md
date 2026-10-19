@@ -112,7 +112,10 @@ Collection object shown with defaults:
   // symbol or string that starts the lookup
   trigger: '@',
 
-  // element to target for @mentions
+  /**
+   * @deprecated No longer needed. Tribute automatically resolves the document
+   * context from the attached element via `ownerDocument`.
+   */
   iframe: null,
 
   // is it wrapped in a web component

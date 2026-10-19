@@ -1,5 +1,5 @@
 import { getItemClassName, renderMenuItem, resolveContent } from './collection';
-import { addHandler, renderInto } from './helpers';
+import { addHandler, isDocumentFragment, isHTMLElement, renderInto } from './helpers';
 import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
@@ -245,7 +245,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       this.remover();
     }
     this.remover = addHandler(ul, 'mousemove', (e: Event) => {
-      if (!(e.target instanceof HTMLElement)) return;
+      if (!isHTMLElement(e.target)) return;
       if (!e.target.matches('li[data-index]')) return;
 
       const index = e.target.dataset.index;
@@ -272,7 +272,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
 
     // remove all content in the li and append the content of menuItemTemplate
     const menuItemDomOrString = renderMenuItem(collection, item, this.context.tribute, this.context.htmlHelper);
-    if (menuItemDomOrString instanceof HTMLElement || menuItemDomOrString instanceof DocumentFragment) {
+    if (isHTMLElement(menuItemDomOrString) || isDocumentFragment(menuItemDomOrString)) {
       li.replaceChildren();
       li.appendChild(menuItemDomOrString);
     } else {

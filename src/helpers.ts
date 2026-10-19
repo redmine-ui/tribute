@@ -77,10 +77,34 @@ export function compactObject<T extends Record<string, unknown>>(args: T): Compa
 }
 
 export function renderInto(ul: HTMLElement, content: string | HTMLElement): void {
-  if (content instanceof Element) {
+  if (isElement(content)) {
     ul.replaceChildren();
     ul.appendChild(content);
   } else {
     ul.innerHTML = content;
   }
 }
+
+/**
+ * Safe for cross-iframe environments where `instanceof` fails due to different `window` contexts.
+ */
+
+const isObject = (v: unknown): v is object => typeof v === 'object' && v !== null;
+
+export const isNode = (v: unknown): v is Node => isObject(v) && typeof (v as Node).nodeType === 'number';
+
+export const isElement = (v: unknown): v is Element => isNode(v) && v.nodeType === 1;
+
+export const isDocumentFragment = (v: unknown): v is DocumentFragment => isNode(v) && v.nodeType === 11;
+
+export const isHTMLElement = (v: unknown): v is HTMLElement => isElement(v) && v.namespaceURI === 'http://www.w3.org/1999/xhtml';
+
+export const isKeyboardEvent = (v: unknown): v is KeyboardEvent => isObject(v) && typeof (v as KeyboardEvent).key === 'string';
+
+function isCollection(value: unknown): value is { length: number; item: (index: number) => unknown } {
+  return isObject(value) && 'length' in value && typeof value.length === 'number' && 'item' in value && typeof value.item === 'function';
+}
+
+export const isNodeList = (value: unknown): value is NodeList => isCollection(value) && !('namedItem' in value);
+
+export const isHTMLCollection = (value: unknown): value is HTMLCollection => isCollection(value) && 'namedItem' in value;

@@ -142,7 +142,10 @@ export type TributeCollection<T extends {}> = {
   // symbol that starts the lookup
   trigger: string;
 
-  // element to target for @mentions
+  /**
+   * @deprecated No longer needed. Tribute automatically resolves the document
+   * context from the attached element via `ownerDocument`.
+   */
   iframe?: HTMLIFrameElement | null;
 
   // is it wrapped in a web component

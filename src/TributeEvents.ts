@@ -1,4 +1,4 @@
-import { addHandler, isTextAreaOrInput } from './helpers';
+import { addHandler, isHTMLElement, isKeyboardEvent, isTextAreaOrInput } from './helpers';
 import type { ITribute, ITributeContext } from './type';
 
 const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arrowdown'] as const;
@@ -54,10 +54,10 @@ class TributeEvents<T extends {}> {
   }
 
   keydown(event: Event) {
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     const element = event.currentTarget;
-    if (!(element instanceof HTMLElement)) return;
+    if (!isHTMLElement(element)) return;
 
     const context = this.tribute.contextFor(element);
 
@@ -67,7 +67,7 @@ class TributeEvents<T extends {}> {
     this.hotkeyHandledOnKeydown = false;
 
     const key = getCode(event.key);
-    if (isHotkey(key) && element instanceof HTMLElement) {
+    if (isHotkey(key) && isHTMLElement(element)) {
       this.hotkeyHandledOnKeydown = true;
       this.callbacks[key](event, element);
     }
@@ -79,10 +79,10 @@ class TributeEvents<T extends {}> {
   }
 
   keyup(event: Event) {
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     const element = event.currentTarget;
-    if (!(element instanceof HTMLElement)) return;
+    if (!isHTMLElement(element)) return;
 
     const context = this.tribute.contextFor(element);
     this.tribute.current = context;
@@ -108,7 +108,7 @@ class TributeEvents<T extends {}> {
   }
 
   shouldDeactivate(context: ITributeContext<T>, event: Event): boolean {
-    if (!context.isActive || !(event instanceof KeyboardEvent)) return false;
+    if (!context.isActive || !isKeyboardEvent(event)) return false;
 
     if (context.mentionText.length === 0) {
       let eventKeyPressed = false;
@@ -227,7 +227,7 @@ class CompositionFilter {
 
   compositionend(event: Event) {
     // console.log(`composition end: ${this.isComposing}`);
-    if (event instanceof CompositionEvent && this.isComposing) {
+    if (isCompositionEvent(event) && this.isComposing) {
       this.isComposing = false;
       if (!this.isFirefox) {
         event.target?.dispatchEvent(
@@ -243,7 +243,7 @@ class CompositionFilter {
 
   keydown(event: Event) {
     // console.log(`keydown: ${this.isComposing}`);
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     if (this.isComposing && event.code === 'Enter') {
       this.isComposing = false;
@@ -252,7 +252,7 @@ class CompositionFilter {
 
   input(event: Event) {
     // console.log(`input: ${this.isComposing}`);
-    if (!(event instanceof InputEvent)) return;
+    if (!isInputEvent(event)) return;
 
     if (event.inputType === 'insertFromComposition') {
       this.isComposing = false;
@@ -275,4 +275,11 @@ function isHotkey(code: string): code is hotkeyType {
   return includes(hotkeys, code);
 }
 
+function isInputEvent(event: Event): event is InputEvent {
+  return 'inputType' in event && 'data' in event && 'isComposing' in event;
+}
+
+function isCompositionEvent(event: Event): event is CompositionEvent {
+  return 'data' in event && 'locale' in event;
+}
 export default TributeEvents;

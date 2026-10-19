@@ -1,4 +1,4 @@
-import { addHandler, debounce } from './helpers';
+import { addHandler, debounce, isHTMLElement } from './helpers';
 import type { ITribute, ITributeContext } from './type';
 
 class TributeMenuEvents<T extends {}> {
@@ -57,14 +57,14 @@ class TributeMenuEvents<T extends {}> {
 
   click(context: ITributeContext<T>, event: Event) {
     const element = event.target;
-    if (!(element instanceof HTMLElement)) return;
+    if (!isHTMLElement(element)) return;
 
     if (context.menu.element?.contains(element)) {
       event.preventDefault();
       event.stopPropagation();
 
       const li = element.closest('li');
-      if (!(li instanceof HTMLElement) || li.getAttribute('data-disabled') === 'true') return;
+      if (!isHTMLElement(li) || li.getAttribute('data-disabled') === 'true') return;
 
       if (!context.hasFilteredItems) {
         li.setAttribute('data-index', '-1');

@@ -1,4 +1,4 @@
-import { isTextAreaOrInput } from './helpers';
+import { isHTMLElement, isNode, isTextAreaOrInput } from './helpers';
 import { htmlHelperFor } from './html';
 import type { Coordinate, ITributeContext, TriggerInfo } from './type';
 
@@ -197,15 +197,15 @@ function getContentEditableSelectedPath<T extends {}>(range: ITributeRangeContex
   const path: (number | undefined)[] = [];
   let offset: number;
 
-  if (selected instanceof Node) {
+  if (isNode(selected)) {
     let i: number | undefined;
-    let ce = selected instanceof HTMLElement ? selected.contentEditable : false;
+    let ce = isHTMLElement(selected) ? selected.contentEditable : false;
     while (selected !== null && ce !== 'true') {
       i = getNodePositionInParent(selected);
       path.push(i);
       selected = selected.parentNode;
 
-      if (selected instanceof HTMLElement) {
+      if (isHTMLElement(selected)) {
         ce = selected.contentEditable;
       }
     }
@@ -234,7 +234,7 @@ function pasteHtml<T extends {}>(range: ITributeRangeContext<T>, htmlOrElem: str
   r.deleteContents();
 
   const el = doc.createElement('div');
-  if (htmlOrElem instanceof HTMLElement) {
+  if (isHTMLElement(htmlOrElem)) {
     el.appendChild(htmlOrElem);
   } else {
     el.innerHTML = htmlOrElem;
@@ -461,7 +461,7 @@ export const textAreaOrInputRangeHandler = {
   },
 
   focusAtEnd<T extends {}>(_range: ITributeRangeContext<T>, element: HTMLElement): void {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+    if (!isTextAreaOrInput(element)) return;
 
     element.focus();
     const len = element.value.length;
@@ -503,7 +503,7 @@ export const contentEditableRangeHandler = {
   replaceTriggerText<T extends {}>(range: ITributeRangeContext<T>, info: TriggerInfo, text: string | HTMLElement, _element: HTMLElement): void {
     const tribute = range.context.tribute;
     let _text = text;
-    if (_text instanceof HTMLElement) {
+    if (isHTMLElement(_text)) {
       // skip adding suffix yet
     } else {
       const replaceTextSuffix = tribute.replaceTextSuffix;

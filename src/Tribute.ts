@@ -1,5 +1,5 @@
 import { appendValues, debounceValues } from './collection';
-import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
+import { compactObject, isHTMLCollection, isHTMLElement, isJQuery, isKeyOfObject, isNodeList, isNotTextAreaOrInput } from './helpers';
 import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
@@ -136,9 +136,9 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     // Is el an Array/Array-like object?
-    if (_el instanceof NodeList || _el instanceof HTMLCollection || Array.isArray(_el)) {
+    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
       for (const e of _el) {
-        if (e instanceof HTMLElement) {
+        if (isHTMLElement(e)) {
           this._attach(e);
         }
       }
@@ -222,9 +222,9 @@ class Tribute<T extends {}> implements ITribute<T> {
     const _el = isJQuery(el) ? el.get() : el;
 
     // Is el an Array/Array-like object?
-    if (_el instanceof NodeList || _el instanceof HTMLCollection || Array.isArray(_el)) {
+    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
       for (const e of _el) {
-        if (e instanceof HTMLElement) {
+        if (isHTMLElement(e)) {
           this._detach(e);
         }
       }

@@ -1,5 +1,5 @@
 // Thanks to https://github.com/jeff-collins/ment.io
-import { isTextAreaOrInput } from './helpers';
+import { isHTMLElement, isTextAreaOrInput } from './helpers';
 import {
   autocompleteTriggerInfoParser,
   contentEditableRangeHandler,
@@ -46,17 +46,7 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
   }
 
   getDocument() {
-    let iframe: HTMLIFrameElement | null | undefined;
-
-    if (this.context.collection) {
-      iframe = this.context.collection.iframe;
-    }
-
-    if (typeof iframe === 'undefined' || iframe === null || iframe.contentWindow === null) {
-      return document;
-    }
-
-    return iframe.contentWindow.document;
+    return this.element.ownerDocument;
   }
 
   getWindow(): Window {
@@ -133,7 +123,7 @@ class TributeRange<T extends {}> implements ITributeRange<T>, ITributeRangeConte
     if (e === null) return;
 
     while (clientRect === undefined || clientRect.height === 0) {
-      if (e instanceof HTMLElement) {
+      if (isHTMLElement(e)) {
         clientRect = e.getBoundingClientRect();
       }
 

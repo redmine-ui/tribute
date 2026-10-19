@@ -1217,6 +1217,57 @@ describe('Tribute disabled items cases', () => {
   });
 });
 
+describe('Tribute attached inside an iframe', () => {
+  let iframe: HTMLIFrameElement;
+  let iframeDoc: Document | null;
+  let editable: HTMLElement;
+
+  beforeEach(() => {
+    iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    iframeDoc = iframe.contentDocument;
+
+    if (iframeDoc === null) throw new Error();
+
+    editable = iframeDoc.createElement('div');
+    editable.id = 'iframe-editor';
+    editable.contentEditable = 'true';
+    iframeDoc.body.appendChild(editable);
+  });
+
+  afterEach(() => {
+    iframe.remove();
+    clearDom();
+  });
+
+  it('successfully opens the menu and renders DocumentFragment when typing in iframe', async () => {
+    if (iframeDoc === null) throw new Error();
+
+    const tribute = new Tribute({
+      values: [{ key: 'Alice', value: 'alice' }],
+      menuItemTemplate: (item, _tribute, { h, f }) => {
+        return f(h('span', { class: 'iframe-mention-name' }, item.original.key));
+      },
+    });
+    tribute.attach(editable);
+
+    editable.focus();
+    await fillIn(editable, '@');
+
+    const menu = iframeDoc.querySelector('.tribute-container');
+    expect(menu).to.not.be.null;
+
+    const li = menu?.querySelector('li');
+    expect(li).to.not.be.null;
+
+    const span = li?.querySelector('.iframe-mention-name');
+    expect(span).to.not.be.null;
+    expect(span?.textContent).to.equal('Alice');
+    expect(li?.innerHTML).to.not.include('[object DocumentFragment]');
+    tribute.detach(editable);
+  });
+});
+
 describe('closeOnScroll tests', () => {
   afterEach(() => {
     clearDom();

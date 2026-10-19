@@ -1,0 +1,12 @@
+`$var instanceof $type` as $match => `is$type($var)` where {
+  $message = "'instanceof' does not work correctly across iframes (multi-realm). Automatically fixing it to be safe for cross-domain use.",
+  $type <: or {
+    `Element` => `isElement`,
+    `HTMLElement` => `isHTMLElement`,
+    `DocumentFragment` => `isDocumentFragment`,
+    `KeyboardEvent` => `isKeyboardEvent`,
+    `NodeList` => `isNodeList`,
+    `HTMLCollection` => `isHTMLCollection`
+  },
+  register_diagnostic(span=$match, message=$message)
+}

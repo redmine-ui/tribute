@@ -32,7 +32,7 @@ function applyAttributes(el: HTMLElement, attrs?: Attributes): void {
 }
 
 function isAttributes(val: unknown): val is Attributes {
-  return val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Node);
+  return val !== null && typeof val === 'object' && !Array.isArray(val) && !('nodeType' in val);
 }
 
 export type HtmlHelper = {
