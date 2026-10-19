@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!dist/*", "!example/*", "!.dagger/*", "!tsconfig.json", "!rollup.config.js"]
+    "includes": ["**", "!dist/*", "!example/*", "!.dagger/*", "!tsconfig.json", "!rollup.config.js", "!**/*.yml", "!**/*.md"]
   },
   "formatter": {
     "enabled": true,

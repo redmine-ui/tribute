@@ -12,6 +12,7 @@ A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Fir
 - [Events](#events)
 - [Tips](#tips)
 - [Styling](#styling)
+- [Building templates with htmlHelper](#building-templates-with-htmlhelper)
 - [Framework Support](#framework-support)
 - [WYSIWYG Editor Support](#wysiwyg-editor-support)
 - [Example](https://redmine-ui.github.io/tribute/example/)

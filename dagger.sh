@@ -1,4 +1,4 @@
-image=mcr.microsoft.com/playwright:v1.60.0-noble
+image=mcr.microsoft.com/playwright:v1.64.1-noble
 
 container |
   from $image |

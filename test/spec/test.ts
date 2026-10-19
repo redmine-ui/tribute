@@ -192,7 +192,7 @@ describe('Tribute autocomplete mode cases', () => {
       if (elementType === 'text') {
         expect(input.value).to.equal('+Jordan Humphreys ');
       } else if (elementType === 'contenteditable') {
-        expect(input.innerText).to.equal('+Jordan Humphreys ');
+        expect(input.textContent).to.equal('+Jordan Humphreys ');
       }
 
       await fillIn(input, ' Si');
@@ -239,7 +239,7 @@ describe('Tribute autocomplete mode cases', () => {
         expect(input.value).to.equal(' Jordan Humphreys ');
       } else if (elementType === 'contenteditable') {
         // surrounded by nbsp, not spaces
-        expect(input.innerText).to.equal(' Jordan Humphreys ');
+        expect(input.textContent).to.equal(' Jordan Humphreys ');
       }
 
       await fillIn(input, ' Si');
@@ -308,7 +308,7 @@ describe('Tribute autocomplete mode cases', () => {
         expect(input.value).to.equal(' Alabama ');
       } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal('  Alabama ');
+        expect(input.textContent).to.equal('  Alabama ');
       }
 
       await fillIn(input, ' c');
@@ -320,7 +320,7 @@ describe('Tribute autocomplete mode cases', () => {
         expect(input.value).to.equal(' Alabama  Colorado ');
       } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal('  Alabama   Colorado ');
+        expect(input.textContent).to.equal('  Alabama   Colorado ');
       }
 
       await fillIn(input, ' none');
@@ -385,7 +385,7 @@ describe('Tribute autocomplete mode cases', () => {
         expect(input.value).to.equal(' Alabama ');
       } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal('  Alabama ');
+        expect(input.textContent).to.equal('  Alabama ');
       }
 
       await fillIn(input, ' c');
@@ -397,7 +397,7 @@ describe('Tribute autocomplete mode cases', () => {
         expect(input.value).to.equal(' Alabama  Colorado ');
       } else if (elementType === 'contenteditable') {
         // The first letter is nbsp
-        expect(input.innerText).to.equal('  Alabama   Colorado ');
+        expect(input.textContent).to.equal('  Alabama   Colorado ');
       }
 
       await fillIn(input, ' none');
@@ -513,7 +513,7 @@ describe('Tribute NoMatchTemplate cases', () => {
     await fillIn(input, '@random-text');
 
     const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
-    expect(containerDiv?.innerText).to.equal('testcase');
+    expect(containerDiv?.textContent).to.equal('testcase');
 
     detachTribute(tribute, input.id);
   });
@@ -546,7 +546,7 @@ describe('Tribute NoMatchTemplate cases', () => {
     await fillIn(input, '@random-text');
 
     const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
-    expect(containerDiv.innerText).to.equal('testcase');
+    expect(containerDiv.textContent).to.equal('testcase');
 
     detachTribute(tribute, input.id);
   });
@@ -677,7 +677,7 @@ describe('Tribute NoMatchTemplate cases', () => {
 
     const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
     expect(containerDiv.style.display).to.equal('block');
-    expect(containerDiv.innerText).to.equal('No Match Found!');
+    expect(containerDiv.textContent).to.equal('No Match Found!');
 
     detachTribute(tribute, input.id);
   });
@@ -837,7 +837,7 @@ describe('Tribute NoMatchTemplate cases', () => {
     await fillIn(input, '@random-text');
 
     const containerDiv = document.getElementsByClassName('tribute-container')[0] as HTMLElement;
-    expect(containerDiv.innerText).to.equal('template 1');
+    expect(containerDiv.textContent).to.equal('template 1');
 
     detachTribute(tribute, input.id);
   });
