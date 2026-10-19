@@ -108,7 +108,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   showLoading(template: StringOrElementTemplate<T>): boolean {
     if (!this.ul) throw new Error('menu do not have "ul" element');
 
-    const content = resolveContent(this.context.tribute, template);
+    const content = resolveContent(this.context.tribute, template, this.context.htmlHelper);
     if (content !== null) {
       renderInto(this.ul, content);
       return true;
@@ -228,7 +228,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     });
     this.element.dispatchEvent(noMatchEvent);
 
-    const content = resolveContent(this.context.tribute, collection.noMatchTemplate);
+    const content = resolveContent(this.context.tribute, collection.noMatchTemplate, this.context.htmlHelper);
     if (content === null) {
       this.context.hideMenu();
       return false;

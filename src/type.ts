@@ -207,14 +207,14 @@ export type TributeCollection<T extends {}> = {
   debounce?: number;
 };
 
-export type StringOrElementTemplate<T extends {}> = ((instance?: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement) | string | null;
+export type StringOrElementTemplate<T extends {}> = ((instance: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement) | string | null;
 
 export type TributeTemplate<T extends {}> = {
   // function called on select that returns the content to insert
-  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement) | null;
+  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement) | null;
 
   // template for displaying item in menu
-  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>, htmlHelper?: HtmlHelper) => string | HTMLElement | DocumentFragment) | null;
+  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement | DocumentFragment) | null;
 
   // template for when no match is found (optional).
   // Unset: a default "No Match Found!" item is shown.

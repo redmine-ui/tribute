@@ -74,9 +74,9 @@ export function appendValues<T extends {}>(collection: Collection<T>, newValues:
   collection.values = replace || collection.values === null ? newValues : collection.values.concat(newValues);
 }
 
-export function resolveContent<T extends {}>(tribute: ITribute<T>, template: StringOrElementTemplate<T>): string | HTMLElement | null {
+export function resolveContent<T extends {}>(tribute: ITribute<T>, template: StringOrElementTemplate<T>, htmlHelper: HtmlHelper): string | HTMLElement | null {
   if (typeof template === 'function') {
-    const result = template(tribute);
+    const result = template(tribute, htmlHelper);
     return result || null;
   }
   return template || null;

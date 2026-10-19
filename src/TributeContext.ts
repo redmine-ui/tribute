@@ -1,5 +1,5 @@
 import { isAsync, isMaximumItemsAdded, query } from './collection';
-import { htmlHelperFor } from './html';
+import { type HtmlHelper, htmlHelperFor } from './html';
 import TributeMenu from './TributeMenu';
 import TributeRange from './TributeRange';
 import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, TributeItem, TriggerInfo } from './type';
@@ -22,7 +22,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   readonly element: HTMLElement;
   readonly range: ITributeRange<T>;
   readonly menu: ITributeMenu<T>;
-  readonly htmlHelper: ReturnType<typeof htmlHelperFor>;
+  readonly htmlHelper: HtmlHelper;
   private state: SessionState<T>;
   #isActive = false;
 
