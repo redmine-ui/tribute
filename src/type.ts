@@ -1,15 +1,16 @@
+import type { HtmlHelper } from './html';
 export type Collection<T extends {}> = TributeCollection<T> & TributeTemplate<T>;
 
 export interface ITribute<T extends {}> {
   autocompleteMode: boolean;
   autocompleteSeparator: RegExp | null;
   allowSpaces: boolean;
+  bindMenuEvents(context: ITributeContext<T>): void;
   closeOnScroll: boolean | HTMLElement;
-  current: ITributeContext<T>;
+  current?: ITributeContext<T>;
+  contextFor(element: HTMLElement): ITributeContext<T>;
   collection: Collection<T>[];
-  menu: ITributeMenu<T>;
   hideMenu(): void;
-  range: ITributeRange<T>;
   search: ITributeSearch<T>;
   hasTrailingSpace: boolean;
   isActive: boolean;
@@ -20,21 +21,34 @@ export interface ITribute<T extends {}> {
   showMenuForCollection(element: HTMLElement, collectionIndex?: number): void;
   spaceSelectsMatch: boolean;
   triggers(): (string | undefined)[];
+  unbindMenuEvents(context: ITributeContext<T>): void;
+  htmlHelper: HtmlHelper;
 }
 
 export interface ITributeContext<T extends {}> {
-  selectItemAtIndex(index: string, originalEvent: Event): void;
-  isMaximumItemsAdded(collection: Collection<T>, element: HTMLElement & { tributeMenu?: HTMLElement }): boolean;
-  showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void;
-  element?: HTMLElement;
-  filteredItems?: TributeItem<T>[];
+  tribute: ITribute<T>;
+  activate(): void;
+  deactivate(): void;
+  isActive: boolean;
+  element: HTMLElement;
+  range: ITributeRange<T>;
+  menu: ITributeMenu<T>;
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined): void;
+  showMenuForCollection(collection?: Collection<T>): void;
+  hasFilteredItems: boolean;
   collection?: Collection<T>;
   mentionText: string;
   isMentionLengthUnderMinimum: boolean | undefined;
-  externalTrigger: boolean;
-  process(scrollTo?: boolean): void;
   trigger?: string;
-  updateSelection(info: TriggerInfo): void;
+  sessionStarted(trigger?: string): void;
+  queryChanged(info?: TriggerInfo): void;
+  refreshMenu(commandEvent: boolean, showMenuOnBackspace: boolean): void;
+  selectionMoved(direction: 1 | -1): boolean;
+  selectionConfirmed(e: Event, index?: string | null): boolean;
+  sessionCanceled(): boolean;
+  consumeExternalTrigger(): boolean;
+  htmlHelper: HtmlHelper;
+  hideMenu(): void;
 }
 
 export type Coordinate = {
@@ -64,7 +78,7 @@ export interface ITributeMenu<T extends {}> {
   activate(): void;
   deactivate(): void;
   isActive: boolean;
-  create(doc: Document, containerClass: string): HTMLElement;
+  create(containerClass: string): HTMLElement;
   getDimensions(): { height: number | null; width: number | null };
   selected: number;
   setActiveLi(index: number): void;
@@ -72,6 +86,7 @@ export interface ITributeMenu<T extends {}> {
   up(count: number): void;
   down(count: number): void;
   unselect(): void;
+  showLoading(template: StringOrElementTemplate<T>): boolean;
 }
 
 export interface ITributeEvents {
@@ -79,39 +94,58 @@ export interface ITributeEvents {
   unbind(element: HTMLElement): void;
 }
 
+export interface ITributeMenuEvents<T extends {}> {
+  bind(context: ITributeContext<T>): void;
+  unbind(context: ITributeContext<T>): void;
+}
+
 export interface ITributeRange<T extends {}> {
-  element?: HTMLElement;
   getDocument(): Document;
+  getWindow(): Window;
   positionMenuAtCaret(scrollTo?: boolean): void;
   replaceTriggerText(text: string | HTMLElement, requireLeadingSpace: boolean, hasTrailingSpace: boolean, originalEvent: Event, item: TributeItem<T>): void;
   getTrigger(charCode?: number): string | undefined;
   getTriggerInfo(menuAlreadyActive: boolean, hasTrailingSpace: boolean, requireLeadingSpace: boolean, allowSpaces: boolean): TriggerInfo | undefined;
+  insertText(text: string): void;
+  focusAtEnd(): void;
 }
 
 export interface ITributeSearch<T extends {}> {
-  filter(pattern: string, arr: T[], opts?: TributeSearchOpts<T>): TributeItem<T>[];
+  filter(pattern: string, arr: T[], opts: TributeSearchOpts<T>, htmlHelper: HtmlHelper): TributeItem<T>[];
 }
 
 export type TributeItem<T extends {}> = {
   index: number;
   original: T;
   score: number;
-  string: string;
+  readonly string: string;
+  readonly html: HTMLElement | DocumentFragment;
 };
 
 export type TributeSearchOpts<T extends {}> = {
-  pre?: string;
-  post?: string;
-  skip?: boolean;
-  caseSensitive?: boolean;
+  pre: string;
+  post: string;
+  skip: boolean;
+  wrap?: (text?: string) => Node;
+  caseSensitive: boolean;
   extract?: (element: T & { [key: string]: string }) => string | null | undefined;
 };
+
+export type TributeValues<T extends {}> =
+  | Array<T>
+  | ((text: string, cb: (result: Array<T>) => void) => void)
+  | ((text: string) => Promise<Array<T>>)
+  | Promise<Array<T>>
+  | null;
 
 export type TributeCollection<T extends {}> = {
   // symbol that starts the lookup
   trigger: string;
 
-  // element to target for @mentions
+  /**
+   * @deprecated No longer needed. Tribute automatically resolves the document
+   * context from the attached element via `ownerDocument`.
+   */
   iframe?: HTMLIFrameElement | null;
 
   // is it wrapped in a web component
@@ -136,10 +170,7 @@ export type TributeCollection<T extends {}> = {
   fillAttr: string;
 
   // array of objects to match
-  values: Array<T> | ((text: string, cb: (result: Array<T>) => void) => void) | null;
-
-  // When your values function is async, an optional loading template to show
-  loadingItemTemplate: string | null;
+  values: TributeValues<T>;
 
   // specify whether a space is required before the trigger character
   requireLeadingSpace?: boolean;
@@ -161,7 +192,7 @@ export type TributeCollection<T extends {}> = {
   autocompleteMode?: boolean;
 
   // Customize the elements used to wrap matched strings within the results list
-  searchOpts: TributeSearchOpts<T>;
+  searchOpts: Partial<TributeSearchOpts<T>>;
 
   // Limits the number of items in the menu
   menuItemLimit?: number | null;
@@ -174,19 +205,30 @@ export type TributeCollection<T extends {}> = {
 
   // Block specific collection, so it can be triggered or not
   isBlocked?: boolean;
+
+  // Debounce time for async values function
+  debounce?: number;
 };
+
+export type StringOrElementTemplate<T extends {}> = ((instance: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement) | string | null;
 
 export type TributeTemplate<T extends {}> = {
   // function called on select that returns the content to insert
-  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>) => string | HTMLElement) | null;
+  selectTemplate: ((item: TributeItem<T> | undefined, tribute: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement) | null;
 
   // template for displaying item in menu
-  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>) => string | HTMLElement) | null;
+  menuItemTemplate: ((item: TributeItem<T>, tribute: ITribute<T>, htmlHelper: HtmlHelper) => string | HTMLElement | DocumentFragment) | null;
 
-  // template for when no match is found (optional),
-  // If no template is provided, menu is hidden.
-  noMatchTemplate: (() => string) | string | null;
+  // template for when no match is found (optional).
+  // Unset: a default "No Match Found!" item is shown.
+  // '' (or a function returning ''): the menu is hidden.
+  noMatchTemplate: StringOrElementTemplate<T>;
+
+  // When your values function is async, an optional loading template to show
+  loadingItemTemplate: StringOrElementTemplate<T>;
 };
+
+export type CollectionInput<T extends {}> = Partial<Omit<Collection<T>, 'values'>> & Pick<TributeCollection<T>, 'values'>;
 
 export type TributeArgument<T extends {}> = {
   // specify a regex to define after which characters the autocomplete option should open
@@ -199,7 +241,7 @@ export type TributeArgument<T extends {}> = {
   closeOnScroll?: boolean | HTMLElement;
 
   // pass an array of config objects
-  collection: (TributeCollection<T> & TributeTemplate<T>)[] | null;
+  collection: CollectionInput<T>[] | null;
 };
 
 export type TributeElement = HTMLElement | NodeList | HTMLCollection | Array<HTMLElement>;

@@ -1,27 +1,31 @@
-import { addHandler } from './helpers';
-import type { Collection, Coordinate, ITribute, ITributeMenu, TributeItem } from './type';
+import { getItemClassName, renderMenuItem, resolveContent } from './collection';
+import { addHandler, isDocumentFragment, isHTMLElement, renderInto } from './helpers';
+import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
+
+  /*
+   * Index of the currently highlighted <li>.
+   * -1 means "no selectable (non-disabled) item exists".
+   * Mirrors the "not found" value of Array.prototype.findIndex
+   */
   selected: number;
-  tribute: ITribute<T>;
+  readonly context: ITributeContext<T>;
 
   private ul?: HTMLElement;
   private remover?: () => void;
 
-  constructor(tribute: ITribute<T>) {
-    this.tribute = tribute;
+  constructor(context: ITributeContext<T>) {
+    this.context = context;
     this.element = null;
     this.selected = 0;
   }
 
-  create(doc: Document, containerClass: string): HTMLElement {
-    const wrapper = doc.createElement('div');
-    this.ul = doc.createElement('ul');
-    wrapper.className = containerClass;
-    wrapper.appendChild(this.ul);
-
-    this.element = this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(wrapper) : doc.body.appendChild(wrapper);
+  create(containerClass: string): HTMLElement {
+    const { h } = this.context.htmlHelper;
+    this.ul = h('ul');
+    this.element = h('div', { class: containerClass }, this.ul);
     return this.element;
   }
 
@@ -61,11 +65,15 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     return this.items[this.selected]?.getAttribute('data-disabled') === 'true';
   }
 
+  get hasEnabledItems() {
+    return Array.from(this.items).some((el) => el.getAttribute('data-disabled') !== 'true');
+  }
+
   up(count: number) {
     if (this.element === null) return;
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
-    if (this.selected === -1) {
+    if (this.selected === -1 || !this.hasEnabledItems) {
       return;
     }
 
@@ -83,7 +91,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     if (this.element === null) return;
     //If menu.selected is -1 then there are no valid, non-disabled items
     //to navigate through
-    if (this.selected === -1) {
+    if (this.selected === -1 || !this.hasEnabledItems) {
       return;
     }
 
@@ -97,15 +105,27 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     this.setActiveLi();
   }
 
+  showLoading(template: StringOrElementTemplate<T>): boolean {
+    if (!this.ul) throw new Error('menu do not have "ul" element');
+
+    const content = resolveContent(this.context.tribute, template, this.context.htmlHelper);
+    if (content !== null) {
+      renderInto(this.ul, content);
+      return true;
+    }
+    return false;
+  }
+
   setActiveLi(index?: number) {
     if (this.element === null) return;
-    if (!this.tribute.current.collection) return;
+    if (!this.context.collection) return;
+    if (index !== undefined && this.items[index]?.getAttribute('data-disabled') === 'true') return;
 
-    const selectClass = this.tribute.current.collection.selectClass;
+    const selectClass = this.context.collection.selectClass;
     const lis = this.items;
     const _length = lis.length >>> 0;
 
-    if (index) {
+    if (index !== undefined) {
       this.selected = index;
     }
     const element = this.element;
@@ -139,7 +159,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       return;
     }
 
-    if (!this.tribute.positionMenu) {
+    if (!this.context.tribute.positionMenu) {
       this.element.style.cssText = 'display: block;';
       return;
     }
@@ -207,27 +227,25 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       detail: this.element,
     });
     this.element.dispatchEvent(noMatchEvent);
-    if ((typeof collection.noMatchTemplate === 'function' && !collection.noMatchTemplate()) || !collection.noMatchTemplate) {
-      this.tribute.hideMenu();
-    } else {
-      ul.innerHTML = typeof collection.noMatchTemplate === 'function' ? collection.noMatchTemplate() : collection.noMatchTemplate;
 
-      return true;
+    const content = resolveContent(this.context.tribute, collection.noMatchTemplate, this.context.htmlHelper);
+    if (content === null) {
+      this.context.hideMenu();
+      return false;
     }
-    return false;
+    renderInto(ul, content);
+    return true;
   }
 
   _renderMenu(items: TributeItem<T>[], ul: HTMLElement, collection: Collection<T>) {
-    ul.innerHTML = '';
-    const doc = this.tribute.range.getDocument();
-    const fragment = doc.createDocumentFragment();
+    ul.replaceChildren();
 
     this.selected = items.findIndex((item) => item.original.disabled !== true);
     if (this.remover) {
       this.remover();
     }
     this.remover = addHandler(ul, 'mousemove', (e: Event) => {
-      if (!(e.target instanceof HTMLElement)) return;
+      if (!isHTMLElement(e.target)) return;
       if (!e.target.matches('li[data-index]')) return;
 
       const index = e.target.dataset.index;
@@ -236,29 +254,26 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       }
     });
 
-    items.forEach((item, index) => {
-      const li = this._createMenuItem(item, collection, index, doc);
-      fragment.appendChild(li);
+    const childern = items.map((item, index) => {
+      return this._createMenuItem(item, collection, index);
     });
-    ul.appendChild(fragment);
+    ul.append(...childern);
 
     return true;
   }
 
-  _createMenuItem(item: TributeItem<T>, collection: Collection<T>, index: number, doc: Document) {
-    const li = doc.createElement('li');
-    li.setAttribute('data-index', index.toString());
-    if (item.original.disabled) {
-      li.setAttribute('data-disabled', 'true');
-    }
-    li.className = collection.itemClass;
-    if (this.selected === index) {
-      li.classList.add(collection.selectClass);
-    }
+  _createMenuItem(item: TributeItem<T>, collection: Collection<T>, index: number) {
+    const { h } = this.context.htmlHelper;
+    const li = h('li', {
+      class: getItemClassName(collection, this.selected === index),
+      'data-index': index.toString(),
+      'data-disabled': item.original.disabled ? 'true' : undefined,
+    });
+
     // remove all content in the li and append the content of menuItemTemplate
-    const menuItemDomOrString = collection.menuItemTemplate !== null ? collection.menuItemTemplate(item, this.tribute) : '';
-    if (menuItemDomOrString instanceof Element) {
-      li.innerHTML = '';
+    const menuItemDomOrString = renderMenuItem(collection, item, this.context.tribute, this.context.htmlHelper);
+    if (isHTMLElement(menuItemDomOrString) || isDocumentFragment(menuItemDomOrString)) {
+      li.replaceChildren();
       li.appendChild(menuItemDomOrString);
     } else {
       li.innerHTML = menuItemDomOrString;

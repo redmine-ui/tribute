@@ -8,9 +8,9 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup dagger
-        uses: dagger/dagger-for-github@8.0.0
+        uses: dagger/dagger-for-github@v8.4.0
         with:
           version: "latest"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}

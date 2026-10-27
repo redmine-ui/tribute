@@ -1,78 +1,81 @@
-import { addHandler, debounce } from './helpers';
-import type { ITribute } from './type';
+import { addHandler, debounce, isHTMLElement } from './helpers';
+import type { ITribute, ITributeContext } from './type';
 
 class TributeMenuEvents<T extends {}> {
-  removers: (() => void)[];
+  removersMap: WeakMap<ITributeContext<T>, (() => void)[]>;
   tribute: ITribute<T>;
 
   constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
-    this.removers = [];
+    this.removersMap = new WeakMap();
   }
 
-  bind(_menu: EventTarget) {
-    const hideMenu = debounce(
-      () => {
-        if (this.tribute.isActive) {
-          this.tribute.hideMenu();
-        }
-      },
-      10,
-      false,
-    );
+  bind(context: ITributeContext<T>) {
+    if (this.removersMap.has(context)) return;
 
-    this.removers.push(addHandler(this.tribute.range.getDocument(), 'mousedown', (event: Event) => this.click(event), false));
-    this.removers.push(addHandler(window, 'resize', hideMenu));
+    const menuContainerScrollEvent = debounce(() => {
+      if (context.isActive && context.element) {
+        this.tribute.showMenuFor(context.element, false);
+      }
+    }, 10);
+    const hideMenu = debounce(() => {
+      if (context.isActive) {
+        context.hideMenu();
+      }
+    }, 10);
+
+    const removers: (() => void)[] = [];
+    const doc = context.range.getDocument();
+    const win = context.range.getWindow();
+
+    removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(context, event), false));
+    removers.push(addHandler(win, 'resize', hideMenu));
 
     if (this.tribute.closeOnScroll === true) {
-      this.removers.push(addHandler(window, 'scroll', hideMenu));
+      removers.push(addHandler(win, 'scroll', hideMenu));
     } else if (this.tribute.closeOnScroll !== false) {
-      this.removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
+      removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
     } else {
       if (this.tribute.menuContainer) {
-        this.removers.push(addHandler(this.tribute.menuContainer, 'scroll', hideMenu, false));
+        removers.push(addHandler(this.tribute.menuContainer, 'scroll', menuContainerScrollEvent, false));
       } else {
-        this.removers.push(addHandler(window, 'scroll', hideMenu));
+        removers.push(addHandler(win, 'scroll', menuContainerScrollEvent));
       }
     }
+    this.removersMap.set(context, removers);
   }
 
-  unbind(_menu: EventTarget) {
-    for (const remover of this.removers) {
-      remover();
+  unbind(context: ITributeContext<T>) {
+    const removers = this.removersMap.get(context);
+    if (removers) {
+      for (const remover of removers) {
+        remover();
+      }
+      this.removersMap.delete(context);
     }
   }
 
-  click(event: Event) {
+  click(context: ITributeContext<T>, event: Event) {
     const element = event.target;
-    const tribute = this.tribute;
-    if (!tribute.current || !(element instanceof HTMLElement)) return;
+    if (!isHTMLElement(element)) return;
 
-    if (tribute.menu.element?.contains(element)) {
+    if (context.menu.element?.contains(element)) {
       event.preventDefault();
       event.stopPropagation();
 
       const li = element.closest('li');
-      if (!(li instanceof HTMLElement)) return;
+      if (!isHTMLElement(li) || li.getAttribute('data-disabled') === 'true') return;
 
-      if (li.getAttribute('data-disabled') === 'true') {
-        return;
-      }
-      if (tribute.current.filteredItems?.length === 0) {
+      if (!context.hasFilteredItems) {
         li.setAttribute('data-index', '-1');
       }
 
       const index = li.getAttribute('data-index');
-      if (index !== null) {
-        tribute.current.selectItemAtIndex(index, event);
-      }
-      tribute.hideMenu();
+      context.selectionConfirmed(event, index);
 
       // TODO: should fire with externalTrigger and target is outside of menu
-    } else if (tribute.current.externalTrigger) {
-      tribute.current.externalTrigger = false;
-    } else if (tribute.current.element && !tribute.current.externalTrigger) {
-      setTimeout(() => tribute.hideMenu());
+    } else if (!context.consumeExternalTrigger()) {
+      setTimeout(() => context.hideMenu());
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@redmine-ui/tributejs",
-  "version": "6.2.1",
+  "version": "6.3.0",
   "description": "Native ES6 @mentions",
   "exports": "./dist/tribute.mjs",
   "type": "module",
@@ -9,17 +9,20 @@
     "dist"
   ],
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.4.4",
+    "@biomejs/biome": "2.6.3",
+    "@rollup/plugin-terser": "^1.0.2",
     "@rollup/plugin-typescript": "^12.3.0",
+    "@types/chai": "^5.2.3",
     "@types/jquery": "^3.5.33",
-    "@web/dev-server-esbuild": "^1.0.4",
-    "@web/test-runner": "^0.20.2",
-    "@web/test-runner-commands": "^0.9.0",
-    "@web/test-runner-playwright": "^0.11.1",
-    "chai": "^6.2.0",
+    "@types/mocha": "^10.0.10",
+    "@web/dev-server-esbuild": "^2.0.0",
+    "@web/test-runner": "^1.0.0",
+    "@web/test-runner-commands": "^1.0.1",
+    "@web/test-runner-playwright": "^1.0.0",
+    "chai": "^6.2.2",
     "git-cliff": "^2.10.1",
     "glob": "^11.0.3",
-    "rollup": "^4.52.5",
+    "rollup": "^4.60.3",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-serve": "^3.0.0",
@@ -27,8 +30,8 @@
     "typescript": "^5.9.3"
   },
   "overrides": {
-    "playwright": "1.56.1",
-    "playwright-core": "1.56.1"
+    "playwright": "1.64.1",
+    "playwright-core": "1.64.1"
   },
   "repository": {
     "type": "git",
@@ -38,10 +41,14 @@
     "build": "rollup -c",
     "start": "rollup -c -w",
     "clean": "node script/clean.js",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "web-test-runner --node-resolve --playwright --browsers chromium",
     "dagger": "dagger ./dagger.sh",
     "lint": "npx @biomejs/biome check",
+    "lint:fix": "npx @biomejs/biome check --fix",
+    "lint:fix:unsafe": "npx @biomejs/biome check --fix --unsafe",
     "release_note": "npx git-cliff --latest --strip header",
+    "example": "npm run build && npx serve -s example",
     "prepublishOnly": "npm run build"
   },
   "author": "Jordan Humphreys <jordan@zurb.com>",

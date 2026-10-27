@@ -1,104 +1,267 @@
-import { isTextAreaOrInput } from './helpers';
-import type { Collection, ITribute, ITributeContext, TributeItem, TriggerInfo } from './type';
+import { isAsync, isMaximumItemsAdded, query } from './collection';
+import { type HtmlHelper, htmlHelperFor } from './html';
+import TributeMenu from './TributeMenu';
+import TributeRange from './TributeRange';
+import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, TributeItem, TriggerInfo } from './type';
+
+type ContextArguments<T extends {}> = { tribute: ITribute<T>; element: HTMLElement; range?: ITributeRange<T>; menu?: ITributeMenu<T> };
+
+type SessionBase<T extends {}> = {
+  trigger: string;
+  collection: Collection<T>;
+  externalTrigger: boolean;
+};
+
+type SessionState<T extends {}> =
+  | { kind: 'idle'; mentionText: string }
+  | ({ kind: 'triggered'; mentionText: string } & SessionBase<T>)
+  | ({ kind: 'searching'; mentionText: string; filteredItems?: TributeItem<T>[] } & SessionBase<T>);
 
 class TributeContext<T extends {}> implements ITributeContext<T> {
-  #element?: HTMLElement;
-  filteredItems?: TributeItem<T>[];
-  collection?: Collection<T>;
-  mentionText: string;
-  externalTrigger: boolean;
-  tribute: ITribute<T>;
-  selectedPath?: (number | undefined)[];
-  selectedOffset?: number;
-  trigger?: string;
+  readonly tribute: ITribute<T>;
+  readonly element: HTMLElement;
+  readonly range: ITributeRange<T>;
+  readonly menu: ITributeMenu<T>;
+  readonly htmlHelper: HtmlHelper;
+  private state: SessionState<T>;
+  #isActive = false;
 
-  constructor(tribute: ITribute<T>) {
+  constructor({ tribute, element, range, menu }: ContextArguments<T>) {
     this.tribute = tribute;
-    this.mentionText = '';
-    this.externalTrigger = false;
+    this.element = element;
+    this.range = range ?? new TributeRange<T>(this, element);
+    this.menu = menu ?? new TributeMenu(this);
+    this.state = { kind: 'idle', mentionText: '' };
+    this.htmlHelper = htmlHelperFor(this.range.getDocument());
   }
 
-  set element(element: HTMLElement | undefined) {
-    if (element) {
-      this.tribute.range.element = element;
+  get mentionText() {
+    return this.state.mentionText;
+  }
+
+  get collection() {
+    return this.state.kind === 'idle' ? undefined : this.state.collection;
+  }
+
+  get trigger() {
+    return this.state.kind === 'idle' ? undefined : this.state.trigger;
+  }
+
+  private setActive(value: boolean) {
+    if (this.#isActive !== value) {
+      this.#isActive = value;
+      if (value) {
+        this.tribute.bindMenuEvents(this);
+      } else {
+        this.tribute.unbindMenuEvents(this);
+      }
+      const activeEvent = new CustomEvent(`tribute-active-${value}`);
+      this.element.dispatchEvent(activeEvent);
     }
-
-    this.#element = element;
   }
 
-  get element() {
-    return this.#element;
+  get isActive() {
+    return this.#isActive;
   }
 
-  process(scrollTo: boolean) {
-    if (this.tribute.menu.element === null || !this.collection) return;
+  activate() {
+    this.setActive(true);
+  }
 
-    const ul = this.tribute.menu.element.querySelector('ul');
-    if (ul === null) throw new Error('menu do not have "ul" element');
-
-    const collection = this.collection;
-    const processor = (values: T[]) => {
-      // Tribute may not be active any more by the time the value callback returns
-      if (!this.tribute.isActive) {
-        return;
-      }
-
-      const items = this._filterItems(collection, values);
-      this.filteredItems = items;
-
-      const scroll = this.tribute.menu.render(items, collection);
-      if (scroll === true && scrollTo === true) {
-        this.tribute.range.positionMenuAtCaret(scrollTo);
-      }
+  deactivate() {
+    this.setActive(false);
+    this.state = {
+      kind: 'idle',
+      mentionText: this.state.mentionText,
     };
+  }
 
-    if (typeof collection.values === 'function') {
-      if (collection.loadingItemTemplate) {
-        ul.innerHTML = collection.loadingItemTemplate;
-        this.tribute.range.positionMenuAtCaret(scrollTo);
-      }
+  sessionStarted(trigger?: string) {
+    if (typeof trigger === 'undefined') return;
 
-      collection.values(this.mentionText, processor);
-    } else if (collection.values !== null) {
-      processor(collection.values);
+    const collection = this.tribute.collection.find((item) => {
+      return item.trigger === trigger;
+    });
+
+    if (collection === undefined) return;
+
+    this.state = {
+      ...this.state,
+      kind: 'triggered',
+      trigger: trigger,
+      collection: collection,
+      externalTrigger: false,
+    };
+  }
+
+  queryChanged(info?: TriggerInfo) {
+    if (info) {
+      this.state.mentionText = info.mentionText || '';
     }
   }
 
-  updateSelection(info: TriggerInfo) {
-    this.selectedPath = info.mentionSelectedPath;
-    this.mentionText = info.mentionText || '';
-    this.selectedOffset = info.mentionSelectedOffset;
+  refreshMenu(hotkeyHandledOnKeydown: boolean, showMenuOnBackspace: boolean) {
+    if (this.state.kind === 'idle') return;
+
+    if (this.isMentionLengthUnderMinimum) {
+      this.hideMenu();
+      return;
+    }
+
+    if (((this.state.trigger || this.tribute.autocompleteMode) && !hotkeyHandledOnKeydown) || showMenuOnBackspace) {
+      this.tribute.showMenuFor(this.element, true);
+    }
   }
 
-  showMenuForCollection(element: HTMLElement, collection?: Collection<T>): void {
-    if (typeof collection === 'undefined' || this.isMaximumItemsAdded(collection, element)) {
+  selectionMoved(direction: 1 | -1): boolean {
+    if (this.state.kind !== 'searching') return false;
+
+    if (this.isActive && this.state.filteredItems) {
+      const count = this.state.filteredItems.length;
+
+      if (direction === 1) {
+        this.menu.up(count);
+      } else {
+        this.menu.down(count);
+      }
+
+      return true;
+    }
+    return false;
+  }
+
+  selectionConfirmed(e: Event, index?: string | null): boolean {
+    if (this.state.kind !== 'searching') return false;
+
+    if (index !== undefined) {
+      if (index !== null) {
+        this.selectItemAtIndex(index, e);
+      }
+      this.hideMenu();
+      return true;
+    }
+    const filteredItems = this.state.filteredItems;
+    if (this.isActive && filteredItems?.length !== undefined) {
+      if (filteredItems.length === 0) {
+        this.menu.unselect();
+      }
+
+      setTimeout(() => {
+        this.selectItemAt(this.menu.selected, e);
+        this.hideMenu();
+      }, 0);
+      return true;
+    }
+    return false;
+  }
+
+  sessionCanceled(): boolean {
+    if (this.isActive) {
+      this.hideMenu();
+      return true;
+    }
+    return false;
+  }
+
+  consumeExternalTrigger(): boolean {
+    if (this.state.kind === 'idle') return false;
+
+    if (this.state.externalTrigger) {
+      this.state.externalTrigger = false;
+      return true;
+    }
+    return false;
+  }
+
+  hideMenu() {
+    if (this.menu.isActive) {
+      this.deactivate();
+      this.menu.deactivate();
+    }
+  }
+
+  get hasFilteredItems(): boolean {
+    if (this.state.kind !== 'searching') return false;
+
+    return !!this.state.filteredItems && this.state.filteredItems.length > 0;
+  }
+
+  private process(scrollTo: boolean) {
+    if (this.menu.element === null || this.state.kind === 'idle') return;
+
+    if (isAsync(this.state.collection)) {
+      const loadingshown = this.menu.showLoading(this.state.collection.loadingItemTemplate);
+      if (loadingshown) {
+        this.range.positionMenuAtCaret(scrollTo);
+      }
+    }
+
+    query(this.state.collection, this.tribute.search, this.state.mentionText, this.htmlHelper, (items) => {
+      if (!this.isActive || this.state.kind === 'idle') return;
+
+      this.state = {
+        ...this.state,
+        kind: 'searching',
+        filteredItems: items,
+      };
+
+      const scroll = this.menu.render(items, this.state.collection);
+      if (scroll === true && scrollTo === true) {
+        this.range.positionMenuAtCaret(scrollTo);
+      }
+    });
+  }
+
+  showMenuFor(element: HTMLElement, scrollTo: boolean | undefined) {
+    if (this.state.kind === 'idle') return;
+
+    // Check for maximum number of items added to the input for the specific Collection
+    if (isMaximumItemsAdded(this.state.collection, element)) {
       //console.log("Tribute: Maximum number of items added!");
       return;
     }
 
-    if (element !== document.activeElement) {
-      this.placeCaretAtEnd(element);
+    // create the menu if it doesn't exist.
+    if (!this.menu.element) {
+      const menu = this.menu.create(this.state.collection.containerClass);
+      const doc = this.range.getDocument();
+      this.tribute.menuContainer ? this.tribute.menuContainer.appendChild(menu) : doc.body.appendChild(menu);
     }
 
-    this.collection = collection;
-    this.externalTrigger = true;
-    this.element = element;
-
-    if (element.isContentEditable) {
-      this.insertTextAtCursor(this.collection.trigger);
-    } else if (isTextAreaOrInput(element)) {
-      this.insertAtCaret(element, this.collection.trigger);
-    }
+    this.activate();
+    this.menu.activate();
+    this.process(!!scrollTo);
   }
 
-  selectItemAtIndex(index: string, originalEvent: Event) {
+  showMenuForCollection(collection?: Collection<T>): void {
+    if (typeof collection === 'undefined' || isMaximumItemsAdded(collection, this.element)) {
+      //console.log("Tribute: Maximum number of items added!");
+      return;
+    }
+
+    this.range.focusAtEnd();
+    this.state = {
+      ...this.state,
+      kind: 'searching',
+      collection: collection,
+      trigger: collection.trigger,
+      externalTrigger: true,
+    };
+    this.range.insertText(collection.trigger);
+  }
+
+  private selectItemAtIndex(index: string, originalEvent: Event): void {
     const _index = Number.parseInt(index, 10);
-    if (Number.isNaN(_index) || !this.filteredItems || !this.collection || !this.element) return;
+    this.selectItemAt(_index, originalEvent);
+  }
 
-    if (this.collection.selectTemplate === null) return;
+  private selectItemAt(_index: number, originalEvent: Event) {
+    if (this.state.kind !== 'searching' || Number.isNaN(_index) || !this.state.filteredItems) return;
 
-    const item = this.filteredItems[_index];
-    const content = this.collection.selectTemplate(item, this.tribute);
+    if (this.state.collection.selectTemplate === null) return;
+
+    const item = this.state.filteredItems[_index];
+    const content = this.state.collection.selectTemplate(item, this.tribute, this.htmlHelper);
 
     if (_index === -1 || !item) {
       const selectedNoMatchEvent = new CustomEvent('tribute-selected-no-match', { detail: content });
@@ -107,90 +270,14 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     }
 
     if (content !== null) {
-      this.tribute.range.replaceTriggerText(content, true, true, originalEvent, item);
+      this.range.replaceTriggerText(content, true, true, originalEvent, item);
     }
-  }
-
-  // TODO: make sure this works for inputs/textareas
-  private placeCaretAtEnd(el: HTMLElement) {
-    el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  }
-
-  // for contenteditable
-  private insertTextAtCursor(text: string): void {
-    const sel = window.getSelection();
-    const range = sel?.getRangeAt(0);
-    if (!sel || !range) return;
-
-    range.deleteContents();
-    const textNode = document.createTextNode(text);
-    range.insertNode(textNode);
-    range.selectNodeContents(textNode);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  // for regular inputs
-  private insertAtCaret(textarea: HTMLInputElement | HTMLTextAreaElement, text: string): void {
-    const scrollPos = textarea.scrollTop;
-    let caretPos = textarea.selectionStart;
-
-    if (!caretPos || !textarea.selectionEnd) return;
-
-    const front = textarea.value.substring(0, caretPos);
-    const back = textarea.value.substring(textarea.selectionEnd, textarea.value.length);
-    textarea.value = front + text + back;
-    caretPos = caretPos + text.length;
-    textarea.selectionStart = caretPos;
-    textarea.selectionEnd = caretPos;
-    textarea.focus();
-    textarea.scrollTop = scrollPos;
   }
 
   get isMentionLengthUnderMinimum() {
-    if (!this.collection) return undefined;
+    if (this.state.kind === 'idle') return undefined;
 
-    return this.mentionText.length < this.collection.menuShowMinLength;
-  }
-
-  _filterItems(collection: Collection<T>, values: T[]) {
-    const opts = collection.searchOpts;
-    const lookup = collection.lookup;
-    const items = this.tribute.search.filter(this.mentionText, values, {
-      pre: opts.pre || '<span>',
-      post: opts.post || '</span>',
-      skip: opts.skip || false,
-      caseSensitive: opts.caseSensitive || false,
-      extract: (el) => {
-        if (typeof lookup === 'string') {
-          return el[lookup];
-        }
-        if (typeof lookup === 'function') {
-          return lookup(el, this.mentionText);
-        }
-        throw new Error('Invalid lookup attribute, lookup must be string or function.');
-      },
-    });
-
-    if (collection.menuItemLimit) {
-      return items.slice(0, collection.menuItemLimit);
-    }
-
-    return items;
-  }
-
-  isMaximumItemsAdded<T extends {}>(collection: Collection<T>, element: HTMLElement): boolean {
-    const result =
-      (collection.maxDisplayItems && element.querySelectorAll(`[data-tribute-trigger="${collection.trigger}"]`).length >= collection.maxDisplayItems) ||
-      collection.isBlocked;
-    return !!result;
+    return this.state.mentionText.length < this.state.collection.menuShowMinLength;
   }
 }
 

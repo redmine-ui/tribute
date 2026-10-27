@@ -1,23 +1,24 @@
-import { compactObject, isJQuery, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
+import { appendValues, debounceValues } from './collection';
+import { compactObject, isHTMLCollection, isHTMLElement, isJQuery, isKeyOfObject, isNodeList, isNotTextAreaOrInput } from './helpers';
+import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
-import TributeMenu from './TributeMenu';
 import TributeMenuEvents from './TributeMenuEvents';
-import TributeRange from './TributeRange';
 import TributeSearch from './TributeSearch';
 import type {
   Collection,
   ITribute,
   ITributeContext,
   ITributeEvents,
-  ITributeMenu,
-  ITributeRange,
+  ITributeMenuEvents,
   ITributeSearch,
+  StringOrElementTemplate,
   TributeArgument,
   TributeCollection,
   TributeElement,
   TributeItem,
   TributeTemplate,
+  TributeValues,
 } from './type';
 
 const defaultConfig = {
@@ -51,6 +52,8 @@ const defaultConfig = {
   isBlocked: false,
 } as const;
 
+type TributeCollectionConfig<T extends {}> = TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>;
+
 class Tribute<T extends {}> implements ITribute<T> {
   allowSpaces: boolean;
   autocompleteMode: boolean;
@@ -60,19 +63,16 @@ class Tribute<T extends {}> implements ITribute<T> {
   closeOnScroll: boolean | HTMLElement;
   currentMentionTextSnapshot?: string;
   hasTrailingSpace: boolean;
-  menu: ITributeMenu<T>;
   menuContainer?: Element | null;
   positionMenu: boolean;
   replaceTextSuffix: string | null;
   spaceSelectsMatch: boolean;
-  _isActive: boolean;
   events: ITributeEvents;
-  menuEvents: ITributeEvents;
-  range: ITributeRange<T>;
+  menuEvents: ITributeMenuEvents<T>;
   search: ITributeSearch<T>;
-  current: ITributeContext<T>;
+  private contextMap = new Map<HTMLElement, ITributeContext<T>>();
 
-  constructor(args: Partial<TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>>) {
+  constructor(args: Partial<TributeCollectionConfig<T>>) {
     const compactArgs = compactObject(args);
 
     const config = {
@@ -80,11 +80,8 @@ class Tribute<T extends {}> implements ITribute<T> {
       ...compactArgs,
     };
 
-    this._isActive = false;
     this.autocompleteMode = config.autocompleteMode;
     this.autocompleteSeparator = config.autocompleteSeparator;
-    this.current = new TributeContext(this);
-    this.isActive = false;
     this.menuContainer = config.menuContainer;
     this.allowSpaces = config.allowSpaces;
     this.replaceTextSuffix = config.replaceTextSuffix;
@@ -92,7 +89,6 @@ class Tribute<T extends {}> implements ITribute<T> {
     this.hasTrailingSpace = false;
     this.spaceSelectsMatch = config.spaceSelectsMatch;
     this.closeOnScroll = config.closeOnScroll;
-    this.menu = new TributeMenu(this);
 
     if (this.autocompleteMode) {
       config.trigger = '';
@@ -100,24 +96,30 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.collection = this.buildCollection(config);
-    this.range = new TributeRange(this);
     this.events = new TributeEvents(this);
     this.menuEvents = new TributeMenuEvents(this);
     this.search = new TributeSearch(this);
   }
 
+  current?: ITributeContext<T>;
+
   get isActive(): boolean {
-    return this._isActive;
+    return this.current ? this.current.isActive : false;
   }
 
-  set isActive(val: boolean) {
-    if (this._isActive !== val) {
-      this._isActive = val;
-      if (this.current.element) {
-        const noMatchEvent = new CustomEvent(`tribute-active-${val}`);
-        this.current.element.dispatchEvent(noMatchEvent);
-      }
+  set isActive(value: boolean) {
+    if (value) {
+      this.current?.activate();
+    } else {
+      this.current?.deactivate();
     }
+  }
+
+  contextFor(element: HTMLElement): ITributeContext<T> {
+    const context = this.contextMap.get(element);
+    if (!context) throw new Error('Tribute is not attached to this element');
+
+    return context;
   }
 
   triggers() {
@@ -134,9 +136,9 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     // Is el an Array/Array-like object?
-    if (_el instanceof NodeList || _el instanceof HTMLCollection || Array.isArray(_el)) {
+    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
       for (const e of _el) {
-        if (e instanceof HTMLElement) {
+        if (isHTMLElement(e)) {
           this._attach(e);
         }
       }
@@ -151,6 +153,14 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
 
     this.ensureEditable(el);
+    const context = new TributeContext({
+      tribute: this,
+      element: el,
+    });
+    this.contextMap.set(el, context);
+    if (!this.current) {
+      this.current = context;
+    }
     this.events.bind(el);
     el.setAttribute('data-tribute', 'true');
   }
@@ -169,67 +179,35 @@ class Tribute<T extends {}> implements ITribute<T> {
     // Check for maximum number of items added to the input for the specific Collection
     const index = collectionIndex || 0;
     const collection = this.collection[index];
-    this.current.showMenuForCollection(element, collection);
+    this.current?.showMenuForCollection(collection);
     this.showMenuFor(element);
   }
 
-  showMenuFor(element: HTMLElement & { tributeMenu?: HTMLElement }, scrollTo?: boolean): void {
-    if (typeof this.current.collection === 'undefined') return;
+  showMenuFor(element: HTMLElement, scrollTo?: boolean): void {
+    const context = this.contextFor(element);
 
-    // Check for maximum number of items added to the input for the specific Collection
-    if (this.current.isMaximumItemsAdded(this.current.collection, element)) {
-      //console.log("Tribute: Maximum number of items added!");
-      return;
-    }
-
-    this.currentMentionTextSnapshot = this.current.mentionText;
-
-    // create the menu if it doesn't exist.
-    if (!this.menu.element) {
-      const menu = this.menu.create(this.range.getDocument(), this.current.collection.containerClass);
-      element.tributeMenu = menu;
-      this.menuEvents.bind(menu);
-    }
-
-    this.isActive = true;
-    this.menu.activate();
-
-    this.current.process(scrollTo);
+    this.currentMentionTextSnapshot = context.mentionText;
+    context.showMenuFor(element, scrollTo);
   }
 
   hideMenu(): void {
-    if (this.menu.isActive) {
-      this.isActive = false;
-      this.menu.deactivate();
-      this.current = new TributeContext(this);
-    }
+    this.current?.hideMenu();
   }
 
-  _append(collection: TributeCollection<T>, newValues: T[], replace: boolean): void {
-    if (typeof collection.values === 'function') {
-      throw new Error('Unable to append to values, as it is a function.');
-    }
-    if (replace || collection.values === null) {
-      collection.values = newValues;
-    } else {
-      collection.values = collection.values.concat(newValues);
-    }
-  }
-
-  append(collectionIndex: string, newValues: [], replace?: boolean): void {
-    const index = Number.parseInt(collectionIndex, 10);
-    if (typeof index !== 'number') throw new Error('please provide an index for the collection to update.');
+  append(collectionIndex: string | number, newValues: T[], replace?: boolean): void {
+    const index = typeof collectionIndex === 'number' ? collectionIndex : Number.parseInt(collectionIndex, 10);
+    if (typeof index !== 'number' || Number.isNaN(index)) throw new Error('please provide an index for the collection to update.');
 
     const collection = this.collection[index];
 
     if (typeof collection !== 'undefined') {
-      this._append(collection, newValues, !!replace);
+      appendValues(collection, newValues, !!replace);
     }
   }
 
   appendCurrent(newValues: T[], replace: boolean): void {
-    if (this.isActive && typeof this.current.collection !== 'undefined') {
-      this._append(this.current.collection, newValues, replace);
+    if (this.isActive && typeof this.current?.collection !== 'undefined') {
+      appendValues(this.current?.collection, newValues, replace);
     } else {
       throw new Error('No active state. Please use append instead and pass an index.');
     }
@@ -244,9 +222,9 @@ class Tribute<T extends {}> implements ITribute<T> {
     const _el = isJQuery(el) ? el.get() : el;
 
     // Is el an Array/Array-like object?
-    if (_el instanceof NodeList || _el instanceof HTMLCollection || Array.isArray(_el)) {
+    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
       for (const e of _el) {
-        if (e instanceof HTMLElement) {
+        if (isHTMLElement(e)) {
           this._detach(e);
         }
       }
@@ -255,32 +233,43 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  _detach(el: HTMLElement & { tributeMenu?: HTMLElement }): void {
-    this.events.unbind(el);
-    if (el.tributeMenu) {
-      this.menuEvents.unbind(el.tributeMenu);
+  _detach(el: HTMLElement): void {
+    const context = this.contextFor(el);
+    if (context) {
+      this.contextMap.delete(el);
+      this.events.unbind(el);
     }
 
     setTimeout(() => {
       el.removeAttribute('data-tribute');
-      this.isActive = false;
-      if (el.tributeMenu) {
-        el.tributeMenu.remove();
-      }
+      context.deactivate();
     });
   }
 
-  private buildCollection(config: TributeCollection<T> & TributeTemplate<T> & TributeArgument<T>) {
-    const { values, collection, menuItemTemplate, noMatchTemplate, selectTemplate, ...collectionConfig } = config;
+  bindMenuEvents(context: ITributeContext<T>) {
+    this.menuEvents.bind(context);
+  }
+
+  unbindMenuEvents(context: ITributeContext<T>) {
+    this.menuEvents.unbind(context);
+  }
+
+  get htmlHelper() {
+    return this.current?.htmlHelper ?? htmlHelperFor(document);
+  }
+
+  private buildCollection(config: TributeCollectionConfig<T>) {
+    const { values, debounce, collection, menuItemTemplate, noMatchTemplate, selectTemplate, loadingItemTemplate, ...collectionConfig } = config;
 
     if (values) {
       return [
         {
           ...collectionConfig,
-          values: values,
-          selectTemplate: selectTemplate ? selectTemplate.bind(this) : (item?: TributeItem<T>) => defaultSelectTemplate(this.current, item),
-          menuItemTemplate: (menuItemTemplate || defaultMenuItemTemplate).bind(this),
-          noMatchTemplate: this.createNoMatchTemplate(noMatchTemplate, noMatchTemplate),
+          values: resolveValues(values, debounce),
+          selectTemplate: resolveTemplate(this, selectTemplate, defaultSelectTemplate),
+          menuItemTemplate: resolveTemplate(this, menuItemTemplate, defaultMenuItemTemplate),
+          noMatchTemplate: resolveStringOrElementTemplate(this, noMatchTemplate, defaultNoMatchTemplate),
+          loadingItemTemplate: resolveStringOrElementTemplate(this, loadingItemTemplate, undefined),
         },
       ];
     }
@@ -290,25 +279,15 @@ class Tribute<T extends {}> implements ITribute<T> {
       return collection.map((item) => ({
         ...collectionConfig,
         ...item,
-        selectTemplate: item.selectTemplate ? item.selectTemplate.bind(this) : (item?: TributeItem<T>) => defaultSelectTemplate(this.current, item),
-        menuItemTemplate: (item.menuItemTemplate || defaultMenuItemTemplate).bind(this),
-        noMatchTemplate: this.createNoMatchTemplate(item.noMatchTemplate, noMatchTemplate),
+        values: resolveValues(item.values, item.debounce),
+        selectTemplate: resolveTemplate(this, item.selectTemplate, defaultSelectTemplate),
+        menuItemTemplate: resolveTemplate(this, item.menuItemTemplate, defaultMenuItemTemplate),
+        noMatchTemplate: resolveStringOrElementTemplate(this, item.noMatchTemplate, noMatchTemplate ?? defaultNoMatchTemplate),
+        loadingItemTemplate: resolveStringOrElementTemplate(this, item.loadingItemTemplate, undefined),
       }));
     } else {
       throw new Error('[Tribute] No collection specified.');
     }
-  }
-
-  private createNoMatchTemplate(template: TributeTemplate<T>['noMatchTemplate'], defaultNoMatchTemplate: TributeTemplate<T>['noMatchTemplate']) {
-    if (typeof template === 'string') {
-      return template.trim() === '' ? null : template;
-    }
-
-    if (typeof template === 'function') {
-      return template.bind(this);
-    }
-
-    return defaultNoMatchTemplate ?? (() => '<li>No Match Found!</li>').bind(this);
   }
 
   static isContentEditable(element: HTMLElement) {
@@ -316,24 +295,53 @@ class Tribute<T extends {}> implements ITribute<T> {
   }
 }
 
-function defaultSelectTemplate<T extends {}>(current: ITributeContext<T> | undefined, item?: TributeItem<T>): string {
+function resolveValues<T extends {}>(values: TributeValues<T>, debounce: number | undefined): TributeValues<T> {
+  if (!debounce || typeof values !== 'function') return values;
+  return debounceValues(values, debounce);
+}
+
+function resolveTemplate<F extends (...args: never[]) => unknown>(tribute: unknown, custom: F | null | undefined, fallback: F): F {
+  return (custom ?? fallback).bind(tribute) as F;
+}
+
+function resolveStringOrElementTemplate<T extends {}>(
+  tribute: Tribute<T>,
+  template: StringOrElementTemplate<T> | undefined,
+  fallback: StringOrElementTemplate<T> | undefined,
+): StringOrElementTemplate<T> {
+  if (typeof template === 'string') {
+    return template.trim() === '' ? null : template;
+  }
+  if (typeof template === 'function') {
+    return template.bind(tribute);
+  }
+  return fallback ?? null;
+}
+
+function defaultSelectTemplate<T extends {}>(item: TributeItem<T> | undefined, tribute: ITribute<T>): string | HTMLElement {
+  const current = tribute?.current;
   if (!current?.collection) {
     throw new Error('current Collection is undefined');
   }
-
   const result = isKeyOfObject(current.collection.fillAttr, item?.original)
     ? (item?.original?.[current.collection.fillAttr] ?? current.mentionText)
     : current.mentionText;
   const trigger = current.collection.trigger ?? '';
 
   if (current.element && isNotTextAreaOrInput(current.element)) {
-    return `<span class="tribute-mention">${trigger}${result}</span>`;
+    const { h } = tribute.htmlHelper;
+    return h('span', `${trigger}${result}`, { class: 'tribute-mention' });
   }
   return `${trigger}${result}`;
 }
 
 function defaultMenuItemTemplate<T extends {}>(matchItem: TributeItem<T>) {
   return matchItem.string;
+}
+
+function defaultNoMatchTemplate<T extends {}>(tribute?: ITribute<T>): string | HTMLElement {
+  const { h } = tribute?.htmlHelper || htmlHelperFor(document);
+  return h('li', 'No Match Found!');
 }
 
 export default Tribute;

@@ -1,0 +1,133 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #0a0a0a;
+  background: #fefefe;
+}
+
+h1,
+h5 {
+  margin: 0 0 0.5rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-top: 1rem;
+}
+
+h5 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #cacaca;
+  margin: 1.25rem 0;
+}
+
+code {
+  background: #f4f4f4;
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+a {
+  color: #2199e8;
+  cursor: pointer;
+}
+
+.row {
+  max-width: 62.5rem;
+  margin: 0 auto;
+  padding: 0 0.9375rem;
+}
+
+.row::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.columns {
+  float: left;
+  padding: 0 0.9375rem;
+  width: 100%;
+}
+
+@media screen and (min-width: 40em) {
+  .large-12 {
+    width: 100%;
+  }
+  .large-8,
+  .medium-8 {
+    width: 66.66667%;
+  }
+}
+
+.small-centered {
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.callout {
+  padding: 1rem;
+  margin: 0 0 1rem;
+  border: 1px solid #e6e6e6;
+  border-radius: 3px;
+  background: #fefefe;
+}
+
+.callout.large {
+  padding: 3rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: #0a0a0a;
+}
+
+input[type="text"],
+textarea {
+  display: block;
+  width: 100%;
+  margin: 0 0 1rem;
+  padding: 0.5rem;
+  border: 1px solid #cacaca;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #0a0a0a;
+  background-color: #fefefe;
+}
+
+.float-right {
+  float: right;
+}

@@ -11,6 +11,8 @@ A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Fir
 - [A Collection](#a-collection)
 - [Events](#events)
 - [Tips](#tips)
+- [Styling](#styling)
+- [Building templates with htmlHelper](#building-templates-with-htmlhelper)
 - [Framework Support](#framework-support)
 - [WYSIWYG Editor Support](#wysiwyg-editor-support)
 - [Example](https://redmine-ui.github.io/tribute/example/)
@@ -32,7 +34,7 @@ Or by adding Tribute to your `package.json` file.
 Import into your ES6 code.
 
 ```js
-import Tribute from "@redmine-ui/tributejs.mjs";
+import Tribute from "@redmine-ui/tributejs";
 ```
 
 ### Download or Clone
@@ -111,7 +113,10 @@ Collection object shown with defaults:
   // symbol or string that starts the lookup
   trigger: '@',
 
-  // element to target for @mentions
+  /**
+   * @deprecated No longer needed. Tribute automatically resolves the document
+   * context from the attached element via `ownerDocument`.
+   */
   iframe: null,
 
   // is it wrapped in a web component
@@ -132,8 +137,9 @@ Collection object shown with defaults:
   // template for displaying item in menu (return dom string or dom node)
   menuItemTemplate: (item) => item.string,
 
-  // template for when no match is found (optional),
-  // If no template is provided, menu is hidden.
+  // template for when no match is found (optional).
+  // Unset: a default "No Match Found!" item is shown.
+  // '' (or a function returning ''): the menu is hidden.
   noMatchTemplate: null,
 
   // specify an alternative parent container for the menu
@@ -175,9 +181,11 @@ Collection object shown with defaults:
 
   // Customize the elements used to wrap matched strings within the results list
   // defaults to <span></span> if undefined
+  // pre and post are applied to the html string added to innerHtml. wrap is used to generate the HTMLElement.
   searchOpts: {
     pre: '<span>',
     post: '</span>',
+    wrap: (text) => h('span', text),
     skip: false, // true will skip local search, useful if doing server-side search
     caseSensitive: false
   },
@@ -201,7 +209,10 @@ Collection object shown with defaults:
   maxDisplayItems: null,
 
   // Block specific collection, so it can be triggered or not
-  isBlocked: false
+  isBlocked: false,
+
+  // Debounce time for async values function
+  debounce: undefined,
 }
 ```
 
@@ -219,15 +230,13 @@ The `lookup` column can also be passed a function to construct a string to query
 
 Both the `selectTemplate` and the `menuItemTemplate` have access to the `item` object. This is a meta object containing the matched object from your values collection, wrapped in a search result.
 
-```js
-{
-  index: 0;
-  original: {
-  } // your original object from values array
-  score: 5;
-  string: "<span>J</span><span>o</span>rdan Hum<span>p</span>hreys";
-}
-```
+| Property | Description
+| --- | --- |
+| `index` | indices of the array |
+| `original` | your original object from values array |
+| `score` | the display priority for the menu |
+| `string` | The text displayed in the menu will be automatically sanitized. |
+| `html` | HTMLElement or DocumentFragment to display in the menu |
 
 ### Access the tribute instance
 
@@ -249,9 +258,6 @@ Both the selectTemplate and the menuItemTemplate can access the tribute instance
     '@' + item.original.value;
   }
 }
-```
-
-```js
 ```
 
 ### Trigger tribute programmatically
@@ -393,6 +399,11 @@ If you want to embed a link in your `selectTemplate` then you need to make sure 
 anchor is wrapped in an element with `contenteditable="false"`. This makes the anchor
 clickable _and_ fixes issues with matches being modifiable.
 
+You can generate DOM elements within templates using the `h` and `f` helpers. For more
+details, please refer to the [explanation of the helpers](#building-templates-with-htmlhelper).
+
+While you can still generate HTML using strings as before, we recommend using helpers moving forward.
+
 ```js
 const tribute = new Tribute({
   values: [
@@ -407,28 +418,24 @@ const tribute = new Tribute({
       email: "getstarted+riley@zurb.com"
     }
   ],
-  selectTemplate: (item) => {
-    return (
-      '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
-      item.original.email +
-      '">' +
-      item.original.value +
-      "</a></span>"
-    );
-  }
+  selectTemplate: (item, tribute, { h }) =>
+    h('span',
+      h('a',
+        item.original.value,
+        { href: 'http://zurb.com', target: '_blank', title: item.original.email }),
+      { contenteditable: 'false' });
 });
 ```
 
 ### How do I add an image to the items in the list?
 
-You can override the default `menuItemTemplate` with your own output on initialization. This allows you to replace the `innerHTML` of the `li` of each item in the list. You can use `item.string` to return the markup for the fuzzy match.
+You can override the default `menuItemTemplate` with your own output on initialization. This allows you to replace the content of the `li` of each item in the list. You can use `item.string` to return the markup for the fuzzy match.
 
 ```js
 {
   //..other config options
-  menuItemTemplate: (item) => {
-    return '<img src="'+item.original.avatar_url + '">' + item.string;
-  }
+  menuItemTemplate: (item, tribute, { h, f }) =>
+    f( h( 'img', { src: item.original.avatar_url }), item.html);
 }
 ```
 
@@ -445,45 +452,59 @@ Sometimes you may need to have the Tribute menu attach to a scrollable parent el
 
 ### Loading remote data
 
-If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a function.
+If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a async function.
 
 ```js
 {
-  //..other config options
+  // ..other config options
   // function retrieving an array of objects
-  values: (text, cb) => {
-    remoteSearch(text, users => cb(users));
-  },
+  values: async (text) => {
+            const URL = "YOUR DATA ENDPOINT";
+            cosnt response = await fetch(`${URL}?q=${text}`);
+            if (!response.ok) {
+              throw new Error(`HTTP Error: ${response.status}`);
+            }
+            return await response.json();
+          },
+  // Set debounce time (in milliseconds) to delay function execution and optimize performance
+  debounce: 200,
   lookup: 'name',
-  fillAttr: 'name'
+  fillAttr: 'name',
 }
 ```
 
-You would then define a function, in this case `remoteSearch`, that returns your data from the backend.
+Older functions using callbacks are also supported.
 
 ```js
-function remoteSearch(text, cb) {
-  const URL = "YOUR DATA ENDPOINT";
-  fetch(URL + "?q=" + text)
-    .then(res => {
-      if (res.ok) {
-        return res.json();
-      }
-      cb([]);
-    })
-    .then(data => {
-      cb(data);
-    })
-}
+{
+  // ..other config options
+  // function retrieving an array of objects
+  values: (text, cb) => {
+            const URL = "YOUR DATA ENDPOINT";
+            fetch(`${URL}?q=${text}`)
+              .then(response => {
+                if (response.ok) {
+                  return response.json();
+                }
+                cb([]);
+              })
+              .then(data => {
+                cb(data);
+              })
+          },
 ```
 
 ### Hide menu when no match is returned
 
-If you want the menu to not show when no match is found, you can set your `noMatchTemplate` config to the following:
+If you want the menu to not show when no match is found, set `noMatchTemplate`
+to an empty string:
 
 ```js
-noMatchTemplate: () => '<span style="visibility: hidden;"></span>'
+noMatchTemplate: ''
 ```
+
+(A function that returns an empty string, `() => ''`, works as well. When
+`noMatchTemplate` is not set at all, Tribute shows a default `No Match Found!` item instead.)
 
 ### Detaching Tribute instances
 
@@ -521,7 +542,154 @@ const tribute = new Tribute({
 
 You may provide `disabled` values which can't be selected.  You can use `disabled` items as headers to mimic the functionality of &lt;optgroup> elements in a &lt;select>.  To provide `disabled` items simply return an object that includes a `disabled` property set to `true`.  The menu items for those values will not be selectable with the mouse or keyboard.  If you wish to differentiate them visually, check for the `disabled` attribute in the menuItemTemplate.
 
+## Building Templates with htmlHelper
+
+Tribute includes a lightweight hyperscript-like utility called `htmlHelper` (`{ h, f }`) that allows you to construct DOM nodes declaratively and safely without string concatenation or external templating libraries.
+
+The helper is passed as the third argument to `menuItemTemplate`:
+
+```js
+menuItemTemplate: (item, tribute, { h, f }) => {
+  // Return an HTMLElement, DocumentFragment, or string
+}
+```
+
+### h(tagName, ...args)
+
+Creates and returns an HTMLElement of the specified tag. Arguments can include an attributes object, child strings, DOM nodes, or arrays of children in any order.
+
+* tagName: Any standard HTML tag name (e.g., 'div', 'span', 'img', 'a').
+* Attributes Object:
+  * class: A string (e.g., 'item active') or an array of class names (e.g., ['item', 'active']).
+  * style: An object containing CSS properties (e.g., { backgroundColor: '#f0f0f0', padding: '5px' }).
+  * data: An object mapped to dataset (e.g., { id: 42 } becomes data-id="42").
+  * Boolean attributes: Passing true sets the attribute (e.g., { disabled: true }), while false, null, or undefined are omitted.
+  * HTML attributes: Standard attributes such as src, href, title, contenteditable, etc.
+* Children: Strings (safely converted to text nodes), DOM nodes, or nested arrays of children.
+
+#### Examples
+
+
+```js
+// Simple element with text
+h('span', 'Hello World');
+
+// Element with attributes and style
+h('a', { href: 'https://example.com', target: '_blank', class: ['link', 'primary'] }, 'Visit Site');
+
+// Nested structure
+h('div', { class: 'user-card' },
+  h('img', { src: user.avatar, alt: user.name }),
+  h('span', { class: 'user-name' }, user.name)
+);
+```
+
+### f(...children)
+
+Creates and returns a DocumentFragment. This is ideal when you want to return multiple sibling nodes without introducing an unnecessary wrapper <div> or <span>.
+
+#### Example
+
+```js
+f(
+  h('img', { src: item.original.avatar_url, class: 'avatar' }),
+  h('span', { class: 'name' }, item.original.name)
+);
+```
+
+### Combining with item.html
+
+In menuItemTemplate, Tribute provides item.html, which contains the fuzzy-matched text formatted with highlight tags. Because item.html is a DOM node (DocumentFragment), it can be directly embedded into h() or f():
+
+```js
+const tribute = new Tribute({
+  values: [
+    { key: "Jordan Humphreys", email: "jordan@example.com", avatar: "jordan.png" },
+    { key: "Sir Walter Riley", email: "riley@example.com", avatar: "riley.png" }
+  ],
+  menuItemTemplate: (item, tribute, { h, f }) => {
+    return f(
+      h('img', { src: item.original.avatar, style: { width: '24px', marginRight: '8px' } }),
+      h('div', { class: 'details' },
+        h('span', { class: 'title' }, item.html),
+        h('small', { style: { color: '#888', marginLeft: '6px' } }, item.original.email)
+      )
+    );
+  }
+});
+```
+
+### Key Advantages
+
+* XSS Safe: Strings are created as text nodes (appendContent), automatically escaping special characters.
+* Declarative & Clean: Easy to read and structure like JSX without requiring a build step or JSX compiler.
+* Lazy Evaluation: item.html and item.string are getters evaluated only when accessed, ensuring optimal performance.
+
+
+## Styling
+
+Tribute provides several CSS custom properties to allow for easy customization of the menu and mention styles.
+
+### Menu Customization
+
+| Property | Description | Default |
+| --- | --- | --- |
+| `--tribute-container-z-index` | The z-index of the menu container. | `999999` |
+| `--tribute-container-margin` | The margin of the menu list. | `2px 0 0 0` |
+| `--tribute-container-bg` | The background color of the menu list. | `#efefef` |
+| `--tribute-container-item-padding` | The padding of each menu item. | `5px 5px` |
+| `--tribute-container-item-hl-bg` | The background color of the highlighted menu item. | `#ddd` |
+| `--tribute-container-item-font-weight` | The font weight of the spans in the menu item. | `bold` |
+| `--tribute-container-hl-font-weight` | The font weight of the highlighted text in the menu. | `bold` |
+
+### Mention Customization
+
+When using `contenteditable`, Tribute wraps the mention in a `.tribute-mention` span. You can customize its appearance using these properties:
+
+| Property | Description | Default |
+| --- | --- | --- |
+| `--tribute-mention-color` | The text color of the mention. | `inherit` |
+| `--tribute-mention-bg` | The background color of the mention. | `transparent` |
+| `--tribute-mention-font-weight` | The font weight of the mention. | `bold` |
+
 ## Framework Support
+
+### Using with React
+
+You can use Tribute with React by using `useRef` and `useEffect` hooks.
+
+```jsx
+import React, { useRef, useEffect } from "react";
+import Tribute from "@redmine-ui/tributejs";
+
+const TributeComponent = () => {
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    const el = elementRef.current;
+    if (!el) return;
+
+    const tribute = new Tribute({
+      values: [
+        { key: "Phil Heartman", value: "pheartman" },
+        { key: "Gordon Ramsey", value: "gramsey" }
+      ]
+    });
+
+    tribute.attach(el);
+
+    return () => {
+      tribute.detach(el);
+    };
+  }, []);
+
+  return <textarea ref={elementRef} placeholder="Type @ to mention..." />;
+};
+
+export default TributeComponent;
+```
+
+### Packages for other frameworks
 
 Vue.js — [vue-tribute](https://github.com/syropian/vue-tribute) by **@syropian**
 

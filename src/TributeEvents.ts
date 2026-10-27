@@ -1,25 +1,23 @@
-import { addHandler, isTextAreaOrInput } from './helpers';
-import type { ITribute } from './type';
+import { addHandler, isHTMLElement, isKeyboardEvent, isTextAreaOrInput } from './helpers';
+import type { ITribute, ITributeContext } from './type';
 
 const hotkeys = ['tab', 'backspace', 'enter', 'escape', 'space', 'arrowup', 'arrowdown'] as const;
 type hotkeyType = (typeof hotkeys)[number];
 
 class TributeEvents<T extends {}> {
-  removers: (() => void)[];
+  removersMap: WeakMap<EventTarget, (() => void)[]>;
   tribute: ITribute<T>;
-  inputEvent: boolean;
-  commandEvent?: boolean;
+  private hotkeyHandledOnKeydown = false;
   compositionFilter: CompositionFilter;
 
   constructor(tribute: ITribute<T>) {
     this.tribute = tribute;
-    this.removers = [];
-    this.inputEvent = false;
+    this.removersMap = new WeakMap();
     this.compositionFilter = new CompositionFilter();
   }
 
   bind(element: EventTarget) {
-    this.removers.push(
+    const removers: (() => void)[] = [
       addHandler(element, 'compositionstart', (event: Event) => {
         this.compositionFilter.compositionstart(event);
       }),
@@ -41,81 +39,78 @@ class TributeEvents<T extends {}> {
       addHandler(element, 'input', (event: Event) => {
         this.input(event);
       }),
-    );
+    ];
+    this.removersMap.set(element, removers);
   }
 
-  unbind(_element: EventTarget) {
-    for (const remover of this.removers) {
-      remover();
+  unbind(element: EventTarget) {
+    const removers = this.removersMap.get(element);
+    if (removers) {
+      for (const remover of removers) {
+        remover();
+      }
+      this.removersMap.delete(element);
     }
   }
 
   keydown(event: Event) {
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     const element = event.currentTarget;
-    if (this.shouldDeactivate(event)) {
-      this.tribute.isActive = false;
-      this.tribute.hideMenu();
+    if (!isHTMLElement(element)) return;
+
+    const context = this.tribute.contextFor(element);
+
+    if (this.shouldDeactivate(context, event)) {
+      context.hideMenu();
     }
-    this.commandEvent = false;
+    this.hotkeyHandledOnKeydown = false;
 
     const key = getCode(event.key);
-    if (isHotkey(key) && element instanceof HTMLElement) {
-      this.commandEvent = true;
+    if (isHotkey(key) && isHTMLElement(element)) {
+      this.hotkeyHandledOnKeydown = true;
       this.callbacks[key](event, element);
     }
   }
 
   input(event: Event) {
     const _element = event.currentTarget;
-    this.inputEvent = true;
     this.keyup(event);
   }
 
   keyup(event: Event) {
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     const element = event.currentTarget;
-    if (!(element instanceof HTMLElement)) return;
+    if (!isHTMLElement(element)) return;
 
-    if (this.inputEvent) {
-      this.inputEvent = false;
-    }
-    this.updateSelection(element);
+    const context = this.tribute.contextFor(element);
+    this.tribute.current = context;
+    const info = context.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
+    context.queryChanged(info);
 
     if (!event.key || event.key === 'Escape') return;
 
     if (!this.tribute.allowSpaces && this.tribute.hasTrailingSpace) {
       this.tribute.hasTrailingSpace = false;
-      this.commandEvent = true;
+      this.hotkeyHandledOnKeydown = true;
       this.callbacks.space(event, element);
       return;
     }
 
-    if (!this.tribute.isActive) {
-      const charCode = this.getTriggerCharCode();
-      const trigger = this.tribute.range.getTrigger(charCode);
-      if (typeof trigger !== 'undefined') {
-        this.triggerChar(event, element, trigger);
-      }
+    if (!context.isActive) {
+      const charCode = this.getTriggerCharCode(context);
+      const trigger = context.range.getTrigger(charCode);
+      context.sessionStarted(trigger);
     }
 
-    if (this.tribute.current.isMentionLengthUnderMinimum) {
-      this.tribute.hideMenu();
-      return;
-    }
-
-    if (((this.tribute.current.trigger || this.tribute.autocompleteMode) && this.commandEvent === false) || this.showMenuOnBackspace(event.key)) {
-      this.tribute.showMenuFor(element, true);
-    }
+    context.refreshMenu(!!this.hotkeyHandledOnKeydown, this.showMenuOnBackspace(event.key, context));
   }
 
-  shouldDeactivate(event: Event) {
-    if (!this.tribute.isActive) return false;
-    if (!(event instanceof KeyboardEvent)) return false;
+  shouldDeactivate(context: ITributeContext<T>, event: Event): boolean {
+    if (!context.isActive || !isKeyboardEvent(event)) return false;
 
-    if (this.tribute.current.mentionText?.length === 0) {
+    if (context.mentionText.length === 0) {
       let eventKeyPressed = false;
       const key = getCode(event.key);
       if (isHotkey(key)) {
@@ -128,9 +123,8 @@ class TributeEvents<T extends {}> {
     return false;
   }
 
-  getTriggerCharCode() {
-    const tribute = this.tribute;
-    const info = tribute.range.getTriggerInfo(false, tribute.hasTrailingSpace, true, tribute.allowSpaces);
+  getTriggerCharCode(context: ITributeContext<T>) {
+    const info = context.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
 
     if (info?.mentionTriggerChar) {
       return info.mentionTriggerChar.charCodeAt(0);
@@ -138,57 +132,21 @@ class TributeEvents<T extends {}> {
     return undefined;
   }
 
-  updateSelection(el: HTMLElement) {
-    this.tribute.current.element = el;
-    const info = this.tribute.range.getTriggerInfo(false, this.tribute.hasTrailingSpace, true, this.tribute.allowSpaces);
-
-    if (info) {
-      this.tribute.current.updateSelection(info);
-    }
-  }
-
-  triggerChar(_e: Event, el: HTMLElement, trigger: string) {
-    const tribute = this.tribute;
-    tribute.current.trigger = trigger;
-
-    const collectionItem = tribute.collection.find((item) => {
-      return item.trigger === trigger;
-    });
-
-    tribute.current.collection = collectionItem;
-
-    if (!tribute.current.isMentionLengthUnderMinimum && this.inputEvent) {
-      tribute.showMenuFor(el, true);
-    }
-  }
-
   _callbacks?: { [key in hotkeyType]: (e: Event, el: HTMLElement) => void };
   get callbacks(): { [key in hotkeyType]: (e: Event, el: HTMLElement) => void } {
     if (!this._callbacks) {
       this._callbacks = {
-        enter: (e: Event, _el: HTMLElement) => {
+        enter: (e: Event, el: HTMLElement) => {
           // choose selection
-          const filteredItems = this.tribute.current.filteredItems;
-          if (this.tribute.isActive && filteredItems && filteredItems.length) {
+          if (this.tribute.contextFor(el).selectionConfirmed(e)) {
             e.preventDefault();
             e.stopPropagation();
-
-            if (this.tribute.current.filteredItems?.length === 0) {
-              this.tribute.menu.unselect();
-            }
-
-            setTimeout(() => {
-              this.tribute.current.selectItemAtIndex(this.tribute.menu.selected.toString(), e);
-              this.tribute.hideMenu();
-            }, 0);
           }
         },
-        escape: (e: Event, _el: HTMLElement) => {
-          if (this.tribute.isActive) {
+        escape: (e: Event, el: HTMLElement) => {
+          if (this.tribute.contextFor(el).sessionCanceled()) {
             e.preventDefault();
             e.stopPropagation();
-            this.tribute.isActive = false;
-            this.tribute.hideMenu();
           }
         },
         tab: (e: Event, el: HTMLElement) => {
@@ -196,45 +154,44 @@ class TributeEvents<T extends {}> {
           this.callbacks.enter(e, el);
         },
         space: (e: Event, el: HTMLElement) => {
-          if (this.tribute.isActive) {
+          const context = this.tribute.contextFor(el);
+
+          if (context.isActive) {
             if (this.tribute.spaceSelectsMatch) {
               this.callbacks.enter(e, el);
             } else if (!this.tribute.allowSpaces) {
               e.stopPropagation();
               setTimeout(() => {
-                this.tribute.hideMenu();
-                this.tribute.isActive = false;
+                context.hideMenu();
               }, 0);
             }
           }
         },
-        arrowup: (e: Event, _el: HTMLElement) => {
+        arrowup: (e: Event, el: HTMLElement) => {
           // navigate up ul
-          if (this.tribute.isActive && this.tribute.current.filteredItems) {
+          if (this.tribute.contextFor(el).selectionMoved(1)) {
             e.preventDefault();
             e.stopPropagation();
-
-            const count = this.tribute.current.filteredItems.length;
-            this.tribute.menu.up(count);
           }
         },
-        arrowdown: (e: Event, _el: HTMLElement) => {
+        arrowdown: (e: Event, el: HTMLElement) => {
           // navigate down ul
-          if (this.tribute.isActive && this.tribute.current.filteredItems) {
+          if (this.tribute.contextFor(el).selectionMoved(-1)) {
             e.preventDefault();
             e.stopPropagation();
-
-            const count = this.tribute.current.filteredItems.length;
-            this.tribute.menu.down(count);
           }
         },
         backspace: (_e: Event, el: HTMLElement) => {
-          if (this.tribute.isActive) {
-            if (this.tribute.current && this.tribute.current.mentionText.length < 1) {
-              this.tribute.hideMenu();
-            } else {
-              this.tribute.showMenuFor(el);
-            }
+          const context = this.tribute.contextFor(el);
+          if (!context.isActive) return;
+
+          // Re-show the menu while deleting characters. Keep this key-driven: doing it
+          // in queryChanged() would also reopen the menu whenever the caret merely moves
+          // into an already-inserted mention.
+          if (context.mentionText.length < 1) {
+            context.hideMenu();
+          } else {
+            this.tribute.showMenuFor(el);
           }
         },
       };
@@ -242,9 +199,9 @@ class TributeEvents<T extends {}> {
     return this._callbacks;
   }
 
-  showMenuOnBackspace(key: string) {
+  showMenuOnBackspace(key: string, context: ITributeContext<T>) {
     const isBackspace = key === 'Backspace';
-    return isTextAreaOrInput(this.tribute.current.element) ? isBackspace : this.tribute.isActive && isBackspace;
+    return isTextAreaOrInput(context.element) ? isBackspace : this.tribute.isActive && isBackspace;
   }
 }
 
@@ -270,7 +227,7 @@ class CompositionFilter {
 
   compositionend(event: Event) {
     // console.log(`composition end: ${this.isComposing}`);
-    if (event instanceof CompositionEvent && this.isComposing) {
+    if (isCompositionEvent(event) && this.isComposing) {
       this.isComposing = false;
       if (!this.isFirefox) {
         event.target?.dispatchEvent(
@@ -286,7 +243,7 @@ class CompositionFilter {
 
   keydown(event: Event) {
     // console.log(`keydown: ${this.isComposing}`);
-    if (!(event instanceof KeyboardEvent)) return;
+    if (!isKeyboardEvent(event)) return;
 
     if (this.isComposing && event.code === 'Enter') {
       this.isComposing = false;
@@ -295,7 +252,7 @@ class CompositionFilter {
 
   input(event: Event) {
     // console.log(`input: ${this.isComposing}`);
-    if (!(event instanceof InputEvent)) return;
+    if (!isInputEvent(event)) return;
 
     if (event.inputType === 'insertFromComposition') {
       this.isComposing = false;
@@ -318,4 +275,11 @@ function isHotkey(code: string): code is hotkeyType {
   return includes(hotkeys, code);
 }
 
+function isInputEvent(event: Event): event is InputEvent {
+  return 'inputType' in event && 'data' in event && 'isComposing' in event;
+}
+
+function isCompositionEvent(event: Event): event is CompositionEvent {
+  return 'data' in event && 'locale' in event;
+}
 export default TributeEvents;

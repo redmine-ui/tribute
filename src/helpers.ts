@@ -3,12 +3,16 @@ export function addHandler(element: EventTarget, ...args: [string, (event: Event
   return () => element.removeEventListener(...args);
 }
 
-export function isNotTextAreaOrInput(element: HTMLElement) {
-  return element.nodeName !== 'INPUT' && element.nodeName !== 'TEXTAREA';
+export function isTextAreaOrInput(element: unknown): element is HTMLInputElement | HTMLTextAreaElement {
+  if (!element || typeof element !== 'object' || !('nodeName' in element)) {
+    return false;
+  }
+  const nodeName = (element as { nodeName?: unknown }).nodeName;
+  return nodeName === 'INPUT' || nodeName === 'TEXTAREA';
 }
 
-export function isTextAreaOrInput(element: unknown): element is HTMLInputElement | HTMLTextAreaElement {
-  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+export function isNotTextAreaOrInput(element: unknown): boolean {
+  return !isTextAreaOrInput(element);
 }
 
 export function isKeyOfObject<T extends object>(key: string | number | symbol, obj: T | undefined): key is keyof T {
@@ -17,17 +21,39 @@ export function isKeyOfObject<T extends object>(key: string | number | symbol, o
   return key in obj;
 }
 
-export function debounce<F extends (...args: unknown[]) => void>(func: F, wait: number, immediate = false) {
-  let timeout: ReturnType<typeof setTimeout> | null;
-  return function (this: ThisParameterType<F>, ...args: Parameters<F>) {
+export function debounce<Args extends unknown[]>(func: (...args: Args) => void, wait: number, immediate = false): (...args: Args) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Args): void => {
     const later = () => {
       timeout = null;
-      if (!immediate) func.apply(this, args);
+      if (!immediate) func(...args);
     };
     const callNow = immediate && !timeout;
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(later, wait);
-    if (callNow) func.apply(this, args);
+    if (callNow) func(...args);
+  };
+}
+
+export function debouncePromise<Args extends unknown[], R>(fn: (...args: Args) => Promise<R>, wait: number): (...args: Args) => Promise<R> {
+  let settle: { resolve: (value: Promise<R>) => void; reject: (reason: unknown) => void } | undefined;
+
+  const debounced = debounce((...args: Args) => {
+    const current = settle;
+    settle = undefined;
+    if (!current) return;
+    try {
+      current.resolve(fn(...args));
+    } catch (err) {
+      current.reject(err);
+    }
+  }, wait);
+
+  return (...args: Args): Promise<R> => {
+    return new Promise<R>((resolve, reject) => {
+      settle = { resolve, reject };
+      debounced(...args);
+    });
   };
 }
 
@@ -49,3 +75,36 @@ export function compactObject<T extends Record<string, unknown>>(args: T): Compa
 
   return compactArgs;
 }
+
+export function renderInto(ul: HTMLElement, content: string | HTMLElement): void {
+  if (isElement(content)) {
+    ul.replaceChildren();
+    ul.appendChild(content);
+  } else {
+    ul.innerHTML = content;
+  }
+}
+
+/**
+ * Safe for cross-iframe environments where `instanceof` fails due to different `window` contexts.
+ */
+
+const isObject = (v: unknown): v is object => typeof v === 'object' && v !== null;
+
+export const isNode = (v: unknown): v is Node => isObject(v) && typeof (v as Node).nodeType === 'number';
+
+export const isElement = (v: unknown): v is Element => isNode(v) && v.nodeType === 1;
+
+export const isDocumentFragment = (v: unknown): v is DocumentFragment => isNode(v) && v.nodeType === 11;
+
+export const isHTMLElement = (v: unknown): v is HTMLElement => isElement(v) && v.namespaceURI === 'http://www.w3.org/1999/xhtml';
+
+export const isKeyboardEvent = (v: unknown): v is KeyboardEvent => isObject(v) && typeof (v as KeyboardEvent).key === 'string';
+
+function isCollection(value: unknown): value is { length: number; item: (index: number) => unknown } {
+  return isObject(value) && 'length' in value && typeof value.length === 'number' && 'item' in value && typeof value.item === 'function';
+}
+
+export const isNodeList = (value: unknown): value is NodeList => isCollection(value) && !('namedItem' in value);
+
+export const isHTMLCollection = (value: unknown): value is HTMLCollection => isCollection(value) && 'namedItem' in value;

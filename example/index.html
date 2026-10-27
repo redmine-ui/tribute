@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZURB Tribute | Demo</title>
-    <link rel="stylesheet" href="css/foundation.min.css" />
+    <title>Tribute DEMO</title>
+    <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="tribute.css" />
     <style>
       body {
@@ -274,11 +274,15 @@
               return "#" + item.original.name;
             },
             // function retrieving an array of objects
-            values: function(_, cb) {
-              setTimeout(() => cb([
-                { name: "Bob Bill", email: "bobbill@example.com" },
-                { name: "Steve Stevenston", email: "steve@example.com" }
-              ]), 1000)
+            values: async (_) => {
+              let promise = new Promise((resolve, reject) => {
+                setTimeout(() => resolve([
+                  { name: "Bob Bill", email: "bobbill@example.com" },
+                  { name: "Steve Stevenston", email: "steve@example.com" }
+                ]), 1000);
+              });
+              let result = await promise;
+              return result;
             },
             lookup: "name",
             fillAttr: "name"
@@ -477,12 +481,12 @@
 
           return "@" + item.original.value;
         },
-        menuItemTemplate: function(item) {
+        menuItemTemplate: function(item, tribute, { h }) {
           if (item.original.disabled) {
-            return '<div style="background-color:blue;color:white;margin:-5px;padding:5px;cursor:auto">' + item.string + '</div>';
+            return h('div', item.html, { style: 'background-color:blue;color:white;margin:-5px;padding:5px;cursor:auto' });
           }
-          return '<div style="cursor:pointer;padding-left:10px">' + item.string + '</div>';
-        }
+          return h('div', item.html, { style: 'cursor:pointer;padding-left:10px' });
+        },
       });
 
       tributeGroupEx.attach(
