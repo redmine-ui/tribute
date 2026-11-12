@@ -15,7 +15,7 @@ A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Fir
 - [Building templates with htmlHelper](#building-templates-with-htmlhelper)
 - [Framework Support](#framework-support)
 - [WYSIWYG Editor Support](#wysiwyg-editor-support)
-- [Example](https://redmine-ui.github.io/tribute/example/)
+- [Example](https://redmine-ui.github.io/tribute/)
 
 ## Installing
 
@@ -460,7 +460,7 @@ If your data set is large or would like to pre filter your data you can load dyn
   // function retrieving an array of objects
   values: async (text) => {
             const URL = "YOUR DATA ENDPOINT";
-            cosnt response = await fetch(`${URL}?q=${text}`);
+            const response = await fetch(`${URL}?q=${text}`);
             if (!response.ok) {
               throw new Error(`HTTP Error: ${response.status}`);
             }
