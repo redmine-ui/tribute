@@ -454,10 +454,13 @@ Sometimes you may need to have the Tribute menu attach to a scrollable parent el
 
 If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a async function.
 
+Tribute automatically tracks request IDs for asynchronous queries to prevent race conditions. If responses arrive out of order (such as during fast typing) or arrive after the menu is closed, outdated responses are automatically discarded so that only the latest query result is rendered.
+
 ```js
 {
   // ..other config options
   // function retrieving an array of objects
+  // Outdated responses are automatically ignored to prevent race conditions
   values: async (text) => {
             const URL = "YOUR DATA ENDPOINT";
             cosnt response = await fetch(`${URL}?q=${text}`);

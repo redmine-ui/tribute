@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import TributeContext from '../../src/TributeContext';
-import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, ITributeSearch } from '../../src/type';
+import type { Collection, ITribute, ITributeContext, ITributeMenu, ITributeRange, ITributeSearch, TributeItem } from '../../src/type';
 
 type Person = { key: string; value: string };
 
@@ -494,6 +494,66 @@ describe('TributeContext', () => {
           resolve();
         }, 15);
       });
+    });
+
+    it('does not apply older async query results when a newer query was already initiated', () => {
+      let callCount = 0;
+      let resolveFirst: ((values: Person[]) => void) | undefined;
+      let resolveSecond: ((values: Person[]) => void) | undefined;
+
+      const collection = makeCollection({
+        values: (_text, cb) => {
+          callCount++;
+          if (callCount === 1) {
+            resolveFirst = cb;
+          } else {
+            resolveSecond = cb;
+          }
+        },
+      });
+      const mock = createMockTribute<Person>({ collection: [collection] });
+      const ul = document.createElement('ul');
+      const menuEl = document.createElement('div');
+      menuEl.appendChild(ul);
+      mock.menu.element = menuEl;
+
+      const element = document.createElement('div');
+      const context = new TributeContext<Person>({ ...mock, element });
+      context.sessionStarted('@');
+
+      // First query (e.g. user typed 'a')
+      context.queryChanged({
+        mentionPosition: 0,
+        mentionText: 'a',
+        mentionSelectedElement: undefined,
+        mentionSelectedPath: undefined,
+      });
+      context.showMenuFor(element, false);
+
+      // Second query (e.g. user typed 'ab')
+      context.queryChanged({
+        mentionPosition: 0,
+        mentionText: 'ab',
+        mentionSelectedElement: undefined,
+        mentionSelectedPath: undefined,
+      });
+      context.showMenuFor(element, false);
+
+      // The second (newer) query resolves first
+      if (!resolveSecond || !resolveFirst) throw new Error('Callbacks not captured');
+      resolveSecond([{ key: 'b', value: 'B' }]);
+
+      expect(mock.calls['menu.render']?.length).to.equal(1);
+      const firstRenderArgs = mock.calls['menu.render']?.[0];
+      if (!firstRenderArgs) throw new Error('menu.render was not called');
+
+      expect((firstRenderArgs[0] as TributeItem<Person>[])?.[0]?.original.key).to.equal('b');
+
+      // Now the first (older) query resolves later
+      resolveFirst([{ key: 'a', value: 'A' }]);
+
+      // The older query result must be ignored, so menu.render was not called again
+      expect(mock.calls['menu.render']?.length).to.equal(1);
     });
   });
 
