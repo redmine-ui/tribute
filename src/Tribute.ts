@@ -47,6 +47,7 @@ const defaultConfig = {
   searchOpts: {},
   menuItemLimit: null,
   menuShowMinLength: 0,
+  menuOption: undefined,
   closeOnScroll: false,
   maxDisplayItems: null,
   isBlocked: false,
