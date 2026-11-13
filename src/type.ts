@@ -258,3 +258,8 @@ export type TributeArgument<T extends {}> = {
 };
 
 export type TributeElement = HTMLElement | NodeList | HTMLCollection | Array<HTMLElement>;
+
+export type JQueryLike<T extends HTMLElement = HTMLElement> = {
+  jquery: unknown;
+  get(): T[];
+};

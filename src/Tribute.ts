@@ -1,5 +1,5 @@
 import { appendValues, debounceValues } from './collection';
-import { compactObject, isHTMLCollection, isHTMLElement, isJQuery, isKeyOfObject, isNodeList, isNotTextAreaOrInput } from './helpers';
+import { compactObject, forEachElement, isKeyOfObject, isNotTextAreaOrInput } from './helpers';
 import { htmlHelperFor } from './html';
 import TributeContext from './TributeContext';
 import TributeEvents from './TributeEvents';
@@ -12,6 +12,7 @@ import type {
   ITributeEvents,
   ITributeMenuEvents,
   ITributeSearch,
+  JQueryLike,
   StringOrElementTemplate,
   TributeArgument,
   TributeCollection,
@@ -129,41 +130,24 @@ class Tribute<T extends {}> implements ITribute<T> {
     });
   }
 
-  attach(el: TributeElement | JQuery<HTMLElement>): void {
-    // Check if it is a jQuery collection
-    const _el = isJQuery<HTMLElement>(el) ? el.get() : el;
-    if (!_el) {
-      throw new Error('[Tribute] Must pass in a DOM node or NodeList.');
-    }
-
-    // Is el an Array/Array-like object?
-    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
-      for (const e of _el) {
-        if (isHTMLElement(e)) {
-          this._attach(e);
-        }
+  attach(element: TributeElement | JQueryLike<HTMLElement>): void {
+    forEachElement(element, (el) => {
+      if (el.hasAttribute('data-tribute')) {
+        console.warn(`Tribute was already bound to ${el.nodeName}`);
       }
-    } else {
-      this._attach(_el);
-    }
-  }
 
-  _attach(el: HTMLElement) {
-    if (el.hasAttribute('data-tribute')) {
-      console.warn(`Tribute was already bound to ${el.nodeName}`);
-    }
-
-    this.ensureEditable(el);
-    const context = new TributeContext({
-      tribute: this,
-      element: el,
+      this.ensureEditable(el);
+      const context = new TributeContext({
+        tribute: this,
+        element: el,
+      });
+      this.contextMap.set(el, context);
+      if (!this.current) {
+        this.current = context;
+      }
+      this.events.bind(el);
+      el.setAttribute('data-tribute', 'true');
     });
-    this.contextMap.set(el, context);
-    if (!this.current) {
-      this.current = context;
-    }
-    this.events.bind(el);
-    el.setAttribute('data-tribute', 'true');
   }
 
   ensureEditable(element: HTMLElement): void {
@@ -214,36 +198,18 @@ class Tribute<T extends {}> implements ITribute<T> {
     }
   }
 
-  detach(el: TributeElement): void {
-    if (!el) {
-      throw new Error('[Tribute] Must pass in a DOM node or NodeList.');
-    }
-
-    // Check if it is a jQuery collection
-    const _el = isJQuery(el) ? el.get() : el;
-
-    // Is el an Array/Array-like object?
-    if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
-      for (const e of _el) {
-        if (isHTMLElement(e)) {
-          this._detach(e);
-        }
+  detach(element: TributeElement | JQueryLike<HTMLElement>): void {
+    forEachElement(element, (el) => {
+      const context = this.contextFor(el);
+      if (context) {
+        this.contextMap.delete(el);
+        this.events.unbind(el);
       }
-    } else {
-      this._detach(_el);
-    }
-  }
 
-  _detach(el: HTMLElement): void {
-    const context = this.contextFor(el);
-    if (context) {
-      this.contextMap.delete(el);
-      this.events.unbind(el);
-    }
-
-    setTimeout(() => {
-      el.removeAttribute('data-tribute');
-      context.deactivate();
+      setTimeout(() => {
+        el.removeAttribute('data-tribute');
+        context.deactivate();
+      });
     });
   }
 
