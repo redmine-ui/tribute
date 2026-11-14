@@ -1,5 +1,6 @@
 # Tribute
 
+![NPM Version](https://img.shields.io/npm/v/%40redmine-ui%2Ftributejs)
 ![CI result](https://github.com/redmine-ui/tribute/actions/workflows/ci.yml/badge.svg)
 
 A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Firefox, Chrome
