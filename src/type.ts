@@ -138,6 +138,16 @@ export type TributeValues<T extends {}> =
   | Promise<Array<T>>
   | null;
 
+export type TributeMenuOption = {
+  maxHeight?: number;
+
+  maxWidth?: number;
+
+  position?: 'absolute' | 'fixed' | 'relative' | 'sticky';
+
+  scrollResetDelay?: number;
+};
+
 export type TributeCollection<T extends {}> = {
   // symbol that starts the lookup
   trigger: string;
@@ -200,6 +210,9 @@ export type TributeCollection<T extends {}> = {
   // require X number of characters to be entered before menu shows
   menuShowMinLength: number;
 
+  // optoion for menu appearance and behavior
+  menuOption?: TributeMenuOption;
+
   // Fix for maximum number of items added to the input for the specific Collection
   maxDisplayItems?: number | null;
 
@@ -245,3 +258,8 @@ export type TributeArgument<T extends {}> = {
 };
 
 export type TributeElement = HTMLElement | NodeList | HTMLCollection | Array<HTMLElement>;
+
+export type JQueryLike<T extends HTMLElement = HTMLElement> = {
+  jquery: unknown;
+  get(): T[];
+};

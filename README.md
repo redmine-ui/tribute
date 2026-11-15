@@ -1,5 +1,6 @@
 # Tribute
 
+![NPM Version](https://img.shields.io/npm/v/%40redmine-ui%2Ftributejs)
 ![CI result](https://github.com/redmine-ui/tribute/actions/workflows/ci.yml/badge.svg)
 
 A cross-browser `@mention` engine written in ES6, no dependencies. Tested in Firefox, Chrome
@@ -195,6 +196,9 @@ Collection object shown with defaults:
 
   // specify the minimum number of characters that must be typed before menu appears
   menuShowMinLength: 0,
+
+  // optoion for menu appearance and behavior
+  menuOption: undefined,
 
   // specify a regex to define after which characters the autocomplete option should open
   // If null is used then it will not split the string & search in the whole line
@@ -454,10 +458,13 @@ Sometimes you may need to have the Tribute menu attach to a scrollable parent el
 
 If your data set is large or would like to pre filter your data you can load dynamically by setting the `values` to a async function.
 
+Tribute automatically tracks request IDs for asynchronous queries to prevent race conditions. If responses arrive out of order (such as during fast typing) or arrive after the menu is closed, outdated responses are automatically discarded so that only the latest query result is rendered.
+
 ```js
 {
   // ..other config options
   // function retrieving an array of objects
+  // Outdated responses are automatically ignored to prevent race conditions
   values: async (text) => {
             const URL = "YOUR DATA ENDPOINT";
             const response = await fetch(`${URL}?q=${text}`);

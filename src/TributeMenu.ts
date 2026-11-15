@@ -1,6 +1,13 @@
 import { getItemClassName, renderMenuItem, resolveContent } from './collection';
 import { addHandler, isDocumentFragment, isHTMLElement, renderInto } from './helpers';
-import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrElementTemplate, TributeItem } from './type';
+import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrElementTemplate, TributeItem, TributeMenuOption } from './type';
+
+export const DEFAULT_MENU_OPTION: Readonly<Required<TributeMenuOption>> = {
+  maxHeight: 500,
+  maxWidth: 300,
+  position: 'absolute',
+  scrollResetDelay: 0,
+};
 
 class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
   element: HTMLElement | null;
@@ -164,13 +171,18 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       return;
     }
 
+    const opt = this.menuOption;
+    const maxHeight = coordinates.maxHeight ?? opt.maxHeight;
+    const maxWidth = coordinates.maxWidth ?? opt.maxWidth;
+    const position = coordinates.position ?? opt.position;
+
     this.element.style.cssText = `top: ${coordinates.top}px;
                                    left: ${coordinates.left}px;
                                    right: ${coordinates.right}px;
                                    bottom: ${coordinates.bottom}px;
-                                   max-height: ${coordinates.maxHeight || 500}px;
-                                   max-width: ${coordinates.maxWidth || 300}px;
-                                   position: ${coordinates.position || 'absolute'};
+                                   max-height: ${maxHeight}px;
+                                   max-width: ${maxWidth}px;
+                                   position: ${position};
                                    display: block;`;
 
     if (coordinates.left === 'auto') {
@@ -197,12 +209,14 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
       return dimensions;
     }
 
+    const opt = this.menuOption;
     this.element.style.cssText = `top: 0px;
                                  left: 0px;
                                  position: fixed;
                                  display: block;
                                  visibility: hidden;
-                                 max-height:500px;`;
+                                 max-height: ${opt.maxHeight}px;
+                                 max-width: ${opt.maxWidth}px;`;
     dimensions.width = this.element.offsetWidth;
     dimensions.height = this.element.offsetHeight;
 
@@ -218,6 +232,16 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     } else {
       return this._renderMenu(items, this.ul, collection);
     }
+  }
+
+  private get menuOption(): Required<TributeMenuOption> {
+    const o = this.context.collection?.menuOption;
+    return {
+      maxHeight: o?.maxHeight ?? DEFAULT_MENU_OPTION.maxHeight,
+      maxWidth: o?.maxWidth ?? DEFAULT_MENU_OPTION.maxWidth,
+      position: o?.position ?? DEFAULT_MENU_OPTION.position,
+      scrollResetDelay: o?.scrollResetDelay ?? DEFAULT_MENU_OPTION.scrollResetDelay,
+    };
   }
 
   _handleNoItem(ul: HTMLElement, collection: Collection<T>) {

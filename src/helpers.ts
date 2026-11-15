@@ -1,3 +1,5 @@
+import type { JQueryLike, TributeElement } from './type';
+
 export function addHandler(element: EventTarget, ...args: [string, (event: Event) => void, boolean?]) {
   element.addEventListener(...args);
   return () => element.removeEventListener(...args);
@@ -57,11 +59,30 @@ export function debouncePromise<Args extends unknown[], R>(fn: (...args: Args) =
   };
 }
 
-export function isJQuery<T>(element: unknown): element is JQuery<T> {
+function isJQuery<T extends HTMLElement>(element: unknown): element is JQueryLike<T> {
   if (typeof element !== 'object' || element == null) {
     return false;
   }
-  return 'jquery' in element && typeof element.jquery !== 'undefined';
+  return 'jquery' in element && typeof element.jquery !== 'undefined' && 'get' in element && typeof element.get === 'function';
+}
+
+export function forEachElement(el: TributeElement | JQueryLike<HTMLElement>, fn: (element: HTMLElement) => void): void {
+  // Check if it is a jQuery collection
+  const _el = isJQuery<HTMLElement>(el) ? el.get() : el;
+  if (!_el) {
+    throw new Error('[Tribute] Must pass in a DOM node or NodeList.');
+  }
+
+  // Is el an Array/Array-like object?
+  if (isNodeList(_el) || isHTMLCollection(_el) || Array.isArray(_el)) {
+    for (const e of _el) {
+      if (isHTMLElement(e)) {
+        fn(e);
+      }
+    }
+  } else {
+    fn(_el);
+  }
 }
 
 type Compact<T> = {

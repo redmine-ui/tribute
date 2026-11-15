@@ -25,6 +25,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
   readonly htmlHelper: HtmlHelper;
   private state: SessionState<T>;
   #isActive = false;
+  #currentRequestId = 0;
 
   constructor({ tribute, element, range, menu }: ContextArguments<T>) {
     this.tribute = tribute;
@@ -70,6 +71,7 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
 
   deactivate() {
     this.setActive(false);
+    this.#currentRequestId++;
     this.state = {
       kind: 'idle',
       mentionText: this.state.mentionText,
@@ -196,8 +198,10 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
       }
     }
 
+    const requestId = ++this.#currentRequestId;
+
     query(this.state.collection, this.tribute.search, this.state.mentionText, this.htmlHelper, (items) => {
-      if (!this.isActive || this.state.kind === 'idle') return;
+      if (!this.isActive || this.state.kind === 'idle' || requestId !== this.#currentRequestId) return;
 
       this.state = {
         ...this.state,

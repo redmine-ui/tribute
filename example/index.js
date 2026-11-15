@@ -1,0 +1,312 @@
+import Tribute from './tribute.min.mjs';
+
+// example of alternative callback
+const tribute = new Tribute({
+  // menuContainer: document.getElementById('content'),
+  values: [
+    {
+      key: "Jordan Humphreys",
+      value: "Jordan Humphreys",
+      email: "getstarted@zurb.com"
+    },
+    {
+      key: "Sir Walter Riley",
+      value: "Sir Walter Riley",
+      email: "getstarted+riley@zurb.com"
+    },
+    {
+      key: "Joachim",
+      value: "Joachim",
+      email: "getstarted+joachim@zurb.com"
+    }
+  ],
+  selectTemplate: function(item) {
+    if (typeof item === "undefined") return null;
+    if (Tribute.isContentEditable(this.current.element)) {
+      return (
+        '<span contenteditable="false"><a href="http://zurb.com" target="_blank" title="' +
+        item.original.email +
+        '">' +
+        item.original.value +
+        "</a></span>"
+      );
+    }
+
+    return "@" + item.original.value;
+  },
+  requireLeadingSpace: false
+});
+
+tribute.attach(document.getElementById("test"));
+tribute.attach(document.getElementById("testInput"));
+tribute.attach(document.getElementById("testarea"));
+
+const tributeMultipleTriggers = new Tribute({
+  collection: [
+    {
+      // The function that gets call on select that retuns the content to insert
+      selectTemplate: function(item) {
+        if (Tribute.isContentEditable(this.current.element)) {
+          return (
+            '<a href="http://zurb.com" title="' +
+            item.original.email +
+            '">@' +
+            item.original.value +
+            "</a>"
+          );
+        }
+
+        return "@" + item.original.value;
+      },
+
+      // the array of objects
+      values: [
+        {
+          key: "Jordan Humphreys",
+          value: "Jordan Humphreys",
+          email: "jordan@zurb.com"
+        },
+        {
+          key: "Sir Walter Riley",
+          value: "Sir Walter Riley",
+          email: "jordan+riley@zurb.com"
+        }
+      ]
+    },
+    {
+      // The symbol that starts the lookup
+      trigger: "#",
+      loadingItemTemplate: '<div style="padding: 16px">Loading</div>',
+      // The function that gets call on select that retuns the content to insert
+      selectTemplate: (item, tribute) => {
+        if (Tribute.isContentEditable(tribute.current.element)) {
+          return (
+            '<a href="mailto:' +
+            item.original.email +
+            '">#' +
+            item.original.name.replace() +
+            "</a>"
+          );
+        }
+
+        return "#" + item.original.name;
+      },
+      // function retrieving an array of objects
+      values: async (_) => {
+        let promise = new Promise((resolve, reject) => {
+          setTimeout(() => resolve([
+            { name: "Bob Bill", email: "bobbill@example.com" },
+            { name: "Steve Stevenston", email: "steve@example.com" }
+          ]), 1000);
+        });
+        let result = await promise;
+        return result;
+      },
+      lookup: "name",
+      fillAttr: "name"
+    }
+  ],
+  replaceTextSuffix:''
+});
+
+tributeMultipleTriggers.attach(document.getElementById("testMultiple"));
+
+document.getElementById("activateAt").addEventListener("mousedown", function(e) {
+  e.preventDefault();
+  const input = document.getElementById("testMultiple");
+
+  if (tributeMultipleTriggers.isActive) {
+    tributeMultipleTriggers.replaceText('');
+  }
+
+  tributeMultipleTriggers.showMenuForCollection(input,0);
+});
+
+document.getElementById("activateHash").addEventListener("mousedown", function(e) {
+  e.preventDefault();
+  const input = document.getElementById("testMultiple");
+
+  if (tributeMultipleTriggers.isActive) {
+    tributeMultipleTriggers.replaceText('');
+  }
+
+  tributeMultipleTriggers.showMenuForCollection(input,1);
+});
+
+document
+  .getElementById("test")
+  .addEventListener("tribute-replaced", function(e) {
+    console.log("Original Event:", e.detail.event);
+    console.log("Matched item:", e.detail.item);
+  });
+
+const noMatchRunOnce = false;
+document
+  .getElementById("test")
+  .addEventListener("tribute-no-match", function(e) {
+    if (noMatchRunOnce) return;
+    const values = [
+      {
+        key: "Cheese Tacos",
+        value: "Cheese Tacos",
+        email: "cheesetacos@zurb.com"
+      }
+    ];
+    tribute.appendCurrent(values);
+    noMatchRunOnce = true;
+  });
+
+const activateLink = document.getElementById("activateInput");
+
+if (activateLink) {
+  activateLink.addEventListener("mousedown", function(e) {
+    e.preventDefault();
+    const input = document.getElementById("test");
+
+    tribute.showMenuForCollection(input);
+  });
+}
+
+
+// example of Tribute in autocomplete mode
+
+const tributeAttributes = {
+  autocompleteMode: true,
+  noMatchTemplate: "",
+  values: [
+    { key: "Alabama", value: "Alabama" },
+    { key: "Alaska", value: "Alaska" },
+    { key: "Arizona", value: "Arizona" },
+    { key: "Arkansas", value: "Arkansas" },
+    { key: "California", value: "California" },
+    { key: "Colorado", value: "Colorado" },
+    { key: "Connecticut", value: "Connecticut" },
+    { key: "Delaware", value: "Delaware" },
+    { key: "Florida", value: "Florida" },
+    { key: "Georgia", value: "Georgia" },
+    { key: "Hawaii", value: "Hawaii" },
+    { key: "Idaho", value: "Idaho" },
+    { key: "Illinois", value: "Illinois" },
+    { key: "Indiana", value: "Indiana" },
+    { key: "Iowa", value: "Iowa" },
+    { key: "Kansas", value: "Kansas" },
+    { key: "Kentucky", value: "Kentucky" },
+    { key: "Louisiana", value: "Louisiana" },
+    { key: "Maine", value: "Maine" },
+    { key: "Maryland", value: "Maryland" },
+    { key: "Massachusetts", value: "Massachusetts" },
+    { key: "Michigan", value: "Michigan" },
+    { key: "Minnesota", value: "Minnesota" },
+    { key: "Mississippi", value: "Mississippi" },
+    { key: "Missouri", value: "Missouri" },
+    { key: "Montana", value: "Montana" },
+    { key: "Nebraska", value: "Nebraska" },
+    { key: "Nevada", value: "Nevada" },
+    { key: "New Hampshire", value: "New Hampshire" },
+    { key: "New Jersey", value: "New Jersey" },
+    { key: "New Mexico", value: "New Mexico" },
+    { key: "New York", value: "New York" },
+    { key: "North Carolina", value: "North Carolina" },
+    { key: "North Dakota", value: "North Dakota" },
+    { key: "Ohio", value: "Ohio" },
+    { key: "Oklahoma", value: "Oklahoma" },
+    { key: "Oregon", value: "Oregon" },
+    { key: "Pennsylvania", value: "Pennsylvania" },
+    { key: "Rhode Island", value: "Rhode Island" },
+    { key: "South Carolina", value: "South Carolina" },
+    { key: "South Dakota", value: "South Dakota" },
+    { key: "Tennessee", value: "Tennessee" },
+    { key: "Texas", value: "Texas" },
+    { key: "Utah", value: "Utah" },
+    { key: "Vermont", value: "Vermont" },
+    { key: "Virginia", value: "Virginia" },
+    { key: "Washington", value: "Washington" },
+    { key: "West Virginia", value: "West Virginia" },
+    { key: "Wisconsin", value: "Wisconsin" },
+    { key: "Wyoming", value: "Wyoming" }
+  ],
+  selectTemplate: function(item) {
+    if (typeof item === "undefined") return null;
+    if (Tribute.isContentEditable(this.current.element)) {
+      return (
+        '<span contenteditable="false"><a>' +
+        item.original.key +
+        "</a></span>"
+      );
+    }
+
+    return item.original.value;
+  },
+  menuItemTemplate: function(item) {
+    return item.string;
+  },
+  menuShowMinLength: 2
+};
+const tributeAutocompleteTest = new Tribute(
+  Object.assign(
+    {
+      menuContainer: document.getElementById(
+        "test-autocomplete-container"
+      )
+    },
+    tributeAttributes
+  )
+);
+tributeAutocompleteTest.attach(
+  document.getElementById("test-autocomplete")
+);
+
+const tributeAutocompleteTestArea = new Tribute(
+  Object.assign(
+    {
+      menuContainer: document.getElementById(
+        "test-autocomplete-textarea-container"
+      )
+    },
+    tributeAttributes
+  )
+);
+tributeAutocompleteTestArea.attach(
+  document.getElementById("test-autocomplete-textarea")
+);
+
+// Grouping example
+
+const tributeGroupEx = new Tribute({
+  values: [
+    { key: "SUVs", value: "SUVs", disabled:true },
+    { key: "Ford Explorer", value: "Ford Explorer" },
+    { key: "Toyota RAV4", value: "Toyota RAV4" },
+    { key: "Jeep Rangler", value: "Jeep Rangler" },
+    { key: "Sedans", value: "Sedans", disabled: true },
+    { key: "Honda Accord", value: "Honda Accord" },
+    { key: "Toyota Corolla", value: "Toyota Corolla" },
+    { key: "Mazda6", value: "Mazda6" },
+    { key: "Coupes", value: "Coupes", disabled:true },
+    { key: "Honda Civic", value: "Honda Civic" },
+    { key: "BMW 4 Series", value: "BMW 4 Series" },
+    { key: "Lexus LC", value: "Lexus LC" }
+  ],
+  selectTemplate: function(item) {
+    if (typeof item === "undefined") return null;
+    if (Tribute.isContentEditable(this.current.element)) {
+      return (
+        '<a href="http://zurb.com" target="_blank" contenteditable="false">@' +
+        item.original.value +
+        "</span>"
+      );
+    }
+
+    return "@" + item.original.value;
+  },
+  menuItemTemplate: function(item, tribute, { h }) {
+    if (item.original.disabled) {
+      return h('div', item.html, { style: 'background-color:blue;color:white;margin:-5px;padding:5px;cursor:auto' });
+    }
+    return h('div', item.html, { style: 'cursor:pointer;padding-left:10px' });
+  },
+});
+
+tributeGroupEx.attach(
+  document.getElementById("test-grouped")
+);
