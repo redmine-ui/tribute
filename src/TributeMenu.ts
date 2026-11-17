@@ -5,7 +5,7 @@ import type { Collection, Coordinate, ITributeContext, ITributeMenu, StringOrEle
 export const DEFAULT_MENU_OPTION: Readonly<Required<TributeMenuOption>> = {
   maxHeight: 500,
   maxWidth: 300,
-  position: 'absolute',
+  position: 'fixed',
   scrollResetDelay: 0,
 };
 
@@ -176,22 +176,25 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     const maxWidth = coordinates.maxWidth ?? opt.maxWidth;
     const position = coordinates.position ?? opt.position;
 
-    this.element.style.cssText = `top: ${coordinates.top}px;
-                                   left: ${coordinates.left}px;
-                                   right: ${coordinates.right}px;
-                                   bottom: ${coordinates.bottom}px;
+    const toPxOrValue = (val: number | string | undefined) => {
+      if (val === undefined) return 'auto';
+      if (typeof val === 'number') return `${val}px`;
+      return val;
+    };
+
+    const top = toPxOrValue(coordinates.top);
+    const left = toPxOrValue(coordinates.left);
+    const right = toPxOrValue(coordinates.right);
+    const bottom = toPxOrValue(coordinates.bottom);
+
+    this.element.style.cssText = `top: ${top};
+                                   left: ${left};
+                                   right: ${right};
+                                   bottom: ${bottom};
                                    max-height: ${maxHeight}px;
                                    max-width: ${maxWidth}px;
                                    position: ${position};
                                    display: block;`;
-
-    if (coordinates.left === 'auto') {
-      this.element.style.left = 'auto';
-    }
-
-    if (coordinates.top === 'auto') {
-      this.element.style.top = 'auto';
-    }
   }
 
   getDimensions() {
@@ -234,7 +237,7 @@ class TributeMenu<T extends { disabled?: boolean }> implements ITributeMenu<T> {
     }
   }
 
-  private get menuOption(): Required<TributeMenuOption> {
+  get menuOption(): Required<TributeMenuOption> {
     const o = this.context.collection?.menuOption;
     return {
       maxHeight: o?.maxHeight ?? DEFAULT_MENU_OPTION.maxHeight,

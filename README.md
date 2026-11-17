@@ -197,17 +197,25 @@ Collection object shown with defaults:
   // specify the minimum number of characters that must be typed before menu appears
   menuShowMinLength: 0,
 
-  // optoion for menu appearance and behavior
-  menuOption: undefined,
-
   // specify a regex to define after which characters the autocomplete option should open
   // If null is used then it will not split the string & search in the whole line
   // default value is /\s+/ means it will split on whitespace when this is not specified
   autocompleteSeparator: /\s+/,
 
-  // An option to hide the tribute when scrolled
-  // defaults to false, can accept true, or a container to bind the scroll event to.
-  closeOnScroll: false,
+  // Menu placement and size. `position` decides how the menu is placed (see below).
+  // 'fixed': placed against the viewport; closed on scroll/resize by default.
+  // 'absolute': placed against the containing block of `menuContainer`; follows the caret on scroll/resize by default.
+  menuOption: {
+    position: 'fixed', // 'fixed' | 'absolute'
+    maxHeight: 500,
+    maxWidth: 300,
+    scrollResetDelay: 0,
+  },
+
+  // Optional: overrides the default scroll/resize behavior chosen by `menuOption.position`.
+  // If omitted: `true` for 'fixed', `false` for 'absolute'.
+  // true: close the menu / false: reposition the menu / HTMLElement: close when that element scrolls (resize closes it).
+  closeOnScroll: undefined,
 
   // Set maximum number of items added to the input for the specific Collection, if no limit, set to null.
   maxDisplayItems: null,
@@ -219,6 +227,49 @@ Collection object shown with defaults:
   debounce: undefined,
 }
 ```
+
+### `menuOption.position`
+
+Controls how the menu is positioned relative to the caret. Default: `'fixed'`.
+
+```js
+const tribute = new Tribute({
+  values: [...],
+  menuOption: {
+    position: 'absolute', // 'fixed' (default) | 'absolute'
+  },
+});
+```
+
+| | `'fixed'` (default) | `'absolute'` |
+| --- | --- | --- |
+| Positioned relative to | The viewport | The containing block of `menuContainer` (see below) |
+| When the page or a scroll container scrolls | The menu stays at the same screen position, so it would drift away from the caret. By default it is **closed**. | The menu scrolls together with its container and stays next to the caret. By default it stays **open**. |
+| When the window is resized | Closed by default | Repositioned by default |
+| Best for | Simple pages, no scrolling around the input | Inputs inside scrollable pages, modals, or panels |
+
+You do not need to set `closeOnScroll` for either mode. It defaults to the behavior that fits the chosen `position` (see below).
+
+#### Using `position: 'absolute'`
+
+- The menu is placed relative to the nearest **positioned** ancestor (`position` other than `static`) of `menuContainer`. If there is none, it is placed relative to the document. Borders and scroll offsets of that ancestor are taken into account.
+- If the input is inside a scrollable element (for example, a modal with `overflow: auto`), set `menuContainer` to an element **inside** that scrollable element. Otherwise the menu will not scroll with the input.
+- If `menuContainer` has `transform`, `filter`, or `will-change: transform`, it becomes the containing block for absolutely positioned children. This is not detected automatically, so give the container `position: relative` explicitly.
+- Whether the menu flips above or to the left of the caret is decided from the available space in the **viewport**, not in `menuContainer`. If the container has `overflow: hidden`, the menu may be clipped.
+
+```js
+const tribute = new Tribute({
+  values: [...],
+  menuContainer: document.querySelector('.modal-body'), // scrollable, position: relative
+  menuOption: { position: 'absolute' },
+});
+```
+
+### `closeOnScroll`
+
+An optional setting that overrides what happens to an open menu when the page is scrolled or resized. Most users do not need it.
+
+Default: not set. When not set, the effective value follows `menuOption.position`:
 
 ### Dynamic lookup column
 
