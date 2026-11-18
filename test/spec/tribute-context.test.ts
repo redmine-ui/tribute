@@ -47,6 +47,12 @@ function createMockTribute<T extends {}>(overrides: Partial<ITribute<T>> = {}) {
       record('menu.showLoading', args);
       return false;
     },
+    menuOption: {
+      position: 'fixed',
+      maxHeight: 500,
+      maxWidth: 300,
+      scrollResetDelay: 0,
+    },
   };
 
   const range: ITributeRange<T> = {

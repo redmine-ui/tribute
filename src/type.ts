@@ -6,7 +6,7 @@ export interface ITribute<T extends {}> {
   autocompleteSeparator: RegExp | null;
   allowSpaces: boolean;
   bindMenuEvents(context: ITributeContext<T>): void;
-  closeOnScroll: boolean | HTMLElement;
+  closeOnScroll?: boolean | HTMLElement;
   current?: ITributeContext<T>;
   contextFor(element: HTMLElement): ITributeContext<T>;
   collection: Collection<T>[];
@@ -49,6 +49,7 @@ export interface ITributeContext<T extends {}> {
   consumeExternalTrigger(): boolean;
   htmlHelper: HtmlHelper;
   hideMenu(): void;
+  closeOnScroll?: boolean | HTMLElement;
 }
 
 export type Coordinate = {
@@ -87,6 +88,7 @@ export interface ITributeMenu<T extends {}> {
   down(count: number): void;
   unselect(): void;
   showLoading(template: StringOrElementTemplate<T>): boolean;
+  menuOption: Required<TributeMenuOption>;
 }
 
 export interface ITributeEvents {

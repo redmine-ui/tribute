@@ -136,6 +136,87 @@ function getFixedCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeCon
   return coordinates;
 }
 
+function getContainingBlock(container: Element, doc: Document): HTMLElement | null {
+  const win = doc.defaultView;
+  if (!win || !isHTMLElement(container)) return null;
+
+  let el: HTMLElement | null = container;
+  while (el && el !== doc.documentElement) {
+    if (win.getComputedStyle(el).position !== 'static') return el;
+    el = el.parentElement;
+  }
+  return null;
+}
+
+function getAbsoluteCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeContext<T>, rect: Rect): Coordinate {
+  const win = range.getWindow();
+  const doc = range.getDocument();
+  const menuContainer: Element = range.context.tribute.menuContainer ?? doc.body;
+
+  const containingBlock = getContainingBlock(menuContainer, doc);
+
+  let caretLeft: number;
+  let caretTop: number;
+
+  if (containingBlock) {
+    const cbRect = containingBlock.getBoundingClientRect();
+    caretLeft = rect.left - (cbRect.left + containingBlock.clientLeft) + containingBlock.scrollLeft;
+    caretTop = rect.top - (cbRect.top + containingBlock.clientTop) + containingBlock.scrollTop;
+  } else {
+    const scrollLeft = win.scrollX ?? win.pageXOffset ?? doc.documentElement?.scrollLeft ?? doc.body?.scrollLeft ?? 0;
+    const scrollTop = win.scrollY ?? win.pageYOffset ?? doc.documentElement?.scrollTop ?? doc.body?.scrollTop ?? 0;
+    caretLeft = rect.left + scrollLeft;
+    caretTop = rect.top + scrollTop;
+  }
+
+  const coordinates: Coordinate = {
+    position: 'absolute',
+    left: caretLeft,
+    top: caretTop + rect.height,
+  };
+
+  const menuDimensions = range.context.menu.getDimensions();
+
+  const availableSpaceOnTop = rect.top;
+  const availableSpaceOnBottom = win.innerHeight - (rect.top + rect.height);
+  const availableSpaceOnLeft = rect.left;
+  const availableSpaceOnRight = win.innerWidth - rect.left;
+
+  const height = menuDimensions.height;
+  if (height !== null && availableSpaceOnBottom < height) {
+    if (availableSpaceOnTop >= height) {
+      coordinates.top = caretTop - height;
+    } else if (availableSpaceOnTop > availableSpaceOnBottom) {
+      coordinates.maxHeight = availableSpaceOnTop;
+      coordinates.top = caretTop - availableSpaceOnTop;
+    } else {
+      coordinates.maxHeight = availableSpaceOnBottom;
+    }
+  }
+
+  const width = menuDimensions.width;
+  if (width !== null && availableSpaceOnRight < width) {
+    if (availableSpaceOnLeft >= width) {
+      coordinates.left = caretLeft - width;
+    } else if (availableSpaceOnLeft > availableSpaceOnRight) {
+      coordinates.maxWidth = availableSpaceOnLeft;
+      coordinates.left = caretLeft - availableSpaceOnLeft;
+    } else {
+      coordinates.maxWidth = availableSpaceOnRight;
+    }
+  }
+
+  return coordinates;
+}
+
+function getCoordinatesRelativeToRect<T extends {}>(range: ITributeRangeContext<T>, rect: Rect): Coordinate {
+  const position = range.context.collection?.menuOption?.position;
+  if (position === 'absolute') {
+    return getAbsoluteCoordinatesRelativeToRect(range, rect);
+  }
+  return getFixedCoordinatesRelativeToRect(range, rect);
+}
+
 function getLastWordInText<T extends {}>(range: ITributeRangeContext<T>, text: string): string | undefined {
   let wordsArray: string[] | undefined;
   const separator = range.context.tribute.autocompleteSeparator;
@@ -400,7 +481,6 @@ export const textAreaOrInputRangeHandler = {
       div.style.wordWrap = 'break-word';
     }
 
-    div.style.position = 'absolute';
     div.style.visibility = 'hidden';
 
     for (const prop of properties) {
@@ -420,7 +500,7 @@ export const textAreaOrInputRangeHandler = {
 
     const spanRect = span.getBoundingClientRect();
     doc.body.removeChild(div);
-    return getFixedCoordinatesRelativeToRect(range, spanRect);
+    return getCoordinatesRelativeToRect(range, spanRect);
   },
 
   replaceTriggerText<T extends {}>(range: ITributeRangeContext<T>, info: TriggerInfo, text: string | HTMLElement, element: HTMLElement): void {
@@ -497,7 +577,7 @@ export const contentEditableRangeHandler = {
 
     const rect = r.getBoundingClientRect();
 
-    return getFixedCoordinatesRelativeToRect(range, rect);
+    return getCoordinatesRelativeToRect(range, rect);
   },
 
   replaceTriggerText<T extends {}>(range: ITributeRangeContext<T>, info: TriggerInfo, text: string | HTMLElement, _element: HTMLElement): void {

@@ -48,6 +48,13 @@ class TributeContext<T extends {}> implements ITributeContext<T> {
     return this.state.kind === 'idle' ? undefined : this.state.trigger;
   }
 
+  get closeOnScroll() {
+    const setting = this.tribute.closeOnScroll;
+
+    if (setting !== undefined) return setting;
+    return this.menu.menuOption.position === 'fixed';
+  }
+
   private setActive(value: boolean) {
     if (this.#isActive !== value) {
       this.#isActive = value;

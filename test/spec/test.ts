@@ -1292,9 +1292,8 @@ describe('closeOnScroll tests', () => {
     simulateElementScroll(window);
 
     // Need a slight delay otherwise we'll check for the result to fast
-    setTimeout(() => {
-      expect(tribute.isActive).to.be.false;
-    }, 50);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tribute.isActive).to.be.false;
 
     detachTribute(tribute, input.id);
   });
@@ -1319,14 +1318,13 @@ describe('closeOnScroll tests', () => {
     simulateElementScroll(container);
 
     // Need a slight delay otherwise we'll check for the result to fast
-    setTimeout(() => {
-      expect(tribute.isActive).to.be.false;
-    }, 50);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tribute.isActive).to.be.false;
 
     detachTribute(tribute, input.id);
   });
 
-  it('Tribute should not close when scrolled without the closeOnScroll set', async () => {
+  it('Tribute should close when scrolled without menuOption.position "fixed"', async () => {
     const input = createDomElement();
 
     const collectionObject: PartialCollection<PersonWithEmail> = {
@@ -1344,9 +1342,8 @@ describe('closeOnScroll tests', () => {
     simulateElementScroll(window);
 
     // Need a slight delay otherwise we'll check for the result to fast
-    setTimeout(() => {
-      expect(tribute.isActive).to.be.true;
-    }, 50);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(tribute.isActive).to.be.false;
 
     detachTribute(tribute, input.id);
   });
@@ -1378,5 +1375,124 @@ describe('Tribute keyboard navigation', () => {
     expect(input.value).to.equal('@zzz');
     // expect(tribute.current?.menu.selected).to.equal(-1);
     detachTribute(tribute, input.id);
+  });
+});
+
+describe('menuOption position tests', () => {
+  afterEach(() => {
+    clearDom();
+  });
+
+  it('defaults to position: fixed when menuOption is not specified', async () => {
+    const input = createDomElement();
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      trigger: '@',
+      values: [{ key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' }],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
+
+    const menu = document.querySelector<HTMLElement>('.tribute-container');
+    expect(menu?.style.position).to.equal('fixed');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('uses position: absolute when specified in menuOption', async () => {
+    const input = createDomElement();
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      trigger: '@',
+      menuOption: {
+        position: 'absolute',
+      },
+      values: [{ key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' }],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
+
+    const menu = document.querySelector<HTMLElement>('.tribute-container');
+    expect(menu?.style.position).to.equal('absolute');
+    expect(menu?.style.bottom).to.equal('auto');
+    expect(menu?.style.right).to.equal('auto');
+
+    detachTribute(tribute, input.id);
+  });
+
+  it('calculates absolute coordinates relative to menuContainer when specified', async () => {
+    let input = createDomElement();
+    const container = input.parentElement;
+    if (container === null) throw new Error();
+    container.style.position = 'relative';
+
+    const collectionWithContainer: PartialCollection<PersonWithEmail> = {
+      trigger: '@',
+      menuContainer: container,
+      menuOption: {
+        position: 'absolute',
+      },
+      values: [{ key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' }],
+    };
+
+    const tribute1 = attachTribute(collectionWithContainer, input.id);
+    await fillIn(input, '@');
+    const menuWithContainer = container.querySelector<HTMLElement>('.tribute-container');
+    expect(menuWithContainer).to.not.be.null;
+    if (menuWithContainer === null) throw new Error();
+    expect(menuWithContainer.style.position).to.equal('absolute');
+    const rectWithContainer = menuWithContainer.getBoundingClientRect();
+    detachTribute(tribute1, input.id);
+    clearDom();
+
+    input = createDomElement();
+    const collectionWithoutContainer: PartialCollection<PersonWithEmail> = {
+      trigger: '@',
+      menuOption: {
+        position: 'absolute',
+      },
+      values: [{ key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' }],
+    };
+
+    const tribute2 = attachTribute(collectionWithoutContainer, input.id);
+    await fillIn(input, '@');
+    const menuWithoutContainer = document.querySelector<HTMLElement>('.tribute-container');
+    expect(menuWithoutContainer).to.not.be.null;
+    if (menuWithoutContainer === null) throw new Error();
+    const rectWithoutContainer = menuWithoutContainer.getBoundingClientRect();
+    detachTribute(tribute2, input.id);
+
+    expect(Math.round(rectWithContainer.top)).to.equal(Math.round(rectWithoutContainer.top));
+    expect(Math.round(rectWithContainer.left)).to.equal(Math.round(rectWithoutContainer.left));
+  });
+
+  it('includes page scroll offsets in absolute coordinates when window is scrolled', async () => {
+    const input = createDomElement();
+    const spacer = document.createElement('div');
+    spacer.style.height = '1500px';
+    document.body.appendChild(spacer);
+
+    const collectionObject: PartialCollection<PersonWithEmail> = {
+      trigger: '@',
+      menuOption: {
+        position: 'absolute',
+      },
+      values: [{ key: 'Jordan Humphreys', value: 'Jordan Humphreys', email: 'getstarted@zurb.com' }],
+    };
+
+    const tribute = attachTribute(collectionObject, input.id);
+    await fillIn(input, '@');
+
+    const menu = document.querySelector<HTMLElement>('.tribute-container');
+    expect(menu).to.not.be.null;
+    if (menu === null) throw new Error();
+
+    const inputRect = input.getBoundingClientRect();
+    const menuTop = parseFloat(menu.style.top);
+    // Menu opens downwards, so menuTop should be approximately inputRect.bottom + window.scrollY
+    expect(Math.round(menuTop)).to.be.closeTo(Math.round(inputRect.bottom + window.scrollY), 5);
+
+    detachTribute(tribute, input.id);
+    spacer.remove();
   });
 });

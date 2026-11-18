@@ -13,11 +13,12 @@ class TributeMenuEvents<T extends {}> {
   bind(context: ITributeContext<T>) {
     if (this.removersMap.has(context)) return;
 
-    const menuContainerScrollEvent = debounce(() => {
+    const reposition = debounce(() => {
       if (context.isActive && context.element) {
-        this.tribute.showMenuFor(context.element, false);
+        context.range.positionMenuAtCaret(false);
       }
     }, 10);
+
     const hideMenu = debounce(() => {
       if (context.isActive) {
         context.hideMenu();
@@ -27,21 +28,54 @@ class TributeMenuEvents<T extends {}> {
     const removers: (() => void)[] = [];
     const doc = context.range.getDocument();
     const win = context.range.getWindow();
+    const menuContainer = this.tribute.menuContainer;
+    const explicitTarget = this.tribute.closeOnScroll;
 
     removers.push(addHandler(doc, 'mousedown', (event: Event) => this.click(context, event), false));
-    removers.push(addHandler(win, 'resize', hideMenu));
 
-    if (this.tribute.closeOnScroll === true) {
-      removers.push(addHandler(win, 'scroll', hideMenu));
-    } else if (this.tribute.closeOnScroll !== false) {
-      removers.push(addHandler(this.tribute.closeOnScroll, 'scroll', hideMenu, false));
-    } else {
-      if (this.tribute.menuContainer) {
-        removers.push(addHandler(this.tribute.menuContainer, 'scroll', menuContainerScrollEvent, false));
-      } else {
-        removers.push(addHandler(win, 'scroll', menuContainerScrollEvent));
-      }
+    removers.push(
+      addHandler(win, 'resize', () => {
+        if (context.closeOnScroll === false) {
+          reposition();
+        } else {
+          hideMenu();
+        }
+      }),
+    );
+
+    removers.push(
+      addHandler(win, 'scroll', () => {
+        const mode = context.closeOnScroll;
+        if (mode === true) {
+          hideMenu();
+        } else if (mode === false && !menuContainer) {
+          reposition();
+        }
+      }),
+    );
+
+    if (menuContainer) {
+      removers.push(
+        addHandler(
+          menuContainer,
+          'scroll',
+          () => {
+            const mode = context.closeOnScroll;
+            if (mode === true) {
+              hideMenu();
+            } else if (mode === false) {
+              reposition();
+            }
+          },
+          false,
+        ),
+      );
     }
+
+    if (isHTMLElement(explicitTarget)) {
+      removers.push(addHandler(explicitTarget, 'scroll', hideMenu, false));
+    }
+
     this.removersMap.set(context, removers);
   }
 
@@ -72,7 +106,6 @@ class TributeMenuEvents<T extends {}> {
 
       const index = li.getAttribute('data-index');
       context.selectionConfirmed(event, index);
-
       // TODO: should fire with externalTrigger and target is outside of menu
     } else if (!context.consumeExternalTrigger()) {
       setTimeout(() => context.hideMenu());

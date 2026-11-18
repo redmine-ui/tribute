@@ -49,7 +49,6 @@ const defaultConfig = {
   menuItemLimit: null,
   menuShowMinLength: 0,
   menuOption: undefined,
-  closeOnScroll: false,
   maxDisplayItems: null,
   isBlocked: false,
 } as const;
@@ -62,7 +61,7 @@ class Tribute<T extends {}> implements ITribute<T> {
   autocompleteSeparator: RegExp | null;
   collection: Collection<T>[];
   iframe?: HTMLIFrameElement;
-  closeOnScroll: boolean | HTMLElement;
+  closeOnScroll?: boolean | HTMLElement;
   currentMentionTextSnapshot?: string;
   hasTrailingSpace: boolean;
   menuContainer?: Element | null;
